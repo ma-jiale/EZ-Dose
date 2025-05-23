@@ -2,117 +2,85 @@ import serial
 import numpy as np
 import threading
 from subprocess import run
-from get_http import Client
+# from get_http import Client
 import time
 import struct
 
-
-def serial_handle(control): # 接收线程
-    # global control
-
-    while(control.recv_flag):
-        if(control.ser == None):
-            continue
-        # 读
-        try:
-            org = control.ser.readline().decode().strip()
-            # 确保在Jupyter中也能看到输出
-            if org:  # 只有当接收到内容时才打印
-                print(f"串口接收 >>> {org}")
-                
-            attr_list = org.split(":")
-            name = None
-            val = None
-            if(len(attr_list) >= 1):
-                name = attr_list[0]
-            if(len(attr_list) >= 2):
-                val = attr_list[1]
-
-            read_flag = False
-            if(name == "rfid"):
-                control.rfid = int(val)
-                control.DONE = True
-                read_flag = True
-                print(f"[RFID读取] 当前RFID: {control.rfid}")
-            elif(name == "machine_state"):
-                if(val == 'FINISH'):
-                    control.state = 3
-                    control.err_code = 0
-                    print("[状态更新] 分药完成")
-                elif(val == 'CNT_ERR'):
-                    control.state = 3
-                    control.err_code = 2
-                    print("[状态更新] 计数错误")
-            elif(name == "pill_remain"):
-                control.pill_remain = int(val)
-                print(f"[药片剩余] 当前剩余药片数量: {control.pill_remain}")
-                read_flag = True
-            elif(name == "ACK"):
-                control.ACK = True
-                print("[通信确认] 收到ACK")
-            elif(name == "DONE"):
-                control.DONE = True
-                print("[操作完成] 收到DONE")
-
-            #接收数据要回发ACK
-            if(read_flag):
-                control.send_package(b'\x0A', 0)
-        except Exception as e:
-            print(f"[错误] 串口接收处理异常: {e}")
-
-class Control:
-    def __init__(self, port) -> None:
+class Dispenser:
+    def __init__(self, port):
         self.port = port
+        # 打开串口
         try:
-            self.ser = serial.Serial(port, 115200)
+            self.ser = serial.Serial(self.port, 115200)
             self.ser.close()
             self.ser.open()
             self.ser.flushInput()
         except Exception:
             self.ser = None
-            print("serial open fail")
+            print("[错误] 无法打开串口，请检查连接")
+            return
 
-        #机器参数
-        #分药超时时间(s)
-        self.timeout = 5 * 60
-
-        #RFID信息
-        self.rfid = -1 #-1代表无
-        #唤醒开关 0 关 1 开
-        self.cam_state = 0
-        #机器状态 0：空闲; 1: 正在工作; 2: 暂停; 3.分药结束;
-        self.state = 0
-        #错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
-        self.err_code = 0
-        #药盘状态 0 关 1 开
-        self.plate_state = 0
-        #剩余药片
-        self.pill_remain = -1
-
+        #分药机相关参数
+        self.timeout = 5 * 60 # 分药超时时间(s)
+        self.rfid = -1 # RFID信息, -1代表无
+        self.cam_state = 0 # 摄像头状态 0 关 1 开
+        self.state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停; 3.分药结束;
+        self.err_code = 0 # 错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
+        self.plate_state = 0 #药盘状态 0 关 1 开
+        self.pill_remain = -1 #剩余药片数量
         self.pillList = None
-
-        self.recv_flag = False
+        self.recv_flag = False # 接收线程标志位
         self.send_start = False
         self.ACK = False
         self.DONE = False
         self.repeat = 5
 
-    def start(self): #程序开始
+    def start_dispenser_feedback_handler(self):
+        """
+        Start the serial receiver thread to handle feedback from the dispenser.
+        """
         if self.recv_flag:
             print("[警告] 接收线程已经在运行中")
             return
-
         self.recv_flag = True
-        #接收线程启动
-        self.serial_thread = threading.Thread(target=serial_handle, kwargs={"control": self})
+        self.serial_thread = threading.Thread(target=handle_dispenser_feedback, kwargs={"dispenser": self})
         self.serial_thread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         self.serial_thread.start()
         print("[启动] 串口接收线程已启动，现在可以看到所有串口消息")
 
-    def stop(self): #程序终止
-        if(self.ser != None):
-            self.ser.close()
+    def stop_dispenser_feedback_handler(self):
+        """
+        Stop the serial receiver thread and close the serial connection.
+        This method ensures clean shutdown of all communication resources.
+        """
+        # First stop the receiving thread by setting the flag to False
         self.recv_flag = False
+
+        # Close the serial connection if it exists
+        if self.ser is not None:
+            try:
+                # Flush any remaining data before closing
+                self.ser.flush()
+                self.ser.close()
+                print("[关闭] 串口连接已关闭")
+            except Exception as e:
+                print(f"[错误] 关闭串口连接时发生异常: {e}")
+
+        # Wait for the thread to actually terminate if it exists
+        if hasattr(self, 'serial_thread') and self.serial_thread.is_alive():
+            try:
+                self.serial_thread.join(timeout=1.0)  # Wait up to 1 second for thread to end
+                if self.serial_thread.is_alive():
+                    print("[警告] 接收线程无法正常结束")
+            except Exception as e:
+                print(f"[错误] 停止接收线程时发生异常: {e}")
+                  
+        # Reset state variables
+        self.ACK = False
+        self.DONE = False
+        self.send_start = False
+        
+        print("[关闭] 分药机通信已停止")
     
 
     def wait_ACK(self, timeout):
@@ -125,9 +93,9 @@ class Control:
         t0 = time.time()
         while(time.time() - t0 < timeout and not self.DONE):
             pass
-        return self.ACK
-    def send_package(self, data, repeat): #data: bytes
-        
+        return self.DONE
+    
+    def send_package(self, data, repeat): # data: bytes
         if(self.send_start):
             print("[警告] 上一个发送尚未完成")
             return False
@@ -135,13 +103,12 @@ class Control:
         crc = 0
         for i in range(len(data)):
             crc = crc + data[i]
-
         self.ACK = False
         package = b'\xaa\xbb' + data + crc.to_bytes(2, 'little')
         self.ser.write(package)
         print(f"[发送] {package}")
-
-        for i in range(repeat): #超时重发
+        # 超时重发
+        for i in range(repeat):
             if(not self.wait_ACK(0.2)):
                 self.ser.write(package)
                 print(f"[重发 {i+1}/{repeat}] {package}")
@@ -152,18 +119,21 @@ class Control:
         self.send_start = False
         return self.ACK
         
-    def send_data(self, pillList): #pillList: array[4][7] dtype=np.byte
+    def send_data(self, pillList): # pillList: array[4][7] dtype=np.byte
         if(self.ser == None):
             return 0, 0
-
+        
         cmd = b'\x05'
         data = pillList.tobytes()
         ack = self.send_package(cmd + data, self.repeat)
         if(ack):
             self.state = 1     
         return ack
+    
+###########
+# 控制命令 #
+###########
 
-    ######################### 命令系列 ##########################
     #发处方
     # 该函数是阻塞式的，在分药结束后会返回err_code，多余的药量
     # err_code：
@@ -261,7 +231,9 @@ class Control:
         self.init()
         return self.send_pillList(self.pillList)
     
-    ############################# 设置参数系列 #############################
+#################
+# 设置分药机参数 #
+#################
 
     #转盘电机速度设置 speed(float32)
     def set_turnMotor_speed(self, speed): 
@@ -274,7 +246,7 @@ class Control:
     #传送带电机速度设置 speed(float32)
     def set_conveyorMotor_speed(self, speed): 
         cmd = b'\x08'
-        id = b'\x01'
+        id = b'\x01'    
         if(not self.send_package(cmd + id + struct.pack('<f',speed), self.repeat)):
             return 1
         return 0
@@ -332,30 +304,80 @@ class Control:
         if(not self.send_package(cmd + delay.to_bytes(4, 'little'), self.repeat)):
             return 1
         return 0
-    
-    
-#开屏幕
-def open_display():
-    run('vcgencmd display_power 1', shell=True)
-#关屏幕
-def close_display():
-    run('vcgencmd display_power 0', shell=True)
 
 
-def dfbyRFID(df, rfid):
-    return df.loc[df.patient==rfid]
+def handle_dispenser_feedback(dispenser):
+    """
+    这个函数用来接收分药机下位机通过串口传输的消息并对分药机实例属性进行更新
+    """
+    while(dispenser.recv_flag):
+        if(dispenser.ser == None):
+            continue
+        try:
+            org = dispenser.ser.readline().decode().strip() # 读取一行数据
+            if org:
+                print(f"串口接收 >>> {org}")
+            name = None
+            val = None
+            read_flag = False
+            attr_list = org.split(":")  # 分割字符串，获取属性名和属性值
+            if(len(attr_list) >= 1):
+                name = attr_list[0]
+            if(len(attr_list) >= 2):
+                val = attr_list[1]
 
-def df2np(data): #pandas df单行转4x7矩阵
-    pillList = np.zeros([4,7], dtype=np.byte)
-    if(data['morning_dosage']):
-        pillList[0,:] = 1
-    if(data['noon_dosage']):
-        pillList[1,:] = 1
-    if(data['evening_dosage']):
-        pillList[2,:] = 1
-    if(data['night_dosage']):
-        pillList[3,:] = 1
-    return pillList
+            if(name == "rfid"):
+                dispenser.rfid = int(val)
+                dispenser.DONE = True
+                read_flag = True
+                print(f"[RFID读取] 当前RFID: {dispenser.rfid}")
+            elif(name == "machine_state"):
+                if(val == 'FINISH'):
+                    dispenser.state = 3
+                    dispenser.err_code = 0
+                    print("[状态更新] 分药完成")
+                elif(val == 'CNT_ERR'):
+                    dispenser.state = 3
+                    dispenser.err_code = 2
+                    print("[状态更新] 计数错误")
+            elif(name == "pill_remain"):
+                dispenser.pill_remain = int(val)
+                print(f"[药片剩余] 当前剩余药片数量: {dispenser.pill_remain}")
+                read_flag = True
+            elif(name == "ACK"):
+                dispenser.ACK = True
+                print("[通信确认] 收到ACK")
+            elif(name == "DONE"):
+                dispenser.DONE = True
+                print("[操作完成] 收到DONE")
+            #接收数据后回发ACK
+            if(read_flag):
+                dispenser.send_package(b'\x0A', 0)
+        except Exception as e:
+            print(f"[错误] 串口接收处理异常: {e}")
+   
+# #开屏幕
+# def open_display():
+#     run('vcgencmd display_power 1', shell=True)
+# #关屏幕
+# def close_display():
+#     run('vcgencmd display_power 0', shell=True)
+
+
+# def dfbyRFID(df, rfid):
+#     return df.loc[df.patient==rfid]
+
+# def df2np(data): #pandas df单行转4x7矩阵
+#     pillList = np.zeros([4,7], dtype=np.byte)
+#     if(data['morning_dosage']):
+#         pillList[0,:] = 1
+#     if(data['noon_dosage']):
+#         pillList[1,:] = 1
+#     if(data['evening_dosage']):
+#         pillList[2,:] = 1
+#     if(data['night_dosage']):
+#         pillList[3,:] = 1
+#     return pillList
 
 
 
@@ -371,35 +393,37 @@ if __name__ == '__main__':
     # print(df)
     # print(df.shape[0])
 
-    control = Control("COM2")
-    control.start()
+    my_dispenser = Dispenser("COM6") # 根据实际串口修改
+    my_dispenser.start_dispenser_feedback_handler()
+    my_dispenser.init()
 
-    control.init()
-
-    #默认初始化完毕
-    #测试分药矩阵
+    # 创建测试分药矩阵
     pillList = np.zeros([4, 7], dtype=np.byte)
     for r in range(4):
-        for c in range(7):
-            pillList[r][c] = 1
-    if(control.send_data(pillList)):
-        print("开始分药")
-        control.state = 1
-        t0 = time.time()
-        last_pill_remain = -1
-        while(time.time() - t0 < control.timeout and (control.state != 3 or control.pill_remain == -1)):
-            # 每当pill_remain发生变化时打印
-            if control.pill_remain != last_pill_remain and control.pill_remain != -1:
-                print(f"[实时监控] 剩余药片数量: {control.pill_remain}")
-                last_pill_remain = control.pill_remain
-            time.sleep(0.1)  # 短暂休眠，减少CPU占用
-        if(control.state != 3 or control.pill_remain == -1): #分药超时未回复
-            print("[ERR]:分药超时未回复")
-        else:
-            print(f"分药结束，err_code:{control.err_code} pill_remain:{control.pill_remain}")
+        if r % 2 != 0:
+            for c in range(7):
+                if c % 2 == 0:
+                    pillList[r][c] = 1
+        if r % 2 == 0:
+            for c in range(7):
+                if c % 2 != 0:
+                    pillList[r][c] = 1
+    return_msg = my_dispenser.send_data(pillList)
+    print("开始分药")
+    my_dispenser.state = 1
+    t0 = time.time()
+    last_pill_remain = -1
+    while(time.time() - t0 < my_dispenser.timeout and (my_dispenser.state != 3 or my_dispenser.pill_remain == -1)):
+        # 每当pill_remain发生变化时打印
+        if my_dispenser.pill_remain != last_pill_remain and my_dispenser.pill_remain != -1:
+            print(f"[实时监控] 剩余药片数量: {my_dispenser.pill_remain}")
+            last_pill_remain = my_dispenser.pill_remain
+        time.sleep(0.1)  # 短暂休眠，减少CPU占用
+    if(my_dispenser.state != 3 or my_dispenser.pill_remain == -1): #分药超时未回复
+        print("[ERR]:分药超时未回复")
     else:
-        print("[ERR]:send timeout")
-    #control.send_pillList(df.loc[2])
-    control.stop()
-                                        
+        print(f"分药结束，err_code:{my_dispenser.err_code} pill_remain:{my_dispenser.pill_remain}")
+    # control.send_pillList(df.loc[2])
+    my_dispenser.stop_dispenser_feedback_handler()
+
 
