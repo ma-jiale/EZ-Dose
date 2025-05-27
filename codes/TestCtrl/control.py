@@ -56,15 +56,15 @@ class Dispenser:
         # First stop the receiving thread by setting the flag to False
         self.recv_flag = False
 
-        # Close the serial connection if it exists
-        if self.ser is not None:
-            try:
-                # Flush any remaining data before closing
-                self.ser.flush()
-                self.ser.close()
-                print("[关闭] 串口连接已关闭")
-            except Exception as e:
-                print(f"[错误] 关闭串口连接时发生异常: {e}")
+        # # Close the serial connection if it exists
+        # if self.ser is not None:
+        #     try:
+        #         # Flush any remaining data before closing
+        #         self.ser.flush()
+        #         self.ser.close()
+        #         print("[关闭] 串口连接已关闭")
+        #     except Exception as e:
+        #         print(f"[错误] 关闭串口连接时发生异常: {e}")
 
         # Wait for the thread to actually terminate if it exists
         if hasattr(self, 'serial_thread') and self.serial_thread.is_alive():
@@ -408,6 +408,7 @@ if __name__ == '__main__':
             for c in range(7):
                 if c % 2 != 0:
                     pillList[r][c] = 1
+    # print(pillList)
     return_msg = my_dispenser.send_data(pillList)
     print("开始分药")
     my_dispenser.state = 1
