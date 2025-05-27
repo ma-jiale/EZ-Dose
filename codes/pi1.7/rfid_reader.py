@@ -126,7 +126,7 @@ def split_frames(data):
     return frames
 
 
-def get_rfid(port='/dev/serial0', baudrate=115200, timeout=1):
+def get_rfid(port='COM9', baudrate=115200, timeout=1):
     """
     获取RFID EPC号。
     :param port: 串口端口号

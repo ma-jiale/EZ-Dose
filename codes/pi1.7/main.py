@@ -24,6 +24,7 @@ def to_list(patient_info, pill_list, pill_matrix):
     form2 = QtWidgets.QWidget()
     ui2.setupUi(form2)
     ui2.update_card()
+    worker_data.pill_count_detected.emit(20)
     form2.show()
     form1.hide()
     ui1.init_btn()
@@ -55,6 +56,7 @@ def open_dialog(kind, error_text = ""):
     ui_temp.setupUi(dialog)
     dialog.exec_()
     form1.show()
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(sys.exit)
@@ -84,7 +86,7 @@ if __name__ == "__main__":
 
     # 创建机器控制线程并初始化worker
     thread_ctrl = QtCore.QThread()
-    worker_ctrl = Control_thread("/dev/ttyUSB0")
+    worker_ctrl = Control_thread("COM6")
     worker_ctrl.moveToThread(thread_ctrl)
 
 

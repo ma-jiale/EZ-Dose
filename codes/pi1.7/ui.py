@@ -1,12 +1,11 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-import RPi.GPIO as GPIO
 import time
 
 def load_stylesheet(app):
     #载入样式表
     try:
-        with open('style.qss', 'r') as file:
+        with open('codes/pi1.7/style.qss', 'r') as file:
             app.setStyleSheet(file.read())
     except FileNotFoundError:
         print("样式表文件未找到。")
@@ -14,11 +13,11 @@ def load_stylesheet(app):
 def init_font():
     #载入字体
     font_files = [
-        "font/HarmonyOS_Sans_SC_Regular.ttf",
-        "font/HarmonyOS_Sans_SC_Bold.ttf",
-        "font/HarmonyOS_Sans_SC_Light.ttf",
-        "font/HarmonyOS_Sans_SC_Black.ttf",
-        "font/HarmonyOS_Sans_SC_Thin.ttf"
+        "codes/pi1.7/font/HarmonyOS_Sans_SC_Regular.ttf",
+        "codes/pi1.7/font/HarmonyOS_Sans_SC_Bold.ttf",
+        "codes/pi1.7/font/HarmonyOS_Sans_SC_Light.ttf",
+        "codes/pi1.7/font/HarmonyOS_Sans_SC_Black.ttf",
+        "codes/pi1.7/font/HarmonyOS_Sans_SC_Thin.ttf"
     ]
     for font_file in font_files:
         font_id = QtGui.QFontDatabase.addApplicationFont(font_file)
@@ -453,91 +452,91 @@ class Ui_Form2(QtCore.QObject):
         '''
         print("判定中")
         print(self.step)
-        if self.step == self.Pill_list_length and self.Pill_list_length > 0: # 若为最后一种药品 
-            if self.distrubuted_or_not: # 若完成分药，进入下一步，关闭摄像头，弹出成功弹窗
-                self.next_step()
-                self.layout.itemAt(self.Pill_list_length - 1).widget().update_status(self.pill_status[self.Pill_list_length - 1]) # 更新最后一张药物卡片的状态
-                self.cap_off.emit()
-                self.distrubuted_or_not = False
-                self.open_dialog.emit(1, "成功")
+        # if self.step == self.Pill_list_length and self.Pill_list_length > 0: # 若为最后一种药品 
+        #     if self.distrubuted_or_not: # 若完成分药，进入下一步，关闭摄像头，弹出成功弹窗
+        #         self.next_step()
+        #         self.layout.itemAt(self.Pill_list_length - 1).widget().update_status(self.pill_status[self.Pill_list_length - 1]) # 更新最后一张药物卡片的状态
+        #         self.cap_off.emit()
+        #         self.distrubuted_or_not = False
+        #         self.open_dialog.emit(1, "成功")
+        # elif self.step < self.Pill_list_length: # 若非最后一种药品
 
-        elif self.step < self.Pill_list_length: # 若非最后一种药品
-            # 初始化GPIO
-            GPIO.setmode(GPIO.BOARD)
-            servo_SIG = 32
-            servo_freq = 50
-            GPIO.setup(servo_SIG, GPIO.OUT)
-            servo = GPIO.PWM(servo_SIG, servo_freq)  # 50Hz
-            servo.start(0)  # 初始占空比为 0
-            servo.ChangeDutyCycle(self.servo_map(0))
+            # # 初始化GPIO
+            # GPIO.setmode(GPIO.BOARD)
+            # servo_SIG = 32
+            # servo_freq = 50
+            # GPIO.setup(servo_SIG, GPIO.OUT)
+            # servo = GPIO.PWM(servo_SIG, servo_freq)  # 50Hz
+            # servo.start(0)  # 初始占空比为 0
+            # servo.ChangeDutyCycle(self.servo_map(0))
         
-            self.progress_update(1, pill_count)
+            # self.progress_update(1, pill_count)
         
-            # 当药片数量大于或等于需求量且上一个药分完时
-            if pill_count >= self.Pill_list[self.step]['number'] and self.distrubuted_or_not:
-                self.start_distribute.emit(self.pill_matrix[self.step]) # 发送信号，开始分发药物
-                print("开始分药信号已发送")
-                self.distrubuted_or_not = False
-                self.distributing_or_not = True
+        #     # 当药片数量大于或等于需求量且上一个药分完时
+        #     if pill_count >= self.Pill_list[self.step]['number'] and self.distrubuted_or_not:
+        self.start_distribute.emit(self.pill_matrix[self.step]) # 发送信号，开始分发药物
+        print("开始分药信号已发送")
+        self.distrubuted_or_not = False
+        self.distributing_or_not = True
                
-                # 转到 180 度
-                servo.ChangeDutyCycle(self.servo_map(180))
-                time.sleep(0.5)
+        #     #     # 转到 180 度
+        #     #     servo.ChangeDutyCycle(self.servo_map(180))
+        #     #     time.sleep(0.5)
             
-                # 小幅度振动
-                for _ in range(30):
-                    servo.ChangeDutyCycle(self.servo_map(150))
-                    time.sleep(0.07)
-                    servo.ChangeDutyCycle(self.servo_map(180))
-                    time.sleep(0.07)
-                time.sleep(1)
-                print("num", pill_count)
+        #     #     # 小幅度振动
+        #     #     for _ in range(30):
+        #     #         servo.ChangeDutyCycle(self.servo_map(150))
+        #     #         time.sleep(0.07)
+        #     #         servo.ChangeDutyCycle(self.servo_map(180))
+        #     #         time.sleep(0.07)
+        #     #     time.sleep(1)
+        #     #     print("num", pill_count)
                 
-                if pill_count == 0:
-                    # 药片归零后，舵机回到初始位置
-                    servo.ChangeDutyCycle(self.servo_map(0))
-                    self.next_step()
-                    self.distributing_or_not = False
-                    print("药片已全部分发，舵机已复位")
+        #     #     if pill_count == 0:
+        #     #         # 药片归零后，舵机回到初始位置
+        #     #         servo.ChangeDutyCycle(self.servo_map(0))
+        #     #         self.next_step()
+        #     #         self.distributing_or_not = False
+        #     #         print("药片已全部分发，舵机已复位")
             
-            elif pill_count > 0 and pill_count < self.Pill_list[self.step]['number'] and not self.distributing_or_not:
-                # 药片数量不足时，小幅度振动提醒
-                for _ in range(10):
-                    servo.ChangeDutyCycle(self.servo_map(10))
-                    time.sleep(0.07)
-                    servo.ChangeDutyCycle(self.servo_map(0))
-                    time.sleep(0.07)
+        #     # elif pill_count > 0 and pill_count < self.Pill_list[self.step]['number'] and not self.distributing_or_not:
+        #     #     # 药片数量不足时，小幅度振动提醒
+        #     #     for _ in range(10):
+        #     #         servo.ChangeDutyCycle(self.servo_map(10))
+        #     #         time.sleep(0.07)
+        #     #         servo.ChangeDutyCycle(self.servo_map(0))
+        #     #         time.sleep(0.07)
             
-                # 复位到初始位置
-                #servo.ChangeDutyCycle(self.servo_map(0))
-                time.sleep(1)
-                print("药片数量不足，舵机振动")
+        #     #     # 复位到初始位置
+        #     #     #servo.ChangeDutyCycle(self.servo_map(0))
+        #     #     time.sleep(1)
+        #     #     print("药片数量不足，舵机振动")
             
-            elif pill_count > 0 and pill_count < self.Pill_list[self.step]['number'] and self.distributing_or_not:
-                # 小幅度振动
-                for _ in range(30):
-                    servo.ChangeDutyCycle(self.servo_map(150))
-                    time.sleep(0.07)
-                    servo.ChangeDutyCycle(self.servo_map(180))
-                    time.sleep(0.07)
-                time.sleep(1)
-                print("num", pill_count)
+        #     # elif pill_count > 0 and pill_count < self.Pill_list[self.step]['number'] and self.distributing_or_not:
+        #     #     # 小幅度振动
+        #     #     for _ in range(30):
+        #     #         servo.ChangeDutyCycle(self.servo_map(150))
+        #     #         time.sleep(0.07)
+        #     #         servo.ChangeDutyCycle(self.servo_map(180))
+        #     #         time.sleep(0.07)
+        #     #     time.sleep(1)
+        #     #     print("num", pill_count)
                 
-            elif pill_count == 0 and self.distributing_or_not :
-                    # 药片归零后，舵机回到初始位置
+        #     # elif pill_count == 0 and self.distributing_or_not :
+        #     #         # 药片归零后，舵机回到初始位置
                     
-                    servo.ChangeDutyCycle(self.servo_map(0))
-                    time.sleep(0.5)
+        #     #         servo.ChangeDutyCycle(self.servo_map(0))
+        #     #         time.sleep(0.5)
                     
-                    self.next_step()
-                    self.distributing_or_not = False
-                    print("药片已全部分发，舵机已复位")
+        #     #         self.next_step()
+        #     #         self.distributing_or_not = False
+        #     #         print("药片已全部分发，舵机已复位")
         
-            # 停止PWM并清理GPIO
-            servo.ChangeDutyCycle(0)
+        #     # # 停止PWM并清理GPIO
+        #     # servo.ChangeDutyCycle(0)
         
-        else:
-            return
+        # else:
+        #     return
 
     def on_click(self):
         self.return_to_main.emit()

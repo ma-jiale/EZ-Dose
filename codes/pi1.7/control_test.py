@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 from control import *
 from rfid_reader import get_rfid
 
-control = Control("/dev/ttyUSB0")
+control = Control("COM6")
 control.repeat = 0
 
 
