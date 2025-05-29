@@ -134,42 +134,42 @@ class Dispenser:
 # 控制命令 #
 ###########
 
-    #发处方
-    # 该函数是阻塞式的，在分药结束后会返回err_code，多余的药量
-    # err_code：
-    #   0: 正常分药结束
-    #   1：超时未响应
-    # 每次发一种药的分药方案，示例：第0行的药
-    def send_pillList(self, df_line):
-        self.pillList = df_line
-        if(self.send_data(df2np(df_line))):
-            self.state = 1
-            t0 = time.time()
-            while(time.time() - t0 < self.timeout and (self.state != 3 or self.pill_remain == -1)):
-                pass
-            if(self.state != 3 or self.pill_remain == -1): #分药超时未回复
-                return 1, 0
-            return self.err_code, self.pill_remain
+    # #发处方
+    # # 该函数是阻塞式的，在分药结束后会返回err_code，多余的药量
+    # # err_code：
+    # #   0: 正常分药结束
+    # #   1：超时未响应
+    # # 每次发一种药的分药方案，示例：第0行的药
+    # def send_pillList(self, df_line):
+    #     self.pillList = df_line
+    #     if(self.send_data(df2np(df_line))):
+    #         self.state = 1
+    #         t0 = time.time()
+    #         while(time.time() - t0 < self.timeout and (self.state != 3 or self.pill_remain == -1)):
+    #             pass
+    #         if(self.state != 3 or self.pill_remain == -1): #分药超时未回复
+    #             return 1, 0
+    #         return self.err_code, self.pill_remain
             
 
-    #获取rfid
-    #返回RFID和err_code
-    #RFID=-1则没检测到RFID
-    # err_code：
-    #   0: 正常分药结束
-    #   1：超时未响应
-    def get_rfid(self):
-        cmd = b'\x02'
-        if(not self.send_package(cmd, self.repeat)):
-            return -1
-        t0 = time.time()
-        while(time.time() - t0 < 1 and not self.DONE):
-            pass
-        err_code = 0
-        if(not self.DONE):
-            err_code = 1
-        self.DONE = False
-        return self.rfid, err_code
+    # #获取rfid
+    # #返回RFID和err_code
+    # #RFID=-1则没检测到RFID
+    # # err_code：
+    # #   0: 正常分药结束
+    # #   1：超时未响应
+    # def get_rfid(self):
+    #     cmd = b'\x02'
+    #     if(not self.send_package(cmd, self.repeat)):
+    #         return -1
+    #     t0 = time.time()
+    #     while(time.time() - t0 < 1 and not self.DONE):
+    #         pass
+    #     err_code = 0
+    #     if(not self.DONE):
+    #         err_code = 1
+    #     self.DONE = False
+    #     return self.rfid, err_code
     
     #开药盘
     # 阻塞式
