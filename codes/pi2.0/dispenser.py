@@ -1,52 +1,66 @@
 import serial
 import numpy as np
 import threading
-from subprocess import run
-# from get_http import Client
 import time
 import struct
 
 class Dispenser:
     def __init__(self, port):
+        """
+        初始化分药机实例, 使用pyserial库打开指定的串口, 并设置分药机的相关参数。
+        :param port: 串口名称，例如 'COM6' 或 '/dev/ttyUSB0'
+        """
+        # open serial port
         self.port = port
-        # 打开串口
         try:
-            self.ser = serial.Serial(self.port, 115200)
-            self.ser.close()
-            self.ser.open()
-            self.ser.flushInput()
-        except Exception:
+            self.ser = serial.Serial(
+                port=self.port, 
+                baudrate=115200,
+                timeout=1.0,  # 设置读取超时
+                write_timeout=1.0  # 设置写入超时
+            )
+            # 清空输入缓冲区
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            print(f"[成功] 串口 {self.port} 连接成功")
+        except serial.SerialException as e:
             self.ser = None
-            print("[错误] 无法打开串口，请检查连接")
+            print(f"[错误] 串口连接失败: {e}")
+            print(f"[提示] 请检查设备是否连接到 {self.port} 或端口是否被占用")
+            return
+        except Exception as e:
+            self.ser = None
+            print(f"[错误] 初始化串口时发生未知错误: {e}")
             return
 
-        #分药机相关参数
+        # 设置分药机相关参数
         self.timeout = 5 * 60 # 分药超时时间(s)
-        self.rfid = -1 # RFID信息, -1代表无
-        self.cam_state = 0 # 摄像头状态 0 关 1 开
-        self.state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停; 3.分药结束;
+        self.is_plate_open = False
+        self.is_receiver_thread_running = False # 接收串口信息线程是否在运行
+        self.is_send_package_start = False
+        # self.rfid = -1 # RFID信息, -1代表无
+        # self.cam_state = 0 # 摄像头状态 0 关 1 开
+        self.machine_state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停; 3.分药结束;
         self.err_code = 0 # 错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
-        self.plate_state = 0 #药盘状态 0 关 1 开
         self.pill_remain = -1 #剩余药片数量
         self.pillList = None
-        self.recv_flag = False # 接收线程标志位
-        self.send_start = False
+
         self.ACK = False
         self.DONE = False
-        self.repeat = 5
+        self.repeat = 5 # 重发指令次数
 
     def start_dispenser_feedback_handler(self):
         """
         Start the serial receiver thread to handle feedback from the dispenser.
         """
-        if self.recv_flag:
-            print("[警告] 接收线程已经在运行中")
+        if self.is_receiver_thread_running:
+            print("[警告] 串口信息接收线程已经在运行中")
             return
-        self.recv_flag = True
+        self.is_receiver_thread_running = True
         self.serial_thread = threading.Thread(target=handle_dispenser_feedback, kwargs={"dispenser": self})
         self.serial_thread.daemon = True  # 设置为守护线程，主线程结束时自动结束
         self.serial_thread.start()
-        print("[启动] 串口接收线程已启动，现在可以看到所有串口消息")
+        print("[启动] 串口信息接收线程已启动，现在可以看到所有串口消息")
 
     def stop_dispenser_feedback_handler(self):
         """
@@ -54,7 +68,7 @@ class Dispenser:
         This method ensures clean shutdown of all communication resources.
         """
         # First stop the receiving thread by setting the flag to False
-        self.recv_flag = False
+        self.is_receiver_thread_running = False
 
         # # Close the serial connection if it exists
         # if self.ser is not None:
@@ -69,167 +83,205 @@ class Dispenser:
         # Wait for the thread to actually terminate if it exists
         if hasattr(self, 'serial_thread') and self.serial_thread.is_alive():
             try:
-                self.serial_thread.join(timeout=1.0)  # Wait up to 1 second for thread to end
+                self.serial_thread.join(timeout=2.0)  # 增加超时时间到2秒
                 if self.serial_thread.is_alive():
-                    print("[警告] 接收线程无法正常结束")
+                    print("[警告] 串口信息接收线程无法正常结束，可能存在阻塞")
+                    print("[提示] 建议检查串口读取是否存在死锁")
+                else:
+                    print("[成功] 串口信息接收线程已正常结束")
             except Exception as e:
                 print(f"[错误] 停止接收线程时发生异常: {e}")
+        elif hasattr(self, 'serial_thread'):
+            print("[信息] 串口接收线程已经停止")
+        else:
+            print("[信息] 串口接收线程尚未创建")
                   
         # Reset state variables
         self.ACK = False
         self.DONE = False
-        self.send_start = False
-        
-        print("[关闭] 分药机通信已停止")
+        self.is_send_package_start = False
     
 
     def wait_ACK(self, timeout):
+        """
+        等待分药机的ACK确认信号。
+        :param timeout: 等待ACK的超时时间（秒）
+        :return: 如果在超时时间内收到ACK，返回True，否则返回False。
+        """
         t0 = time.time()
         while(time.time() - t0 < timeout and not self.ACK):
             pass
         return self.ACK
     
     def wait_DONE(self, timeout):
+        """
+        等待分药机的DONE信号，表示操作完成。
+        :param timeout: 等待DONE的超时时间（秒）
+        :return: 如果在超时时间内收到DONE，返回True，否则返回False。
+        """
         t0 = time.time()
         while(time.time() - t0 < timeout and not self.DONE):
             pass
         return self.DONE
     
-    def send_package(self, data, repeat): # data: bytes
-        if(self.send_start):
+    def send_package(self, data, repeat):
+        """
+        发送数据包到分药机，并等待ACK确认。
+        :param data: 要发送的数据包，必须是字节类型。
+        :param repeat: 重发次数，如果发送失败则重发。
+        :return: 如果成功收到ACK，返回True，否则返回False。
+        """
+        # 检查串口状态
+        if self.ser is None:
+            print("[错误] 串口未连接，无法发送数据")
+            return False
+            
+        # 检查发送状态
+        if self.is_send_package_start:
             print("[警告] 上一个发送尚未完成")
             return False
-        self.send_start = True
-        crc = 0
-        for i in range(len(data)):
-            crc = crc + data[i]
-        self.ACK = False
-        package = b'\xaa\xbb' + data + crc.to_bytes(2, 'little')
-        self.ser.write(package)
-        print(f"[发送] {package}")
-        # 超时重发
-        for i in range(repeat):
-            if(not self.wait_ACK(0.2)):
+        
+        # 参数验证
+        if not isinstance(data, (bytes, bytearray)):
+            print("[错误] 数据必须是字节类型")
+            return False
+        
+        if repeat < 0:
+            print("[错误] 重发次数不能为负数")
+            return False
+        
+        self.is_send_package_start = True
+        
+        try:
+            # 计算CRC校验和
+            crc = sum(data) & 0xFFFF  # 使用位运算确保在16位范围内
+            
+            # 构建数据包
+            package = b'\xaa\xbb' + data + crc.to_bytes(2, 'little')
+            
+            # 清除ACK状态
+            self.ACK = False
+            
+            # 首次发送
+            try:
                 self.ser.write(package)
-                print(f"[重发 {i+1}/{repeat}] {package}")
-            else:
+                print(f"[发送] {package.hex()}")  # 使用hex()显示更清晰
+            except Exception as e:
+                print(f"[错误] 发送数据失败: {e}")
+                return False
+            
+            # 等待首次ACK
+            if self.wait_ACK(0.2):
                 print("[成功] 收到确认")
-                break
-
-        self.send_start = False
-        return self.ACK
-        
-    def send_data(self, pillList): # pillList: array[4][7] dtype=np.byte
-        if(self.ser == None):
-            return 0, 0
-        
-        cmd = b'\x05'
-        data = pillList.tobytes()
-        ack = self.send_package(cmd + data, self.repeat)
-        if(ack):
-            self.state = 1     
-        return ack
-    
+                return True
+            
+            # 重发机制
+            for attempt in range(repeat):
+                print(f"[重发 {attempt + 1}/{repeat}] 未收到确认，重新发送")
+                try:
+                    self.ser.write(package)
+                    print(f"[重发] {package.hex()}")
+                except Exception as e:
+                    print(f"[错误] 重发数据失败: {e}")
+                    continue
+                
+                if self.wait_ACK(0.2):
+                    print("[成功] 重发后收到确认")
+                    return True
+            
+            # 所有重发都失败
+            print(f"[失败] 经过 {repeat} 次重发仍未收到确认")
+            return False
+            
+        except Exception as e:
+            print(f"[错误] 发送过程中发生异常: {e}")
+            return False
+            
+        finally:
+            # 确保在任何情况下都重置发送状态
+            self.is_send_package_start = False
+            
 ###########
 # 控制命令 #
 ###########
-
-    # #发处方
-    # # 该函数是阻塞式的，在分药结束后会返回err_code，多余的药量
-    # # err_code：
-    # #   0: 正常分药结束
-    # #   1：超时未响应
-    # # 每次发一种药的分药方案，示例：第0行的药
-    # def send_pillList(self, df_line):
-    #     self.pillList = df_line
-    #     if(self.send_data(df2np(df_line))):
-    #         self.state = 1
-    #         t0 = time.time()
-    #         while(time.time() - t0 < self.timeout and (self.state != 3 or self.pill_remain == -1)):
-    #             pass
-    #         if(self.state != 3 or self.pill_remain == -1): #分药超时未回复
-    #             return 1, 0
-    #         return self.err_code, self.pill_remain
-            
-
-    # #获取rfid
-    # #返回RFID和err_code
-    # #RFID=-1则没检测到RFID
-    # # err_code：
-    # #   0: 正常分药结束
-    # #   1：超时未响应
-    # def get_rfid(self):
-    #     cmd = b'\x02'
-    #     if(not self.send_package(cmd, self.repeat)):
-    #         return -1
-    #     t0 = time.time()
-    #     while(time.time() - t0 < 1 and not self.DONE):
-    #         pass
-    #     err_code = 0
-    #     if(not self.DONE):
-    #         err_code = 1
-    #     self.DONE = False
-    #     return self.rfid, err_code
+    def send_pill_matrix(self, pill_matrix):
+        """
+        发送分药命令和药品矩阵到分药机
+        """
+        cmd = b'\x05'
+        data = pill_matrix.tobytes()
+        ack = self.send_package(cmd + data, self.repeat)
+        if(ack):
+            self.machine_state = 1 # 分药机正在工作    
+        return ack
     
-    #开药盘
-    # 阻塞式
-    # err_code:
-    #   0: 正常
-    #   1：超时未响应
     def open_plate(self):
+        """
+        发送打开药盘命令到分药机
+        阻塞式
+        err_code:
+            0: 正常
+            1：超时未响应
+        """
         cmd = b'\x03'
         if(not self.send_package(cmd, self.repeat)):
             return 1
-        self.plate_state = 1
+        self.is_plate_open = True
         return 0
         
-    #关药盘
-    # err_code:
-    #   0: 正常
-    #   1：超时未响应
     def close_plate(self):
+        """
+        发送关闭药盘命令到分药机
+        阻塞式
+        err_code:
+            0: 正常
+            1：超时未响应
+        """
         cmd = b'\x04'
         if(not self.send_package(cmd, self.repeat)):
             return 1
-        self.plate_state = 0
+        self.is_plate_open = False
         return 0
     
-    #暂停
-    # 阻塞式
-    # err_code:
-    #   0: 正常
-    #   1：超时未响应
-    def pause(self): #停止所有的电机
+    def pause(self):
+        """
+        发送暂停分药命令到分药机
+        阻塞式
+        err_code:
+            0: 正常
+            1：超时未响应
+        """
         cmd = b'\x01'
         if(not self.send_package(cmd, self.repeat)):
             return 1
-        self.state = 2
+        self.machine_state = 2
         return 0
     
-    #机器重新初始化，清理药盘
-    # 阻塞式
-    # err_code:
-    #   0: 正常
-    #   1：超时未响应
-    def init(self):
+    def reset_dispenser(self):
+        """
+        机器初始化，清理药盘
+        阻塞式
+        err_code:
+            0: 正常
+            1：超时未响应
+        """
         cmd = b'\x00'
         if(not self.send_package(cmd, self.repeat)):
             return 1
         DONE = self.wait_DONE(10)
         if(DONE):
             self.DONE = False
-            self.state = 0
+            self.machine_state = 0
             return 0
         return 1
 
-    #重新分药
-    # 阻塞式, 返回err_code，多余的药量
-    # err_code:
-    #   0: 正常
-    #   1：超时未响应
     def resume(self): #重新分药，就是按照原来的分药方案
-        self.init()
-        return self.send_pillList(self.pillList)
+        """
+        发送恢复分药命令到分药机
+        阻塞式
+        """
+        self.reset_dispenser()
+        # return self.send_pillList(self.pillList)
     
 #################
 # 设置分药机参数 #
@@ -310,7 +362,7 @@ def handle_dispenser_feedback(dispenser):
     """
     这个函数用来接收分药机下位机通过串口传输的消息并对分药机实例属性进行更新
     """
-    while(dispenser.recv_flag):
+    while(dispenser.is_receiver_thread_running):
         if(dispenser.ser == None):
             continue
         try:
@@ -355,77 +407,41 @@ def handle_dispenser_feedback(dispenser):
                 dispenser.send_package(b'\x0A', 0)
         except Exception as e:
             print(f"[错误] 串口接收处理异常: {e}")
-   
-# #开屏幕
-# def open_display():
-#     run('vcgencmd display_power 1', shell=True)
-# #关屏幕
-# def close_display():
-#     run('vcgencmd display_power 0', shell=True)
-
-
-# def dfbyRFID(df, rfid):
-#     return df.loc[df.patient==rfid]
-
-# def df2np(data): #pandas df单行转4x7矩阵
-#     pillList = np.zeros([4,7], dtype=np.byte)
-#     if(data['morning_dosage']):
-#         pillList[0,:] = 1
-#     if(data['noon_dosage']):
-#         pillList[1,:] = 1
-#     if(data['evening_dosage']):
-#         pillList[2,:] = 1
-#     if(data['night_dosage']):
-#         pillList[3,:] = 1
-#     return pillList
-
-
 
 if __name__ == '__main__':
-    # upload_url = 'http://202.120.61.207/upload'
-    # api_endpoint = 'http://202.120.61.207/UserList'
-    # username = 'wkk'#根据不同的用户进行修改
-    # image_file_path = '/home/wkk/wkk/django/MedicineServer/training_process_plot.png' #修改图片路径
-    # client = Client(username)
-    # df_total = client.get_data(api_endpoint)
-    # print(df_total)
-    # df = dfbyRFID(df_total, 1) #根据RFID查找数据
-    # print(df)
-    # print(df.shape[0])
-
     my_dispenser = Dispenser("COM6") # 根据实际串口修改
     my_dispenser.start_dispenser_feedback_handler()
-    my_dispenser.init()
+    my_dispenser.reset_dispenser()
     
 
     # 创建测试分药矩阵
-    pillList = np.zeros([4, 7], dtype=np.byte)
+    pill_matrix = np.zeros([4, 7], dtype=np.byte)
     for r in range(4):
         if r % 2 != 0:
             for c in range(7):
                 if c % 2 == 0:
-                    pillList[r][c] = 1
+                    pill_matrix[r][c] = 1
         if r % 2 == 0:
             for c in range(7):
                 if c % 2 != 0:
-                    pillList[r][c] = 1
-    # print(pillList)
-    return_msg = my_dispenser.send_data(pillList)
-    print("开始分药")
-    my_dispenser.state = 1
-    t0 = time.time()
-    last_pill_remain = -1
-    while(time.time() - t0 < my_dispenser.timeout and (my_dispenser.state != 3 or my_dispenser.pill_remain == -1)):
-        # 每当pill_remain发生变化时打印
-        if my_dispenser.pill_remain != last_pill_remain and my_dispenser.pill_remain != -1:
-            print(f"[实时监控] 剩余药片数量: {my_dispenser.pill_remain}")
-            last_pill_remain = my_dispenser.pill_remain
-        time.sleep(0.1)  # 短暂休眠，减少CPU占用
-    if(my_dispenser.state != 3 or my_dispenser.pill_remain == -1): #分药超时未回复
-        print("[ERR]:分药超时未回复")
-    else:
-        print(f"分药结束，err_code:{my_dispenser.err_code} pill_remain:{my_dispenser.pill_remain}")
-    # control.send_pillList(df.loc[2])
+                    pill_matrix[r][c] = 1
+
+    return_msg = my_dispenser.send_pill_matrix(pill_matrix)
+
+    # t0 = time.time()
+    # last_pill_remain = -1
+    # while(time.time() - t0 < my_dispenser.timeout and (my_dispenser.state != 3 or my_dispenser.pill_remain == -1)):
+    #     # 每当pill_remain发生变化时打印
+    #     if my_dispenser.pill_remain != last_pill_remain and my_dispenser.pill_remain != -1:
+    #         print(f"[实时监控] 剩余药片数量: {my_dispenser.pill_remain}")
+    #         last_pill_remain = my_dispenser.pill_remain
+    #     time.sleep(0.1)  # 短暂休眠，减少CPU占用
+    # if(my_dispenser.state != 3 or my_dispenser.pill_remain == -1): #分药超时未回复
+    #     print("[ERR]:分药超时未回复")
+    # else:
+    #     print(f"分药结束，err_code:{my_dispenser.err_code} pill_remain:{my_dispenser.pill_remain}")
+    # # control.send_pillList(df.loc[2])
+    
     my_dispenser.stop_dispenser_feedback_handler()
 
 
