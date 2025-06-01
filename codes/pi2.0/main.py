@@ -5,6 +5,8 @@ from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
 from prescription_database import PrescriptionDatabase
+import time
+import numpy as np
 
 class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
@@ -12,7 +14,7 @@ class DispenserController(QObject):
     error_occurred = Signal(str)  # 信号：发生错误
     pills_dispensing_list_loaded = Signal(dict)  # 处方加载成功信号
     dispensing_started = Signal()  # 分药流程开始信号
-    dispensing_progress = Signal(str, int, int)  # 分药进度信号 (药品名称, 当前索引, 总数)
+    dispensing_progress = Signal(str, int, int, int)  # 分药进度信号 (药品名称, 药片总数，当前索引, 总数)
     dispensing_completed = Signal()  # 分药流程完成信号
 
     def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
@@ -33,10 +35,6 @@ class DispenserController(QObject):
         self.current_medicines = []  
         self.current_medicine_index = 0  
         self.is_dispensing = False
-        
-        # 添加监控定时器
-        self.monitor_timer = QTimer()
-        self.monitor_timer.timeout.connect(self.monitor_dispensing_status)
 
     def initialize_hardware(self):
         """初始化硬件设备"""
@@ -86,6 +84,29 @@ class DispenserController(QObject):
         except Exception as e:
             print(f"[错误] 清理硬件资源时发生错误: {e}")
 
+    @Slot()
+    def open_plate(self):
+        """打开药盘"""
+        try:
+            if not self.dispenser:
+                self.error_occurred.emit("分药机未初始化")
+                return False
+            
+            print("[分药机] 正在打开药盘...")
+            open_result = self.dispenser.open_plate()
+            
+            if open_result != 0:
+                self.error_occurred.emit(f"打开药盘失败，错误码: {open_result}")
+                return False
+            
+            print("[分药机] 药盘打开成功")
+            return True
+
+        except Exception as e:
+            self.error_occurred.emit(f"打开药盘失败: {str(e)}")
+            return False
+        
+    @Slot()
     def prepare_for_rfid_detection(self):
         """为RFID检测做准备, 打开药盘"""
         try:
@@ -107,6 +128,7 @@ class DispenserController(QObject):
             self.error_occurred.emit(f"准备RFID检测失败: {str(e)}")
             return False   
         
+    @Slot()
     def start_rfid_detection(self):
         """开始RFID检测"""
         try:            
@@ -165,8 +187,12 @@ class DispenserController(QObject):
             print(f"[错误] 加载分药清单异常: {str(e)}")
             self.error_occurred.emit(f"加载分药清单异常: {str(e)}")
 
+    @Slot()
     def start_dispensing(self):
         """开始分药流程"""
+
+        self.monitor_timer = QTimer()
+        self.monitor_timer.timeout.connect(self.monitor_dispensing_status)
         try:
             if not self.current_medicines:
                 print("[错误] 没有药品需要分发")
@@ -227,7 +253,8 @@ class DispenserController(QObject):
             
             # 发送进度信号
             self.dispensing_progress.emit(
-                medicine_name, 
+                medicine_name,
+                np.sum(pill_matrix),
                 self.current_medicine_index + 1, 
                 len(self.current_medicines)
             )
@@ -339,11 +366,89 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+        self.ui.setupUi(self) # 设置UI界面
+
+        self.controller = DispenserController()  # 实例化控制器
+        self.controller.initialize_hardware()  # 初始化硬件
+        self.controller_worker_thread = QThread()  # 创建工作线程
+        self.controller.moveToThread(self.controller_worker_thread)
+        # self.controller_worker_thread.started.connect(self.controller.create_monitor_timer)  # 在工作线程中创建监控定时器
+        self.controller_worker_thread.start() 
 
         self.ui.rignt_stackedWidget.setCurrentIndex(0)  # Set the initial page
         self.ui.RFID_msg.hide()  # Hide the RFID message initially
         self.ui.prescription_msg.hide()  # Hide the prescription message initially
+
+    def connection(self):
+        self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
+        self.ui.exit_button.clicked.connect(self.finsh_dispensing)
+
+        self.controller.rfid_detected.connect(self.show_rfid_message)
+        self.controller.pills_dispensing_list_loaded.connect(self.show_prescription_message)
+        self.controller.dispensing_progress.connect(self.update_prescription_info)
+        self.controller.dispensing_completed.connect(self.move_to_finish_page)
+
+    def move_to_start_page(self):
+        """切换到开始页面"""
+        self.ui.rignt_stackedWidget.setCurrentIndex(0)
+    
+    def move_to_put_pan_in_page(self):
+        """切换到放入药盘页面"""
+        self.ui.rignt_stackedWidget.setCurrentIndex(1)
+
+    def move_to_dispensing_page(self):
+        """切换到分药页面"""
+        self.ui.rignt_stackedWidget.setCurrentIndex(2)
+
+    def move_to_finish_page(self):
+        """切换到完成页面"""
+        self.ui.rignt_stackedWidget.setCurrentIndex(3)
+
+    @Slot(str)
+    def prepare_for_dispensing(self):
+        self.move_to_put_pan_in_page()
+        # 使用QMetaObject.invokeMethod在工作线程中调用方法
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
+        # 延迟1秒后执行start_rfid_detection
+        QTimer.singleShot(1000, lambda: QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection))
+    
+    def start_rfid_detection(self):
+        """开始RFID检测"""
+        if self.controller.prepare_for_rfid_detection():
+            self.controller.start_rfid_detection()
+
+    @Slot(str)
+    def show_rfid_message(self, rfid):
+        """显示RFID检测结果"""
+        self.ui.RFID_msg.setText(f"检测到RFID: {rfid}")
+        self.ui.RFID_msg.show()
+
+    @Slot(dict)
+    def show_prescription_message(self, pills_dispensing_list):
+        """显示处方信息"""
+        self.ui.prescription_msg.show()
+        self.ui.patient_name.setText(f"患者姓名: {pills_dispensing_list['name']}")
+        self.ui.current_drug.setText(f"当前药品: {pills_dispensing_list['medicines'][0]['medicine_name']}")
+        self.move_to_dispensing_page()  # 切换到分药页面
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "start_dispensing", Qt.QueuedConnection)
+
+    @Slot(str, int, int, int)
+    def update_prescription_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
+        """更新处方信息显示"""
+        self.ui.current_drug.setText(current_medicine_name)
+        self.ui.guide_msg.setText(f"共需要{total_pills_num}片")
+
+    @Slot()
+    def finsh_dispensing(self):
+        """完成分药流程"""
+        self.move_to_start_page()
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "open_plate", Qt.QueuedConnection)
+
+
+
 
 
 def control_test():
@@ -391,3 +496,9 @@ def control_test():
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    window = MainWindow()
+    window.connection()
+    window.show()
+
+    sys.exit(app.exec())
+
