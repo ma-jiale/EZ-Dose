@@ -1,8 +1,6 @@
 import sys
-import time
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread
-
 from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
@@ -12,13 +10,15 @@ class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
     rfid_detected = Signal(str)  # 信号：检测到RFID
     error_occurred = Signal(str)  # 信号：发生错误
-    prescription_loaded = Signal(dict)  # 处方加载成功信号
+    pills_dispensing_list_loaded = Signal(dict)  # 处方加载成功信号
     dispensing_started = Signal()  # 分药流程开始信号
     dispensing_progress = Signal(str, int, int)  # 分药进度信号 (药品名称, 当前索引, 总数)
     dispensing_completed = Signal()  # 分药流程完成信号
 
     def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
         super().__init__()
+
+        # 初始化分药机和RFID读卡器的端口
         self.dispenser_port = dispenser_port
         self.rfid_port = rfid_port
         
@@ -29,11 +29,10 @@ class DispenserController(QObject):
 
         # 初始化当前状态
         self.current_rfid = None
-        self.current_prescription = None
-        self.current_medicines = []  # 添加这个
-        self.current_pill_matrices = {}
-        self.current_medicine_index = 0  # 添加这个
-        self.is_dispensing = False  # 添加这个状态标志
+        self.current_pills_dispensing_list = {}
+        self.current_medicines = []  
+        self.current_medicine_index = 0  
+        self.is_dispensing = False
         
         # 添加监控定时器
         self.monitor_timer = QTimer()
@@ -52,7 +51,7 @@ class DispenserController(QObject):
             self.dispenser.start_dispenser_feedback_handler()
             
             # 初始化分药机
-            init_result = self.dispenser.init()
+            init_result = self.dispenser.reset_dispenser()
             if init_result != 0:
                 raise Exception(f"分药机初始化失败，错误码: {init_result}")
             
@@ -88,7 +87,7 @@ class DispenserController(QObject):
             print(f"[错误] 清理硬件资源时发生错误: {e}")
 
     def prepare_for_rfid_detection(self):
-        """为RFID检测做准备"""
+        """为RFID检测做准备, 打开药盘"""
         try:
             if not self.dispenser:
                 self.error_occurred.emit("分药机未初始化")
@@ -124,13 +123,13 @@ class DispenserController(QObject):
                 print(f"[RFID] 检测到卡片: {epc}")
                 
                 # 将EPC转换为RFID（这里可能需要根据实际情况调整）
-                rfid = epc  # 或者进行某种转换
+                rfid = epc
                 
                 self.current_rfid = rfid
                 self.rfid_detected.emit(rfid)
                 
                 # 自动加载药品矩阵
-                self.load_pill_matrices(rfid)
+                self.load_pills_disensing_list(rfid)
                 
             else:
                 error_msg = result.get('error', '未知错误')
@@ -141,46 +140,30 @@ class DispenserController(QObject):
             print(f"[错误] RFID检测异常: {str(e)}")
             self.error_occurred.emit(f"RFID检测异常: {str(e)}")
 
-    def load_pill_matrices(self, rfid):
-        """加载处方信息并生成分药矩阵"""
+    def load_pills_disensing_list(self, rfid):
+        """加载处方信息并生成分药清单"""
         try:
             # 从数据库获取处方信息和分药矩阵
-            success, pill_matrices, error = self.database.generate_pill_matrices(rfid)
+            success, pills_disensing_list, error = self.database.generate_pills_disensing_list(rfid)
             
             if not success:
                 self.error_occurred.emit(f"生成分药矩阵失败: {error}")
                 return
-            
-            # 获取处方基本信息
-            prescription_data = self.database.get_patient_prescription(rfid)
-            
-            if not prescription_data['success']:
-                self.error_occurred.emit(f"未找到处方信息: {prescription_data['error']}")
-                return
+
+            print(pills_disensing_list)
             
             # 保存处方信息和分药矩阵
-            self.current_prescription = prescription_data
-            self.current_medicines = prescription_data['medicines']
-            self.current_pill_matrices = pill_matrices  # 新增：保存分药矩阵字典
+            self.current_pills_dispensing_list = pills_disensing_list
+            self.current_medicines = pills_disensing_list["medicines"]
             self.current_medicine_index = 0
             
-            print(f"[处方] 加载成功: {prescription_data['patient_info']['patient_name']}")
-            print(f"[处方] 药品数量: {len(self.current_medicines)}")
-            print(f"[矩阵] 生成 {len(pill_matrices)} 个分药矩阵:")
-            # 打印每种药品的矩阵信息
-            for medicine_name, matrix in pill_matrices.items():
-                total_pills = matrix.sum()
-                print(f"  - {medicine_name}: 总药片数 {total_pills}")
-            
             # 发送信号，包含处方信息和分药矩阵
-            enhanced_prescription_data = prescription_data.copy()
-            enhanced_prescription_data['pill_matrices'] = pill_matrices
-            
-            self.prescription_loaded.emit(enhanced_prescription_data)
+            enhanced_prescription_data = pills_disensing_list.copy()  
+            self.pills_dispensing_list_loaded.emit(enhanced_prescription_data)
         
         except Exception as e:
-            print(f"[错误] 加载分药矩阵异常: {str(e)}")
-            self.error_occurred.emit(f"加载分药矩阵异常: {str(e)}")
+            print(f"[错误] 加载分药清单异常: {str(e)}")
+            self.error_occurred.emit(f"加载分药清单异常: {str(e)}")
 
     def start_dispensing(self):
         """开始分药流程"""
@@ -222,14 +205,7 @@ class DispenserController(QObject):
             
             print(f"[分药] 开始分发第 {self.current_medicine_index + 1}/{len(self.current_medicines)} 种药品: {medicine_name}")
             
-            # 直接从已生成的矩阵字典中获取该药品的矩阵
-            if medicine_name not in self.current_pill_matrices:
-                error_msg = f"未找到药品矩阵: {medicine_name}"
-                print(f"[错误] {error_msg}")
-                self.error_occurred.emit(error_msg)
-                return
-            
-            pill_matrix = self.current_pill_matrices[medicine_name]
+            pill_matrix = current_medicine["pill_matrix"]
 
             # 打印当前分药矩阵信息
             print(f"[分药] {medicine_name} 分药矩阵:")
@@ -239,7 +215,7 @@ class DispenserController(QObject):
             
             # 发送分药数据到分药机
             print(f"[分药] 发送分药数据到分药机...")
-            ack = self.dispenser.send_data(pill_matrix)
+            ack = self.dispenser.send_pill_matrix(pill_matrix)
             
             if not ack:
                 error_msg = f"发送分药数据失败: {medicine_name}"
@@ -267,14 +243,15 @@ class DispenserController(QObject):
     def monitor_dispensing_status(self):
         """监控分药状态"""
         try:
+            # 如果没有分药机或未处于分药状态，停止监控
             if not self.dispenser or not self.is_dispensing:
                 self.monitor_timer.stop()
                 return
             
             # 检查分药机状态
-            print(f"[监控] 分药机状态: {self.dispenser.state}, 错误码: {self.dispenser.err_code}")
+            print(f"[监控] 分药机状态: {self.dispenser.machine_state}, 错误码: {self.dispenser.err_code}, 未分发药片: {self.dispenser.pill_remain}")
             
-            if self.dispenser.state == 3:  # 分药完成
+            if self.dispenser.machine_state == 3:  # 分药完成
                 self.monitor_timer.stop()
                 
                 current_medicine = self.current_medicines[self.current_medicine_index]
@@ -287,19 +264,24 @@ class DispenserController(QObject):
                     
                     # 准备分发下一种药品
                     self.current_medicine_index += 1
-                    
                     # 等待一小段时间再分发下一种药品
-                    QTimer.singleShot(2000, self.dispense_next_medicine)
+                    QTimer.singleShot(1000, self.dispense_next_medicine)
                     
                 else:
                     error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser.err_code}"
                     print(f"[错误] {error_msg}")
                     self.error_occurred.emit(error_msg)
+
+                    # 目前分药失败后仍继续分发下一种药品
+                    # 准备分发下一种药品
+                    self.current_medicine_index += 1
+                    # 等待一小段时间再分发下一种药品
+                    QTimer.singleShot(1000, self.dispense_next_medicine)
                     
-            elif self.dispenser.state == 2:  # 暂停状态
+            elif self.dispenser.machine_state == 2:  # 暂停状态
                 print("[分药] 分药已暂停")
                 
-            elif self.dispenser.state == 1:  # 分药中
+            elif self.dispenser.machine_state == 1:  # 分药中
                 print("[分药] 正在分药...")
                 
         except Exception as e:
@@ -326,31 +308,31 @@ class DispenserController(QObject):
             print(f"[错误] {error_msg}")
             self.error_occurred.emit(error_msg)
 
-    def pause_dispensing(self):
-        """暂停分药"""
-        try:
-            if self.dispenser and self.is_dispensing:
-                result = self.dispenser.pause()
-                if result == 0:
-                    print("[分药] 分药已暂停")
-                else:
-                    self.error_occurred.emit("暂停分药失败")
-        except Exception as e:
-            self.error_occurred.emit(f"暂停分药异常: {str(e)}")
+    # def pause_dispensing(self):
+    #     """暂停分药"""
+    #     try:
+    #         if self.dispenser and self.is_dispensing:
+    #             result = self.dispenser.pause()
+    #             if result == 0:
+    #                 print("[分药] 分药已暂停")
+    #             else:
+    #                 self.error_occurred.emit("暂停分药失败")
+    #     except Exception as e:
+    #         self.error_occurred.emit(f"暂停分药异常: {str(e)}")
 
-    def stop_dispensing(self):
-        """停止分药"""
-        try:
-            self.is_dispensing = False
-            self.monitor_timer.stop()
+    # def stop_dispensing(self):
+    #     """停止分药"""
+    #     try:
+    #         self.is_dispensing = False
+    #         self.monitor_timer.stop()
             
-            if self.dispenser:
-                self.dispenser.pause()
+    #         if self.dispenser:
+    #             self.dispenser.pause()
                 
-            print("[分药] 分药已停止")
+    #         print("[分药] 分药已停止")
             
-        except Exception as e:
-            self.error_occurred.emit(f"停止分药异常: {str(e)}")
+    #     except Exception as e:
+    #         self.error_occurred.emit(f"停止分药异常: {str(e)}")
 
 
 class MainWindow(QMainWindow):
@@ -364,7 +346,7 @@ class MainWindow(QMainWindow):
         self.ui.prescription_msg.hide()  # Hide the prescription message initially
 
 
-if __name__ == "__main__":
+def control_test():
     # 测试控制器
     app = QApplication(sys.argv)
     
@@ -373,7 +355,6 @@ if __name__ == "__main__":
     
     # 连接错误信号
     controller.error_occurred.connect(lambda msg: print(f"[UI错误] {msg}"))
-    controller.prescription_loaded.connect(lambda data: print(f"[UI] 处方加载完成"))
     controller.dispensing_started.connect(lambda: print(f"[UI] 分药开始"))
     controller.dispensing_progress.connect(lambda name, cur, total: print(f"[UI] 分药进度: {name} ({cur}/{total})"))
     controller.dispensing_completed.connect(lambda: print(f"[UI] 分药完成"))
@@ -407,3 +388,6 @@ if __name__ == "__main__":
     QTimer.singleShot(300000, cleanup)
     
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
