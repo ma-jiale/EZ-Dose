@@ -284,7 +284,7 @@ class Dispenser:
         if(not self.send_package(cmd, self.repeat)):
             return 1
         DONE = self.wait_DONE(10)
-        time.sleep(9)  # 额外等待3秒确保物理操作完成
+        time.sleep(6)  # 额外等待3秒确保物理操作完成
         print("[操作] 分药机已重置")
         if(DONE):
             self.DONE = False
