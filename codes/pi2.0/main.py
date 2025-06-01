@@ -14,8 +14,9 @@ class DispenserController(QObject):
     error_occurred = Signal(str)  # 信号：发生错误
     pills_dispensing_list_loaded = Signal(dict)  # 处方加载成功信号
     dispensing_started = Signal()  # 分药流程开始信号
-    dispensing_progress = Signal(str, int, int, int)  # 分药进度信号 (药品名称, 药片总数，当前索引, 总数)
+    current_medicine_info = Signal(str, int, int, int)  # 分药进度信号 (药品名称, 药片总数，当前索引, 总数)
     dispensing_completed = Signal()  # 分药流程完成信号
+    dispensing_progress = Signal(int)
 
     def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
         super().__init__()
@@ -33,7 +34,9 @@ class DispenserController(QObject):
         self.current_rfid = None
         self.current_pills_dispensing_list = {}
         self.current_medicines = []  
-        self.current_medicine_index = 0  
+        self.current_medicine_index = 0
+        self.pill_remain = 0 #剩余药片数量
+        self.total_pill = 0 # 一个药片矩阵总药片数量
         self.is_dispensing = False
 
     def initialize_hardware(self):
@@ -230,7 +233,6 @@ class DispenserController(QObject):
             medicine_name = current_medicine['medicine_name']
             
             print(f"[分药] 开始分发第 {self.current_medicine_index + 1}/{len(self.current_medicines)} 种药品: {medicine_name}")
-            
             pill_matrix = current_medicine["pill_matrix"]
 
             # 打印当前分药矩阵信息
@@ -238,6 +240,15 @@ class DispenserController(QObject):
             time_labels = ["早上", "中午", "晚上", "夜间"]
             for i, label in enumerate(time_labels):
                 print(f"  {label}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
+
+            # 发送分药进度信号
+            self.total_pill = np.sum(pill_matrix)
+            self.current_medicine_info.emit(
+                medicine_name,
+                self.total_pill,
+                self.current_medicine_index + 1, 
+                len(self.current_medicines)
+            )
             
             # 发送分药数据到分药机
             print(f"[分药] 发送分药数据到分药机...")
@@ -250,14 +261,6 @@ class DispenserController(QObject):
                 return
             
             print(f"[分药] 数据发送成功，等待分药完成...")
-            
-            # 发送进度信号
-            self.dispensing_progress.emit(
-                medicine_name,
-                np.sum(pill_matrix),
-                self.current_medicine_index + 1, 
-                len(self.current_medicines)
-            )
             
             # 启动监控定时器
             self.monitor_timer.start(1000)  # 每秒检查一次
@@ -275,6 +278,9 @@ class DispenserController(QObject):
                 self.monitor_timer.stop()
                 return
             
+            self.pill_remain = self.dispenser.pill_remain if hasattr(self.dispenser, 'pill_remain') else 0
+            self.dispensing_progress.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
+            
             # 检查分药机状态
             print(f"[监控] 分药机状态: {self.dispenser.machine_state}, 错误码: {self.dispenser.err_code}, 未分发药片: {self.dispenser.pill_remain}")
             
@@ -288,11 +294,12 @@ class DispenserController(QObject):
                     print(f"[分药] {medicine_name} 分发完成")
                     if hasattr(self.dispenser, 'pill_remain'):
                         print(f"[分药] 剩余药片: {self.dispenser.pill_remain}")
+
                     
                     # 准备分发下一种药品
                     self.current_medicine_index += 1
                     # 等待一小段时间再分发下一种药品
-                    QTimer.singleShot(1000, self.dispense_next_medicine)
+                    self.dispense_next_medicine()
                     
                 else:
                     error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser.err_code}"
@@ -376,8 +383,6 @@ class MainWindow(QMainWindow):
         self.controller_worker_thread.start() 
 
         self.ui.rignt_stackedWidget.setCurrentIndex(0)  # Set the initial page
-        self.ui.RFID_msg.hide()  # Hide the RFID message initially
-        self.ui.prescription_msg.hide()  # Hide the prescription message initially
 
     def connection(self):
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
@@ -385,8 +390,9 @@ class MainWindow(QMainWindow):
 
         self.controller.rfid_detected.connect(self.show_rfid_message)
         self.controller.pills_dispensing_list_loaded.connect(self.show_prescription_message)
-        self.controller.dispensing_progress.connect(self.update_prescription_info)
+        self.controller.current_medicine_info.connect(self.update_prescription_info)
         self.controller.dispensing_completed.connect(self.move_to_finish_page)
+        self.controller.dispensing_progress.connect(self.set_pressbar_value)
 
     def move_to_start_page(self):
         """切换到开始页面"""
@@ -394,6 +400,8 @@ class MainWindow(QMainWindow):
     
     def move_to_put_pan_in_page(self):
         """切换到放入药盘页面"""
+        self.ui.RFID_msg.hide()  # Hide the RFID message initially
+        self.ui.prescription_msg.hide()  # Hide the prescription message initially
         self.ui.rignt_stackedWidget.setCurrentIndex(1)
 
     def move_to_dispensing_page(self):
@@ -440,6 +448,12 @@ class MainWindow(QMainWindow):
         self.ui.current_drug.setText(current_medicine_name)
         self.ui.guide_msg.setText(f"共需要{total_pills_num}片")
 
+    @Slot(int)
+    def set_pressbar_value(self, value):
+        """设置进度条的值"""
+        self.ui.dispense_progressBar.setValue(value)
+        self.ui.progressBar_percentage.setText(f"{value}%")
+
     @Slot()
     def finsh_dispensing(self):
         """完成分药流程"""
@@ -461,7 +475,7 @@ def control_test():
     # 连接错误信号
     controller.error_occurred.connect(lambda msg: print(f"[UI错误] {msg}"))
     controller.dispensing_started.connect(lambda: print(f"[UI] 分药开始"))
-    controller.dispensing_progress.connect(lambda name, cur, total: print(f"[UI] 分药进度: {name} ({cur}/{total})"))
+    controller.current_medicine_info.connect(lambda name, cur, total: print(f"[UI] 分药进度: {name} ({cur}/{total})"))
     controller.dispensing_completed.connect(lambda: print(f"[UI] 分药完成"))
     
     if controller.initialize_hardware():
