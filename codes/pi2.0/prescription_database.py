@@ -176,15 +176,15 @@ class PrescriptionDatabase:
                 'error_code': 500
             }
     
-    def generate_pill_matrices(self, rfid: str) -> Tuple[bool, Dict[str, np.ndarray], str]:
+    def generate_pills_disensing_list(self, rfid: str) -> Tuple[bool, Dict[str, np.ndarray], str]:
         """
-        根据RFID生成每种药品的分药矩阵 (4x7)
+        根据RFID生成每种药品的分药清单，包括药品名称和分药矩阵
         
         Args:
             rfid: 患者RFID卡号
             
         Returns:
-            Tuple[bool, Dict[str, np.ndarray], str]: (成功标志, 药品分药矩阵字典, 错误信息)
+            Tuple[bool, Dict[str, np.ndarray], str]: (成功标志, 分药清单字典, 错误信息)
             字典格式: {药品名称: 4x7矩阵}
         """
         try:
@@ -197,7 +197,7 @@ class PrescriptionDatabase:
             print(f"[调试] 找到 {len(medicines)} 种药品:")
             
             # 创建药品分药矩阵字典
-            pill_matrices = {}
+            pills_disensing_list = {}
             
             for medicine in medicines:
                 medicine_name = medicine['medicine_name']
@@ -213,125 +213,125 @@ class PrescriptionDatabase:
                     pill_matrix[2, day] = dosage['evening']   # 晚上
                     pill_matrix[3, day] = dosage['night']     # 夜间
                 
-                pill_matrices[medicine_name] = pill_matrix
+                pills_disensing_list[medicine_name] = pill_matrix
                 
-                # 打印每种药品的矩阵
-                print(f"\n[调试] {medicine_name} 分药矩阵:")
-                print(f"  持续天数: {duration_days} 天")
-                print("  时段\\天数  1  2  3  4  5  6  7")
-                time_labels = ["早上", "中午", "晚上", "夜间"]
-                for i, label in enumerate(time_labels):
-                    print(f"  {label:>6}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
+                # # 打印每种药品的矩阵
+                # print(f"\n[调试] {medicine_name} 分药矩阵:")
+                # print(f"  持续天数: {duration_days} 天")
+                # print("  时段\\天数  1  2  3  4  5  6  7")
+                # time_labels = ["早上", "中午", "晚上", "夜间"]
+                # for i, label in enumerate(time_labels):
+                #     print(f"  {label:>6}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
             
-            return True, pill_matrices, ""
+            return True, pills_disensing_list, ""
             
         except Exception as e:
             return False, {}, f"生成分药矩阵失败: {str(e)}"
 
     
-    def add_prescription(self, patient_data: Dict) -> bool:
-        """
-        添加新的处方记录
+    # def add_prescription(self, patient_data: Dict) -> bool:
+    #     """
+    #     添加新的处方记录
         
-        Args:
-            patient_data: 包含患者和处方信息的字典
+    #     Args:
+    #         patient_data: 包含患者和处方信息的字典
             
-        Returns:
-            bool: 添加是否成功
-        """
-        try:
-            # 验证必需字段
-            required_fields = ['patient_name', 'rfid', 'medicine_name', 
-                             'morning_dosage', 'noon_dosage', 'evening_dosage', 
-                             'night_dosage', 'duration_days']
+    #     Returns:
+    #         bool: 添加是否成功
+    #     """
+    #     try:
+    #         # 验证必需字段
+    #         required_fields = ['patient_name', 'rfid', 'medicine_name', 
+    #                          'morning_dosage', 'noon_dosage', 'evening_dosage', 
+    #                          'night_dosage', 'duration_days']
             
-            for field in required_fields:
-                if field not in patient_data:
-                    print(f"[错误] 缺少必需字段: {field}")
-                    return False
+    #         for field in required_fields:
+    #             if field not in patient_data:
+    #                 print(f"[错误] 缺少必需字段: {field}")
+    #                 return False
             
-            # 添加默认值
-            if 'start_date' not in patient_data:
-                patient_data['start_date'] = datetime.now().strftime('%Y-%m-%d')
+    #         # 添加默认值
+    #         if 'start_date' not in patient_data:
+    #             patient_data['start_date'] = datetime.now().strftime('%Y-%m-%d')
             
-            if 'prescription_id' not in patient_data:
-                patient_data['prescription_id'] = f"RX{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    #         if 'prescription_id' not in patient_data:
+    #             patient_data['prescription_id'] = f"RX{datetime.now().strftime('%Y%m%d%H%M%S')}"
             
-            # 添加到DataFrame
-            new_record = pd.DataFrame([patient_data])
-            self.df = pd.concat([self.df, new_record], ignore_index=True)
+    #         # 添加到DataFrame
+    #         new_record = pd.DataFrame([patient_data])
+    #         self.df = pd.concat([self.df, new_record], ignore_index=True)
             
-            # 保存到文件
-            self.save_database()
-            print(f"[成功] 添加处方记录: {patient_data['patient_name']} - {patient_data['medicine_name']}")
-            return True
+    #         # 保存到文件
+    #         self.save_database()
+    #         print(f"[成功] 添加处方记录: {patient_data['patient_name']} - {patient_data['medicine_name']}")
+    #         return True
             
-        except Exception as e:
-            print(f"[错误] 添加处方记录失败: {e}")
-            return False
+    #     except Exception as e:
+    #         print(f"[错误] 添加处方记录失败: {e}")
+    #         return False
     
-    def update_prescription(self, rfid: str, medicine_name: str, updates: Dict) -> bool:
-        """
-        更新处方信息
+    # def update_prescription(self, rfid: str, medicine_name: str, updates: Dict) -> bool:
+    #     """
+    #     更新处方信息
         
-        Args:
-            rfid: 患者RFID
-            medicine_name: 药品名称
-            updates: 要更新的字段字典
+    #     Args:
+    #         rfid: 患者RFID
+    #         medicine_name: 药品名称
+    #         updates: 要更新的字段字典
             
-        Returns:
-            bool: 更新是否成功
-        """
-        try:
-            mask = (self.df['rfid'].astype(str) == str(rfid)) & (self.df['medicine_name'] == medicine_name)
+    #     Returns:
+    #         bool: 更新是否成功
+    #     """
+    #     try:
+    #         mask = (self.df['rfid'].astype(str) == str(rfid)) & (self.df['medicine_name'] == medicine_name)
             
-            if not mask.any():
-                print(f"[错误] 未找到匹配的处方记录")
-                return False
+    #         if not mask.any():
+    #             print(f"[错误] 未找到匹配的处方记录")
+    #             return False
             
-            for field, value in updates.items():
-                if field in self.df.columns:
-                    self.df.loc[mask, field] = value
+    #         for field, value in updates.items():
+    #             if field in self.df.columns:
+    #                 self.df.loc[mask, field] = value
             
-            self.save_database()
-            print(f"[成功] 更新处方记录: RFID {rfid} - {medicine_name}")
-            return True
+    #         self.save_database()
+    #         print(f"[成功] 更新处方记录: RFID {rfid} - {medicine_name}")
+    #         return True
             
-        except Exception as e:
-            print(f"[错误] 更新处方记录失败: {e}")
-            return False
+    #     except Exception as e:
+    #         print(f"[错误] 更新处方记录失败: {e}")
+    #         return False
     
-    def delete_prescription(self, rfid: str, medicine_name: str = None) -> bool:
-        """
-        删除处方记录
+    # def delete_prescription(self, rfid: str, medicine_name: str = None) -> bool:
+    #     """
+    #     删除处方记录
         
-        Args:
-            rfid: 患者RFID
-            medicine_name: 药品名称，如果为None则删除该患者的所有处方
+    #     Args:
+    #         rfid: 患者RFID
+    #         medicine_name: 药品名称，如果为None则删除该患者的所有处方
             
-        Returns:
-            bool: 删除是否成功
-        """
-        try:
-            if medicine_name:
-                mask = (self.df['rfid'].astype(str) == str(rfid)) & (self.df['medicine_name'] == medicine_name)
-                desc = f"RFID {rfid} - {medicine_name}"
-            else:
-                mask = self.df['rfid'].astype(str) == str(rfid)
-                desc = f"RFID {rfid} 的所有处方"
+    #     Returns:
+    #         bool: 删除是否成功
+    #     """
+    #     try:
+    #         if medicine_name:
+    #             mask = (self.df['rfid'].astype(str) == str(rfid)) & (self.df['medicine_name'] == medicine_name)
+    #             desc = f"RFID {rfid} - {medicine_name}"
+    #         else:
+    #             mask = self.df['rfid'].astype(str) == str(rfid)
+    #             desc = f"RFID {rfid} 的所有处方"
             
-            if not mask.any():
-                print(f"[错误] 未找到匹配的处方记录")
-                return False
+    #         if not mask.any():
+    #             print(f"[错误] 未找到匹配的处方记录")
+    #             return False
             
-            self.df = self.df[~mask]
-            self.save_database()
-            print(f"[成功] 删除处方记录: {desc}")
-            return True
+    #         self.df = self.df[~mask]
+    #         self.save_database()
+    #         print(f"[成功] 删除处方记录: {desc}")
+    #         return True
             
-        except Exception as e:
-            print(f"[错误] 删除处方记录失败: {e}")
-            return False
+    #     except Exception as e:
+    #         print(f"[错误] 删除处方记录失败: {e}")
+    #         return False
     
     def save_database(self):
         """保存数据库到CSV文件"""
@@ -358,30 +358,30 @@ class PrescriptionDatabase:
             print(f"[错误] 获取患者列表失败: {e}")
             return []
     
-    def search_prescriptions(self, **kwargs) -> List[Dict]:
-        """
-        搜索处方记录
+    # def search_prescriptions(self, **kwargs) -> List[Dict]:
+    #     """
+    #     搜索处方记录
         
-        Args:
-            **kwargs: 搜索条件 (patient_name, rfid, medicine_name, doctor_name等)
+    #     Args:
+    #         **kwargs: 搜索条件 (patient_name, rfid, medicine_name, doctor_name等)
             
-        Returns:
-            List[Dict]: 匹配的处方记录列表
-        """
-        try:
-            result_df = self.df.copy()
+    #     Returns:
+    #         List[Dict]: 匹配的处方记录列表
+    #     """
+    #     try:
+    #         result_df = self.df.copy()
             
-            for field, value in kwargs.items():
-                if field in result_df.columns and value is not None:
-                    if isinstance(value, str):
-                        result_df = result_df[result_df[field].astype(str).str.contains(value, case=False, na=False)]
-                    else:
-                        result_df = result_df[result_df[field] == value]
+    #         for field, value in kwargs.items():
+    #             if field in result_df.columns and value is not None:
+    #                 if isinstance(value, str):
+    #                     result_df = result_df[result_df[field].astype(str).str.contains(value, case=False, na=False)]
+    #                 else:
+    #                     result_df = result_df[result_df[field] == value]
             
-            return result_df.to_dict('records')
-        except Exception as e:
-            print(f"[错误] 搜索处方记录失败: {e}")
-            return []
+    #         return result_df.to_dict('records')
+    #     except Exception as e:
+    #         print(f"[错误] 搜索处方记录失败: {e}")
+    #         return []
     
     def get_statistics(self) -> Dict:
         """获取数据库统计信息"""
@@ -408,7 +408,7 @@ def demo_usage():
     db = PrescriptionDatabase("demo_prescriptions.csv")
     
     print("\n1. 获取患者处方信息:")
-    result = db.get_patient_prescription("87654321")
+    result = db.get_patient_prescription("1111222277774028C8262910")
     if result['success']:
         print(f"患者: {result['patient_info']['patient_name']}")
         print(f"处方ID: {result['patient_info']['prescription_id']}")
@@ -418,18 +418,18 @@ def demo_usage():
     else:
         print(f"错误: {result['error']}")
     
-    print("\n2. 生成分药矩阵:")
-    success, matrix, error = db.generate_pill_matrices("87654321")
+    print("\n2. 生成分药清单:")
+    success, pills_disensing_list, error = db.generate_pills_disensing_list("1111222277774028C8262910")
     if success:
-        print("分药矩阵 (4个时段 x 7天):")
-        print(matrix)
+        print("分药清单:")
+        print(pills_disensing_list)
     else:
         print(f"错误: {error}")
     
-    print("\n3. 数据库统计信息:")
-    stats = db.get_statistics()
-    for key, value in stats.items():
-        print(f"  {key}: {value}")
+    # print("\n3. 数据库统计信息:")
+    # stats = db.get_statistics()
+    # for key, value in stats.items():
+    #     print(f"  {key}: {value}")
 
 if __name__ == "__main__":
     demo_usage()

@@ -6,6 +6,12 @@ class RFIDReader:
     """RFID读卡器类"""
     
     def __init__(self, port='COM9', baudrate=115200, timeout=1):
+        """
+        初始化RFID读卡器
+        :param port: 串口端口号
+        :param baudrate: 波特率
+        :param timeout: 读取超时时间
+        """
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -192,7 +198,10 @@ class RFIDReader:
             return False
     
     def read_single(self, timeout: float = 5.0) -> Dict:
-        """读取单张卡片"""
+        """读取单张卡片
+        :param timeout: 读取超时时间
+        :return: {"epc": EPC号或None, "error_code": 错误码, "error": 错误信息}
+        """
         if not self.start_polling():
             return {"epc": None, "error_code": 1, "error": "启动轮询失败"}
         
