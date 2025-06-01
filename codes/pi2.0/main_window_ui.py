@@ -77,10 +77,11 @@ class Ui_MainWindow(object):
         self.frame.setFrameShadow(QFrame.Raised)
         self.comboBox = QComboBox(self.init_widget)
         self.comboBox.setObjectName(u"comboBox")
-        self.comboBox.setGeometry(QRect(100, 10, 68, 22))
+        self.comboBox.setGeometry(QRect(90, 10, 91, 22))
         self.comboBox_2 = QComboBox(self.init_widget)
+        self.comboBox_2.addItem("")
         self.comboBox_2.setObjectName(u"comboBox_2")
-        self.comboBox_2.setGeometry(QRect(100, 50, 68, 22))
+        self.comboBox_2.setGeometry(QRect(90, 49, 91, 22))
 
         self.verticalLayout.addWidget(self.init_widget)
 
@@ -217,6 +218,47 @@ class Ui_MainWindow(object):
 "    border-left: 0.5px solid #DCDCDC;\n"
 "    background-color: #FFF;\n"
 "}")
+        self.start_page = QWidget()
+        self.start_page.setObjectName(u"start_page")
+        self.logo = QLabel(self.start_page)
+        self.logo.setObjectName(u"logo")
+        self.logo.setEnabled(True)
+        self.logo.setGeometry(QRect(150, 120, 421, 131))
+        self.logo.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2B68F6;\n"
+"font-size: 64px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"border: none;\n"
+"}")
+        self.logo.setFrameShape(QFrame.NoFrame)
+        self.logo.setLineWidth(1)
+        self.logo.setTextFormat(Qt.AutoText)
+        self.logo.setAlignment(Qt.AlignCenter)
+        self.start_dispense_button = QPushButton(self.start_page)
+        self.start_dispense_button.setObjectName(u"start_dispense_button")
+        self.start_dispense_button.setGeometry(QRect(230, 330, 241, 51))
+        self.start_dispense_button.setLayoutDirection(Qt.LeftToRight)
+        self.start_dispense_button.setStyleSheet(u"QPushButton {\n"
+"    border-radius: 15px;\n"
+"    background-color: #2B68F6;\n"
+"    border: none;\n"
+"    color: #FFF;\n"
+"    font-size: 26px;\n"
+"    font-weight: 400;\n"
+"    padding: 10px;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: #1E4FD6;\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    background-color: #1A3FB8;\n"
+"}")
+        self.rignt_stackedWidget.addWidget(self.start_page)
         self.put_pan_in_page = QWidget()
         self.put_pan_in_page.setObjectName(u"put_pan_in_page")
         self.put_pan_in = QLabel(self.put_pan_in_page)
@@ -238,31 +280,10 @@ class Ui_MainWindow(object):
         self.put_pan_in.setAlignment(Qt.AlignCenter)
         self.RFID_msg = QLabel(self.put_pan_in_page)
         self.RFID_msg.setObjectName(u"RFID_msg")
-        self.RFID_msg.setGeometry(QRect(300, 250, 121, 16))
+        self.RFID_msg.setGeometry(QRect(310, 300, 121, 16))
         self.prescription_msg = QLabel(self.put_pan_in_page)
         self.prescription_msg.setObjectName(u"prescription_msg")
-        self.prescription_msg.setGeometry(QRect(300, 280, 121, 16))
-        self.begin_dispense_ = QPushButton(self.put_pan_in_page)
-        self.begin_dispense_.setObjectName(u"begin_dispense_")
-        self.begin_dispense_.setGeometry(QRect(240, 320, 241, 51))
-        self.begin_dispense_.setLayoutDirection(Qt.LeftToRight)
-        self.begin_dispense_.setStyleSheet(u"QPushButton {\n"
-"    border-radius: 15px;\n"
-"    background-color: #2B68F6;\n"
-"    border: none;\n"
-"    color: #FFF;\n"
-"    font-size: 26px;\n"
-"    font-weight: 400;\n"
-"    padding: 10px;\n"
-"}\n"
-"\n"
-"QPushButton:hover {\n"
-"    background-color: #1E4FD6;\n"
-"}\n"
-"\n"
-"QPushButton:pressed {\n"
-"    background-color: #1A3FB8;\n"
-"}")
+        self.prescription_msg.setGeometry(QRect(310, 330, 121, 16))
         self.rignt_stackedWidget.addWidget(self.put_pan_in_page)
         self.dispense_page = QWidget()
         self.dispense_page.setObjectName(u"dispense_page")
@@ -326,10 +347,18 @@ class Ui_MainWindow(object):
 "}")
         self.patient_name = QLabel(self.patient_info_widget)
         self.patient_name.setObjectName(u"patient_name")
-        self.patient_name.setGeometry(QRect(30, 10, 54, 16))
+        self.patient_name.setGeometry(QRect(20, 4, 171, 31))
+        self.patient_name.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2E344F;\n"
+"font-size: 20px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"}")
         self.prescription_data = QLabel(self.patient_info_widget)
         self.prescription_data.setObjectName(u"prescription_data")
-        self.prescription_data.setGeometry(QRect(90, 10, 241, 16))
+        self.prescription_data.setGeometry(QRect(200, 16, 241, 16))
 
         self.gridLayout_2.addWidget(self.patient_info_widget, 0, 0, 1, 3)
 
@@ -354,7 +383,7 @@ class Ui_MainWindow(object):
 "}")
         self.guide_msg = QLabel(self.operate_widget)
         self.guide_msg.setObjectName(u"guide_msg")
-        self.guide_msg.setGeometry(QRect(10, 70, 141, 41))
+        self.guide_msg.setGeometry(QRect(10, 70, 251, 41))
         self.guide_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #000;\n"
@@ -365,7 +394,7 @@ class Ui_MainWindow(object):
 "}")
         self.cam_detection_info = QLabel(self.operate_widget)
         self.cam_detection_info.setObjectName(u"cam_detection_info")
-        self.cam_detection_info.setGeometry(QRect(10, 120, 181, 41))
+        self.cam_detection_info.setGeometry(QRect(10, 120, 251, 41))
         self.cam_detection_info.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #000;\n"
@@ -387,7 +416,7 @@ class Ui_MainWindow(object):
 "}")
         self.dispense_progressBar = QProgressBar(self.operate_widget)
         self.dispense_progressBar.setObjectName(u"dispense_progressBar")
-        self.dispense_progressBar.setGeometry(QRect(10, 170, 191, 34))
+        self.dispense_progressBar.setGeometry(QRect(10, 170, 191, 41))
         self.dispense_progressBar.setStyleSheet(u"QProgressBar {\n"
 "    border: 2px solid #C0C0C0;\n"
 "    border-radius: 16px;\n"
@@ -399,11 +428,11 @@ class Ui_MainWindow(object):
 "    background-color: #4CAF50;\n"
 "    border-radius: 14px;\n"
 "}")
-        self.dispense_progressBar.setValue(24)
+        self.dispense_progressBar.setValue(0)
         self.dispense_progressBar.setTextVisible(False)
         self.progressBar_percentage = QLabel(self.operate_widget)
         self.progressBar_percentage.setObjectName(u"progressBar_percentage")
-        self.progressBar_percentage.setGeometry(QRect(210, 166, 61, 41))
+        self.progressBar_percentage.setGeometry(QRect(210, 170, 71, 41))
         self.progressBar_percentage.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #000;\n"
@@ -435,11 +464,11 @@ class Ui_MainWindow(object):
         self.finish_all.setLineWidth(1)
         self.finish_all.setTextFormat(Qt.AutoText)
         self.finish_all.setAlignment(Qt.AlignCenter)
-        self.exit = QPushButton(self.finish_dispense_page)
-        self.exit.setObjectName(u"exit")
-        self.exit.setGeometry(QRect(220, 320, 241, 51))
-        self.exit.setLayoutDirection(Qt.LeftToRight)
-        self.exit.setStyleSheet(u"QPushButton {\n"
+        self.exit_button = QPushButton(self.finish_dispense_page)
+        self.exit_button.setObjectName(u"exit_button")
+        self.exit_button.setGeometry(QRect(220, 340, 241, 51))
+        self.exit_button.setLayoutDirection(Qt.LeftToRight)
+        self.exit_button.setStyleSheet(u"QPushButton {\n"
 "    border-radius: 15px;\n"
 "    background-color: #2B68F6;\n"
 "    border: none;\n"
@@ -464,7 +493,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.rignt_stackedWidget.setCurrentIndex(1)
+        self.rignt_stackedWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -473,7 +502,9 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
         self.label.setText(QCoreApplication.translate("MainWindow", u"\u8fde\u63a5\u5206\u836f\u673a", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u672a\u8054\u7f51", None))
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u6d4b\u8bd5\u6a21\u5f0f", None))
+        self.comboBox_2.setItemText(0, QCoreApplication.translate("MainWindow", u"\u672c\u5730\u6570\u636e\u5e93", None))
+
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"\u8fde\u63a5\u5206\u836f\u673a", None))
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"\u8fde\u63a5\u7f51\u7edc", None))
         self.label_9.setText(QCoreApplication.translate("MainWindow", u"\u653e\u5165\u7a7a\u836f\u76d8", None))
@@ -482,19 +513,20 @@ class Ui_MainWindow(object):
         self.label_12.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u54c1", None))
         self.label_13.setText(QCoreApplication.translate("MainWindow", u"\u9000\u51fa\u836f\u76d8", None))
         self.title.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u4efb\u52a1\u6d41\u7a0b", None))
+        self.logo.setText(QCoreApplication.translate("MainWindow", u"EZ Dose", None))
+        self.start_dispense_button.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb\u5206\u836f", None))
         self.put_pan_in.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u653e\u5165\u7a7a\u836f\u76d8", None))
         self.RFID_msg.setText(QCoreApplication.translate("MainWindow", u"\u8bfb\u53d6\u836f\u76d8RFID\u6210\u529f", None))
         self.prescription_msg.setText(QCoreApplication.translate("MainWindow", u"\u83b7\u53d6\u5904\u65b9\u6210\u529f", None))
-        self.begin_dispense_.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb\u5206\u836f", None))
         self.current_drug_img.setText("")
         self.current_drug.setText(QCoreApplication.translate("MainWindow", u"\u963f\u83ab\u897f\u6797", None))
-        self.patient_name.setText(QCoreApplication.translate("MainWindow", u"\u85cf\u4f59\u6d01", None))
+        self.patient_name.setText(QCoreApplication.translate("MainWindow", u"\u60a3\u8005\u59d3\u540d\uff1a\u85cf\u4f59\u6d01", None))
         self.prescription_data.setText(QCoreApplication.translate("MainWindow", u"\u5904\u65b9\u65e5\u671f\uff1a2025\u5e743\u670824\u65e5-2025\u5e743\u670830\u65e5", None))
         self.guide_msg.setText(QCoreApplication.translate("MainWindow", u"\u5171\u9700\u89817\u7247", None))
         self.cam_detection_info.setText(QCoreApplication.translate("MainWindow", u"\u672a\u8fde\u63a5\u6444\u50cf\u5934", None))
         self.tip_to_put_drug_in.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u5c06\u836f\u7247\u6295\u5165\u5206\u836f\u673a", None))
-        self.progressBar_percentage.setText(QCoreApplication.translate("MainWindow", u"32%", None))
+        self.progressBar_percentage.setText(QCoreApplication.translate("MainWindow", u"0%", None))
         self.finish_all.setText(QCoreApplication.translate("MainWindow", u"\u5df2\u7ecf\u5206\u5b8c\u6240\u6709\u836f\u54c1", None))
-        self.exit.setText(QCoreApplication.translate("MainWindow", u"\u9000\u51fa\u836f\u76d8", None))
+        self.exit_button.setText(QCoreApplication.translate("MainWindow", u"\u9000\u51fa\u836f\u76d8", None))
     # retranslateUi
 

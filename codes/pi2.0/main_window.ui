@@ -112,7 +112,7 @@ background: #2B68F6;
 }</string>
           </property>
           <property name="text">
-           <string>未联网</string>
+           <string>测试模式</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -143,9 +143,9 @@ background: #D9D9D9;
          <widget class="QComboBox" name="comboBox">
           <property name="geometry">
            <rect>
-            <x>100</x>
+            <x>90</x>
             <y>10</y>
-            <width>68</width>
+            <width>91</width>
             <height>22</height>
            </rect>
           </property>
@@ -153,12 +153,17 @@ background: #D9D9D9;
          <widget class="QComboBox" name="comboBox_2">
           <property name="geometry">
            <rect>
-            <x>100</x>
-            <y>50</y>
-            <width>68</width>
+            <x>90</x>
+            <y>49</y>
+            <width>91</width>
             <height>22</height>
            </rect>
           </property>
+          <item>
+           <property name="text">
+            <string>本地数据库</string>
+           </property>
+          </item>
          </widget>
         </widget>
        </item>
@@ -473,8 +478,84 @@ QProgressBar::chunk {
 }</string>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
+      <widget class="QWidget" name="start_page">
+       <widget class="QLabel" name="logo">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>120</y>
+          <width>421</width>
+          <height>131</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel
+{
+color: #2B68F6;
+font-size: 64px;
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+border: none;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="lineWidth">
+         <number>1</number>
+        </property>
+        <property name="text">
+         <string>EZ Dose</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::AutoText</enum>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="start_dispense_button">
+        <property name="geometry">
+         <rect>
+          <x>230</x>
+          <y>330</y>
+          <width>241</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    border-radius: 15px;
+    background-color: #2B68F6;
+    border: none;
+    color: #FFF;
+    font-size: 26px;
+    font-weight: 400;
+    padding: 10px;
+}
+
+QPushButton:hover {
+    background-color: #1E4FD6;
+}
+
+QPushButton:pressed {
+    background-color: #1A3FB8;
+}</string>
+        </property>
+        <property name="text">
+         <string>开始分药</string>
+        </property>
+       </widget>
+      </widget>
       <widget class="QWidget" name="put_pan_in_page">
        <widget class="QLabel" name="put_pan_in">
         <property name="enabled">
@@ -518,8 +599,8 @@ border: none;
        <widget class="QLabel" name="RFID_msg">
         <property name="geometry">
          <rect>
-          <x>300</x>
-          <y>250</y>
+          <x>310</x>
+          <y>300</y>
           <width>121</width>
           <height>16</height>
          </rect>
@@ -531,49 +612,14 @@ border: none;
        <widget class="QLabel" name="prescription_msg">
         <property name="geometry">
          <rect>
-          <x>300</x>
-          <y>280</y>
+          <x>310</x>
+          <y>330</y>
           <width>121</width>
           <height>16</height>
          </rect>
         </property>
         <property name="text">
          <string>获取处方成功</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="begin_dispense_">
-        <property name="geometry">
-         <rect>
-          <x>240</x>
-          <y>320</y>
-          <width>241</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="layoutDirection">
-         <enum>Qt::LeftToRight</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton {
-    border-radius: 15px;
-    background-color: #2B68F6;
-    border: none;
-    color: #FFF;
-    font-size: 26px;
-    font-weight: 400;
-    padding: 10px;
-}
-
-QPushButton:hover {
-    background-color: #1E4FD6;
-}
-
-QPushButton:pressed {
-    background-color: #1A3FB8;
-}</string>
-        </property>
-        <property name="text">
-         <string>开始分药</string>
         </property>
        </widget>
       </widget>
@@ -705,21 +751,31 @@ line-height: normal;
           <widget class="QLabel" name="patient_name">
            <property name="geometry">
             <rect>
-             <x>30</x>
-             <y>10</y>
-             <width>54</width>
-             <height>16</height>
+             <x>20</x>
+             <y>4</y>
+             <width>171</width>
+             <height>31</height>
             </rect>
            </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel
+{
+color: #2E344F;
+font-size: 20px;
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+}</string>
+           </property>
            <property name="text">
-            <string>藏余洁</string>
+            <string>患者姓名：藏余洁</string>
            </property>
           </widget>
           <widget class="QLabel" name="prescription_data">
            <property name="geometry">
             <rect>
-             <x>90</x>
-             <y>10</y>
+             <x>200</x>
+             <y>16</y>
              <width>241</width>
              <height>16</height>
             </rect>
@@ -767,7 +823,7 @@ border: none;
             <rect>
              <x>10</x>
              <y>70</y>
-             <width>141</width>
+             <width>251</width>
              <height>41</height>
             </rect>
            </property>
@@ -790,7 +846,7 @@ line-height: normal;
             <rect>
              <x>10</x>
              <y>120</y>
-             <width>181</width>
+             <width>251</width>
              <height>41</height>
             </rect>
            </property>
@@ -837,7 +893,7 @@ line-height: normal;
              <x>10</x>
              <y>170</y>
              <width>191</width>
-             <height>34</height>
+             <height>41</height>
             </rect>
            </property>
            <property name="styleSheet">
@@ -854,7 +910,7 @@ QProgressBar::chunk {
 }</string>
            </property>
            <property name="value">
-            <number>24</number>
+            <number>0</number>
            </property>
            <property name="textVisible">
             <bool>false</bool>
@@ -864,8 +920,8 @@ QProgressBar::chunk {
            <property name="geometry">
             <rect>
              <x>210</x>
-             <y>166</y>
-             <width>61</width>
+             <y>170</y>
+             <width>71</width>
              <height>41</height>
             </rect>
            </property>
@@ -880,7 +936,7 @@ line-height: normal;
 }</string>
            </property>
            <property name="text">
-            <string>32%</string>
+            <string>0%</string>
            </property>
           </widget>
          </widget>
@@ -927,11 +983,11 @@ border: none;
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QPushButton" name="exit">
+       <widget class="QPushButton" name="exit_button">
         <property name="geometry">
          <rect>
           <x>220</x>
-          <y>320</y>
+          <y>340</y>
           <width>241</width>
           <height>51</height>
          </rect>
