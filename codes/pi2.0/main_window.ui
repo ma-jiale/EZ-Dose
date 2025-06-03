@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>920</width>
-    <height>540</height>
+    <height>539</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -46,7 +46,7 @@
       </property>
       <property name="styleSheet">
        <string notr="true">#left_widget {
-background: rgb(239, 244, 249);
+
 }</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -218,7 +218,7 @@ background: #FFF;
               <number>0</number>
              </property>
              <item>
-              <widget class="QLabel" name="label_5">
+              <widget class="QLabel" name="is_connect_dispenser">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -275,7 +275,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_10">
+              <widget class="QLabel" name="is_read_RFID">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -294,7 +294,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_11">
+              <widget class="QLabel" name="prescription_status">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -313,7 +313,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_12">
+              <widget class="QLabel" name="is_finish_dispense">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -332,7 +332,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_13">
+              <widget class="QLabel" name="is_open_plate">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -478,7 +478,7 @@ QProgressBar::chunk {
 }</string>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="start_page">
        <widget class="QLabel" name="logo">
@@ -620,6 +620,41 @@ border: none;
         </property>
         <property name="text">
          <string>获取处方成功</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="push_plate_in_button">
+        <property name="geometry">
+         <rect>
+          <x>250</x>
+          <y>370</y>
+          <width>241</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    border-radius: 15px;
+    background-color: #2B68F6;
+    border: none;
+    color: #FFF;
+    font-size: 26px;
+    font-weight: 400;
+    padding: 10px;
+}
+
+QPushButton:hover {
+    background-color: #1E4FD6;
+}
+
+QPushButton:pressed {
+    background-color: #1A3FB8;
+}</string>
+        </property>
+        <property name="text">
+         <string>送入药盘</string>
         </property>
        </widget>
       </widget>
@@ -768,7 +803,7 @@ line-height: normal;
 }</string>
            </property>
            <property name="text">
-            <string>患者姓名：藏余洁</string>
+            <string>患者姓名：XXX</string>
            </property>
           </widget>
           <widget class="QLabel" name="prescription_data">
@@ -1015,7 +1050,7 @@ QPushButton:pressed {
 }</string>
         </property>
         <property name="text">
-         <string>退出药盘</string>
+         <string>继续分药</string>
         </property>
        </widget>
       </widget>
