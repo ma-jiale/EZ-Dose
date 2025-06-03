@@ -5,7 +5,6 @@ from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
 from prescription_database import PrescriptionDatabase
-import time
 import numpy as np
 
 class DispenserController(QObject):
@@ -329,10 +328,10 @@ class DispenserController(QObject):
             self.is_dispensing = False
             self.monitor_timer.stop()
             
-            # 关闭药盘
-            print("[分药] 关闭药盘...")
-            if self.dispenser.close_plate() != 0:
-                print("[警告] 关闭药盘失败")
+            # 开启药盘
+            print("[分药] 开启药盘...")
+            if self.dispenser.open_plate() != 0:
+                print("[警告] 开启药盘失败")
             
             print("[分药] 所有药品分发完成")
             self.dispensing_completed.emit()
@@ -385,8 +384,10 @@ class MainWindow(QMainWindow):
         self.ui.rignt_stackedWidget.setCurrentIndex(0)  # Set the initial page
 
     def connection(self):
+        """连接UI信号和控制器槽函数"""
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
-        self.ui.exit_button.clicked.connect(self.finsh_dispensing)
+        self.ui.exit_button.clicked.connect(self.prepare_for_dispensing)
+        self.ui.push_plate_in_button.clicked.connect(self.close_palte)
 
         self.controller.rfid_detected.connect(self.show_rfid_message)
         self.controller.pills_dispensing_list_loaded.connect(self.show_prescription_message)
@@ -402,6 +403,7 @@ class MainWindow(QMainWindow):
         """切换到放入药盘页面"""
         self.ui.RFID_msg.hide()  # Hide the RFID message initially
         self.ui.prescription_msg.hide()  # Hide the prescription message initially
+        self.ui.push_plate_in_button.hide()  # Hide the button initially
         self.ui.rignt_stackedWidget.setCurrentIndex(1)
 
     def move_to_dispensing_page(self):
@@ -436,11 +438,20 @@ class MainWindow(QMainWindow):
     def show_prescription_message(self, pills_dispensing_list):
         """显示处方信息"""
         self.ui.prescription_msg.show()
+        self.ui.push_plate_in_button.show()  # 显示放入药盘按钮
         self.ui.patient_name.setText(f"患者姓名: {pills_dispensing_list['name']}")
         self.ui.current_drug.setText(f"当前药品: {pills_dispensing_list['medicines'][0]['medicine_name']}")
+
+    def close_palte(self):
+        """关闭药盘"""
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "close_plate", Qt.QueuedConnection)
+
         self.move_to_dispensing_page()  # 切换到分药页面
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "start_dispensing", Qt.QueuedConnection)
+
+
 
     @Slot(str, int, int, int)
     def update_prescription_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
@@ -454,12 +465,11 @@ class MainWindow(QMainWindow):
         self.ui.dispense_progressBar.setValue(value)
         self.ui.progressBar_percentage.setText(f"{value}%")
 
-    @Slot()
-    def finsh_dispensing(self):
-        """完成分药流程"""
-        self.move_to_start_page()
-        from PySide6.QtCore import QMetaObject, Qt
-        QMetaObject.invokeMethod(self.controller, "open_plate", Qt.QueuedConnection)
+    # @Slot()
+    # def finsh_dispensing(self):
+    #     """完成分药流程"""
+    #     self.move_to_put_pan_in_page()
+
 
 
 
