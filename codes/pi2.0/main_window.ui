@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>920</width>
-    <height>539</height>
+    <width>960</width>
+    <height>540</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -218,7 +218,7 @@ background: #FFF;
               <number>0</number>
              </property>
              <item>
-              <widget class="QLabel" name="is_connect_dispenser">
+              <widget class="QLabel" name="hardware_status_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -237,7 +237,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_8">
+              <widget class="QLabel" name="database_status_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -251,31 +251,12 @@ background: #FFF;
                 </size>
                </property>
                <property name="text">
-                <string>连接网络</string>
+                <string>连接处方库</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="label_9">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>30</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>放入空药盘</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="is_read_RFID">
+              <widget class="QLabel" name="rfid_status_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -294,7 +275,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="prescription_status">
+              <widget class="QLabel" name="pills_dispensing_list_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -308,12 +289,31 @@ background: #FFF;
                 </size>
                </property>
                <property name="text">
-                <string>获取处方</string>
+                <string>获取分药清单</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="is_finish_dispense">
+              <widget class="QLabel" name="plate_closed_label">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>20</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>送入药盘</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="dispensing_finished_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -332,7 +332,7 @@ background: #FFF;
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="is_open_plate">
+              <widget class="QLabel" name="plate_opened_label">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -432,7 +432,7 @@ QProgressBar::chunk {
 }</string>
              </property>
              <property name="maximum">
-              <number>7</number>
+              <number>6</number>
              </property>
              <property name="value">
               <number>0</number>

@@ -9,13 +9,19 @@ import numpy as np
 
 class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
-    rfid_detected = Signal(str)  # 信号：检测到RFID
-    error_occurred = Signal(str)  # 信号：发生错误
-    pills_dispensing_list_loaded = Signal(dict)  # 处方加载成功信号
-    dispensing_started = Signal()  # 分药流程开始信号
-    current_medicine_info = Signal(str, int, int, int)  # 分药进度信号 (药品名称, 药片总数，当前索引, 总数)
-    dispensing_completed = Signal()  # 分药流程完成信号
-    dispensing_progress = Signal(int)
+    # 信号定义
+    hardware_initialized_signal = Signal() # 硬件初始化成功信号
+    prescription_database_initialized_signal = Signal()  # 处方数据库初始化成功信号
+    rfid_detected_signal = Signal(str)  # 信号：检测到RFID
+    pills_dispensing_list_loaded_signal = Signal(dict)  # 处方加载成功信号
+    error_occurred_signal = Signal(str)  # 信号：发生错误
+    dispensing_started_signal = Signal()  # 分药流程开始信号
+    current_medicine_info_signal = Signal(str, int, int, int)  # 当前分发药品的信息 (药品名称, 药片总数，当前索引, 总数)
+    dispensing_progress_signal = Signal(int)  # 分药进度信号 (百分比)
+    dispensing_completed_signal = Signal()  # 分药流程完成信号
+    plate_opened_signal = Signal()  # 药盘打开信号
+    plate_closed_signal = Signal()  # 药盘关闭信号
+    
 
     def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
         super().__init__()
@@ -27,17 +33,20 @@ class DispenserController(QObject):
         # 初始化组件
         self.dispenser = None
         self.rfid_reader = None
-        self.database = PrescriptionDatabase("demo_prescriptions.csv")
+        self.database = None
 
         # 初始化当前状态
+        self.hardware_initialized = False  # 硬件是否已初始化
+        self.prescription_database_initialized = False  # 处方数据库是否已初始化
         self.current_rfid = None
-        self.current_pills_dispensing_list = {}
-        self.current_medicines = []  
-        self.current_medicine_index = 0
-        self.pill_remain = 0 #剩余药片数量
-        self.total_pill = 0 # 一个药片矩阵总药片数量
-        self.is_dispensing = False
+        self.current_pills_dispensing_list = {} # 当前患者分药清单
+        self.current_medicines = [] # 当前患者的药品列表
+        self.current_medicine_index = 0 # 当前分发的药品索引
+        self.pill_remain = 0 # 当前分发的药品剩余需要的药片数量
+        self.total_pill = 0 # 当前分发的药品的总药片数量
+        self.is_dispensing = False # 是否正在分药
 
+    @Slot()
     def initialize_hardware(self):
         """初始化硬件设备"""
         try:
@@ -48,7 +57,7 @@ class DispenserController(QObject):
                 raise Exception("分药机连接失败")
             
             # 启动分药机反馈处理
-            self.dispenser.start_dispenser_feedback_handler()
+            self.dispenser.start_dispenser_feedback_handler() # 
             
             # 初始化分药机
             init_result = self.dispenser.reset_dispenser()
@@ -62,12 +71,26 @@ class DispenserController(QObject):
                 raise Exception("RFID读卡器连接失败")
             
             print("[成功] 硬件初始化完成")
+            self.hardware_initialized = True
+            self.hardware_initialized_signal.emit() #  发射硬件初始化成功信号
             return True
             
         except Exception as e:
             print(f"[错误] 硬件初始化失败: {str(e)}")
-            self.error_occurred.emit(f"硬件初始化失败: {str(e)}")
+            self.error_occurred_signal.emit(f"硬件初始化失败: {str(e)}")
             return False
+        
+    @Slot()
+    def initialize_prescription_database(self):
+        """初始化处方数据库"""
+        try:
+            self.database = PrescriptionDatabase("demo_prescriptions.csv")
+            self.prescription_database_initialized = True
+            self.prescription_database_initialized_signal.emit()  # 发射处方数据库初始化成功信号
+            print("[成功] 处方数据库初始化完成")
+        except Exception as e:
+            print(f"[错误] 处方数据库初始化失败: {str(e)}")
+            self.error_occurred_signal.emit(f"处方数据库初始化失败: {str(e)}")
         
     def cleanup_hardware(self):
         """清理硬件资源"""
@@ -91,21 +114,46 @@ class DispenserController(QObject):
         """打开药盘"""
         try:
             if not self.dispenser:
-                self.error_occurred.emit("分药机未初始化")
+                self.error_occurred_signal.emit("分药机未初始化")
                 return False
             
-            print("[分药机] 正在打开药盘...")
-            open_result = self.dispenser.open_plate()
-            
-            if open_result != 0:
-                self.error_occurred.emit(f"打开药盘失败，错误码: {open_result}")
-                return False
-            
-            print("[分药机] 药盘打开成功")
+            else:
+                print("[分药机] 正在打开药盘...")
+                open_result = self.dispenser.open_plate()
+                
+                if open_result != 0:
+                    self.error_occurred_signal.emit(f"打开药盘失败，错误码: {open_result}")
+                    return False
+                
+                print("[分药机] 药盘打开成功")
+            self.plate_opened_signal.emit()  # 发射药盘打开信号
             return True
 
         except Exception as e:
-            self.error_occurred.emit(f"打开药盘失败: {str(e)}")
+            self.error_occurred_signal.emit(f"打开药盘失败: {str(e)}")
+            return False
+        
+    @Slot()
+    def close_plate_test(self):
+        """关闭药盘"""
+        try:
+            if not self.dispenser:
+                self.error_occurred_signal.emit("分药机未初始化")
+                return False
+            else:
+                print("[分药机] 正在关闭药盘...")
+                close_result = self.dispenser.close_plate()
+                
+                if close_result != 0:
+                    self.error_occurred_signal.emit(f"关闭药盘失败，错误码: {close_result}")
+                    return False
+                
+                print("[分药机] 药盘关闭成功")
+            self.plate_closed_signal.emit()  # 发射药盘关闭信号
+            return True
+
+        except Exception as e:
+            self.error_occurred_signal.emit(f"关闭药盘失败: {str(e)}")
             return False
         
     @Slot()
@@ -113,31 +161,32 @@ class DispenserController(QObject):
         """为RFID检测做准备, 打开药盘"""
         try:
             if not self.dispenser:
-                self.error_occurred.emit("分药机未初始化")
+                self.error_occurred_signal.emit("分药机未初始化")
                 return False
             
             print("[分药机] 正在打开药盘...")
             open_result = self.dispenser.open_plate()
             
             if open_result != 0:
-                self.error_occurred.emit(f"打开药盘失败，错误码: {open_result}")
+                self.error_occurred_signal.emit(f"打开药盘失败，错误码: {open_result}")
                 return False
             
             print("[分药机] 药盘打开成功，准备检测RFID")
             return True
 
         except Exception as e:
-            self.error_occurred.emit(f"准备RFID检测失败: {str(e)}")
+            self.error_occurred_signal.emit(f"准备RFID检测失败: {str(e)}")
             return False   
         
     @Slot()
     def start_rfid_detection(self):
-        """开始RFID检测"""
+        """开始RFID检测, 如果成功则从处方库加载分药清单"""
         try:            
             if not self.rfid_reader:
-                self.error_occurred.emit("RFID读卡器未初始化")
+                self.error_occurred_signal.emit("RFID读卡器未初始化")
                 return
             
+            self.current_rfid = None  # 重置当前RFID
             print("[RFID] 开始检测RFID...")
             # 读取RFID
             result = self.rfid_reader.read_single(timeout=20.0)
@@ -150,7 +199,7 @@ class DispenserController(QObject):
                 rfid = epc
                 
                 self.current_rfid = rfid
-                self.rfid_detected.emit(rfid)
+                self.rfid_detected_signal.emit(rfid)
                 
                 # 自动加载药品矩阵
                 self.load_pills_disensing_list(rfid)
@@ -158,20 +207,25 @@ class DispenserController(QObject):
             else:
                 error_msg = result.get('error', '未知错误')
                 print(f"[RFID] 读取失败: {error_msg}")
-                self.error_occurred.emit(f"RFID读取失败: {error_msg}")
+                self.error_occurred_signal.emit(f"RFID读取失败: {error_msg}")
                 
         except Exception as e:
             print(f"[错误] RFID检测异常: {str(e)}")
-            self.error_occurred.emit(f"RFID检测异常: {str(e)}")
+            self.error_occurred_signal.emit(f"RFID检测异常: {str(e)}")
 
     def load_pills_disensing_list(self, rfid):
         """加载处方信息并生成分药清单"""
         try:
+            # 清空当前状态
+            self.current_pills_dispensing_list = {}
+            self.current_medicines = []
+            self.current_medicine_index = 0
+
             # 从数据库获取处方信息和分药矩阵
             success, pills_disensing_list, error = self.database.generate_pills_disensing_list(rfid)
             
             if not success:
-                self.error_occurred.emit(f"生成分药矩阵失败: {error}")
+                self.error_occurred_signal.emit(f"生成分药矩阵失败: {error}")
                 return
 
             print(pills_disensing_list)
@@ -183,12 +237,16 @@ class DispenserController(QObject):
             
             # 发送信号，包含处方信息和分药矩阵
             enhanced_prescription_data = pills_disensing_list.copy()  
-            self.pills_dispensing_list_loaded.emit(enhanced_prescription_data)
+            self.pills_dispensing_list_loaded_signal.emit(enhanced_prescription_data)
         
         except Exception as e:
             print(f"[错误] 加载分药清单异常: {str(e)}")
-            self.error_occurred.emit(f"加载分药清单异常: {str(e)}")
+            self.error_occurred_signal.emit(f"加载分药清单异常: {str(e)}")
 
+
+    ########
+    # 分药 #
+    ########
     @Slot()
     def start_dispensing(self):
         """开始分药流程"""
@@ -198,26 +256,26 @@ class DispenserController(QObject):
         try:
             if not self.current_medicines:
                 print("[错误] 没有药品需要分发")
-                self.error_occurred.emit("没有药品需要分发")
+                self.error_occurred_signal.emit("没有药品需要分发")
                 return
             
             if not self.dispenser:
                 print("[错误] 分药机未初始化")
-                self.error_occurred.emit("分药机未初始化")
+                self.error_occurred_signal.emit("分药机未初始化")
                 return
             
             self.is_dispensing = True
             self.current_medicine_index = 0
             
             print("[分药] 开始分药流程")
-            self.dispensing_started.emit()
+            self.dispensing_started_signal.emit()
             
             # 开始分发第一种药品
             self.dispense_next_medicine()
             
         except Exception as e:
             print(f"[错误] 启动分药异常: {str(e)}")
-            self.error_occurred.emit(f"启动分药异常: {str(e)}")
+            self.error_occurred_signal.emit(f"启动分药异常: {str(e)}")
 
     def dispense_next_medicine(self):
         """分发下一种药品"""
@@ -242,7 +300,7 @@ class DispenserController(QObject):
 
             # 发送分药进度信号
             self.total_pill = np.sum(pill_matrix)
-            self.current_medicine_info.emit(
+            self.current_medicine_info_signal.emit(
                 medicine_name,
                 self.total_pill,
                 self.current_medicine_index + 1, 
@@ -256,7 +314,7 @@ class DispenserController(QObject):
             if not ack:
                 error_msg = f"发送分药数据失败: {medicine_name}"
                 print(f"[错误] {error_msg}")
-                self.error_occurred.emit(error_msg)
+                self.error_occurred_signal.emit(error_msg)
                 return
             
             print(f"[分药] 数据发送成功，等待分药完成...")
@@ -267,7 +325,7 @@ class DispenserController(QObject):
         except Exception as e:
             error_msg = f"分药异常: {str(e)}"
             print(f"[错误] {error_msg}")
-            self.error_occurred.emit(error_msg)
+            self.error_occurred_signal.emit(error_msg)
 
     def monitor_dispensing_status(self):
         """监控分药状态"""
@@ -278,7 +336,7 @@ class DispenserController(QObject):
                 return
             
             self.pill_remain = self.dispenser.pill_remain if hasattr(self.dispenser, 'pill_remain') else 0
-            self.dispensing_progress.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
+            self.dispensing_progress_signal.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
             
             # 检查分药机状态
             print(f"[监控] 分药机状态: {self.dispenser.machine_state}, 错误码: {self.dispenser.err_code}, 未分发药片: {self.dispenser.pill_remain}")
@@ -303,7 +361,7 @@ class DispenserController(QObject):
                 else:
                     error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser.err_code}"
                     print(f"[错误] {error_msg}")
-                    self.error_occurred.emit(error_msg)
+                    self.error_occurred_signal.emit(error_msg)
 
                     # 目前分药失败后仍继续分发下一种药品
                     # 准备分发下一种药品
@@ -320,7 +378,7 @@ class DispenserController(QObject):
         except Exception as e:
             error_msg = f"监控分药状态异常: {str(e)}"
             print(f"[错误] {error_msg}")
-            self.error_occurred.emit(error_msg)
+            self.error_occurred_signal.emit(error_msg)
 
     def complete_dispensing(self):
         """完成分药流程"""
@@ -330,42 +388,16 @@ class DispenserController(QObject):
             
             # 开启药盘
             print("[分药] 开启药盘...")
-            if self.dispenser.open_plate() != 0:
+            if self.open_plate():
                 print("[警告] 开启药盘失败")
             
             print("[分药] 所有药品分发完成")
-            self.dispensing_completed.emit()
+            self.dispensing_completed_signal.emit()
             
         except Exception as e:
             error_msg = f"完成分药异常: {str(e)}"
             print(f"[错误] {error_msg}")
-            self.error_occurred.emit(error_msg)
-
-    # def pause_dispensing(self):
-    #     """暂停分药"""
-    #     try:
-    #         if self.dispenser and self.is_dispensing:
-    #             result = self.dispenser.pause()
-    #             if result == 0:
-    #                 print("[分药] 分药已暂停")
-    #             else:
-    #                 self.error_occurred.emit("暂停分药失败")
-    #     except Exception as e:
-    #         self.error_occurred.emit(f"暂停分药异常: {str(e)}")
-
-    # def stop_dispensing(self):
-    #     """停止分药"""
-    #     try:
-    #         self.is_dispensing = False
-    #         self.monitor_timer.stop()
-            
-    #         if self.dispenser:
-    #             self.dispenser.pause()
-                
-    #         print("[分药] 分药已停止")
-            
-    #     except Exception as e:
-    #         self.error_occurred.emit(f"停止分药异常: {str(e)}")
+            self.error_occurred_signal.emit(error_msg)
 
 
 class MainWindow(QMainWindow):
@@ -375,10 +407,10 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self) # 设置UI界面
 
         self.controller = DispenserController()  # 实例化控制器
-        self.controller.initialize_hardware()  # 初始化硬件
+        # self.controller.initialize_hardware()  # 初始化硬件
+        # self.controller.initialize_prescription_database()  # 初始化处方数据库
         self.controller_worker_thread = QThread()  # 创建工作线程
         self.controller.moveToThread(self.controller_worker_thread)
-        # self.controller_worker_thread.started.connect(self.controller.create_monitor_timer)  # 在工作线程中创建监控定时器
         self.controller_worker_thread.start() 
 
         self.ui.rignt_stackedWidget.setCurrentIndex(0)  # Set the initial page
@@ -389,18 +421,109 @@ class MainWindow(QMainWindow):
         self.ui.exit_button.clicked.connect(self.prepare_for_dispensing)
         self.ui.push_plate_in_button.clicked.connect(self.close_palte)
 
-        self.controller.rfid_detected.connect(self.show_rfid_message)
-        self.controller.pills_dispensing_list_loaded.connect(self.show_prescription_message)
-        self.controller.current_medicine_info.connect(self.update_prescription_info)
-        self.controller.dispensing_completed.connect(self.move_to_finish_page)
-        self.controller.dispensing_progress.connect(self.set_pressbar_value)
+        self.controller.rfid_detected_signal.connect(self.show_rfid_message)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.show_prescription_message)
+        self.controller.current_medicine_info_signal.connect(self.update_prescription_info)
+        self.controller.dispensing_completed_signal.connect(self.move_to_finish_page)
+        self.controller.dispensing_progress_signal.connect(self.set_dispense_progress_bar_value)
 
+        self.controller.hardware_initialized_signal.connect(self.update_hardware_status_label)
+        self.controller.prescription_database_initialized_signal.connect(self.update_database_status_label)
+        self.controller.rfid_detected_signal.connect(self.update_rfid_status_label)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_pills_dispensing_list_label)
+        self.controller.dispensing_completed_signal.connect(self.update_dispensing_finished_label)
+        self.controller.plate_opened_signal.connect(self.update_plate_opened_label)
+        self.controller.plate_closed_signal.connect(self.update_plate_closed_label)
+
+
+
+
+    ####################
+    # 更新分药流程进度栏 #
+    ####################
+    @Slot()
+    def update_hardware_status_label(self):
+        """更新硬件连接状态标签显示"""
+        if hasattr(self.ui, 'hardware_status_label'):
+            self.ui.hardware_status_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(0)
+
+    @Slot()
+    def update_database_status_label(self):
+        """更新处方连接状态标签显示"""
+        if hasattr(self.ui, 'database_status_label'):
+            self.ui.database_status_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(1)
+    
+    @Slot()
+    def update_rfid_status_label(self):
+        """更新RFID连接状态标签显示"""
+        if hasattr(self.ui, 'rfid_status_label'):
+            self.ui.rfid_status_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(2)
+    
+    @Slot()
+    def update_pills_dispensing_list_label(self):
+        """更新处方信息状态标签显示"""
+        if hasattr(self.ui, 'pills_dispensing_list_label'):
+            self.ui.pills_dispensing_list_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(3)
+
+    @Slot()
+    def update_plate_closed_label(self):
+        """更新药盘状态标签显示"""
+        if hasattr(self.ui, 'plate_closed_label'):
+            self.ui.plate_closed_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(4)
+
+    @Slot()
+    def update_plate_opened_label(self):
+        """更新药盘状态标签显示"""
+        if hasattr(self.ui, 'plate_opened_label'):
+            self.ui.plate_opened_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(5)
+
+    @Slot()
+    def update_dispensing_finished_label(self):
+        """更新分药状态标签显示"""
+        if hasattr(self.ui, 'dispensing_finished_label'):
+            self.ui.dispensing_finished_label.setStyleSheet("color: blue;")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(6)
+
+    def reset_labels(self):
+        """重置所有状态标签的样式"""
+        # if hasattr(self.ui, 'hardware_status_label'):
+        #     self.ui.hardware_status_label.setStyleSheet("color: black;")
+        # if hasattr(self.ui, 'database_status_label'):
+        #     self.ui.database_status_label.setStyleSheet("color: black;")
+        if hasattr(self.ui, 'rfid_status_label'):
+            self.ui.rfid_status_label.setStyleSheet("color: black;")
+        if hasattr(self.ui, 'pills_dispensing_list_label'):
+            self.ui.pills_dispensing_list_label.setStyleSheet("color: black;")
+        if hasattr(self.ui, 'plate_closed_label'):
+            self.ui.plate_closed_label.setStyleSheet("color: black;")
+        if hasattr(self.ui, 'plate_opened_label'):
+            self.ui.plate_opened_label.setStyleSheet("color: black;")
+        if hasattr(self.ui, 'dispensing_finished_label'):
+            self.ui.dispensing_finished_label.setStyleSheet("color: black;")
+
+    ############
+    # 页面切换 #
+    ############
     def move_to_start_page(self):
         """切换到开始页面"""
         self.ui.rignt_stackedWidget.setCurrentIndex(0)
     
     def move_to_put_pan_in_page(self):
         """切换到放入药盘页面"""
+        self.reset_labels()
         self.ui.RFID_msg.hide()  # Hide the RFID message initially
         self.ui.prescription_msg.hide()  # Hide the prescription message initially
         self.ui.push_plate_in_button.hide()  # Hide the button initially
@@ -416,7 +539,14 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def prepare_for_dispensing(self):
+        # 重置标签
         self.move_to_put_pan_in_page()
+        if not self.controller.hardware_initialized:
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.controller, "initialize_hardware", Qt.QueuedConnection)
+        if not self.controller.prescription_database_initialized:
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.controller, "initialize_prescription_database", Qt.QueuedConnection)
         # 使用QMetaObject.invokeMethod在工作线程中调用方法
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
@@ -445,7 +575,7 @@ class MainWindow(QMainWindow):
     def close_palte(self):
         """关闭药盘"""
         from PySide6.QtCore import QMetaObject, Qt
-        QMetaObject.invokeMethod(self.controller, "close_plate", Qt.QueuedConnection)
+        QMetaObject.invokeMethod(self.controller, "close_plate_test", Qt.QueuedConnection)
 
         self.move_to_dispensing_page()  # 切换到分药页面
         from PySide6.QtCore import QMetaObject, Qt
@@ -460,15 +590,10 @@ class MainWindow(QMainWindow):
         self.ui.guide_msg.setText(f"共需要{total_pills_num}片")
 
     @Slot(int)
-    def set_pressbar_value(self, value):
-        """设置进度条的值"""
+    def set_dispense_progress_bar_value(self, value):
+        """设置分药进度条的值"""
         self.ui.dispense_progressBar.setValue(value)
         self.ui.progressBar_percentage.setText(f"{value}%")
-
-    # @Slot()
-    # def finsh_dispensing(self):
-    #     """完成分药流程"""
-    #     self.move_to_put_pan_in_page()
 
 
 
@@ -482,11 +607,11 @@ def control_test():
     print("=== 分药机控制器测试 ===")
     controller = DispenserController()
     
-    # 连接错误信号
-    controller.error_occurred.connect(lambda msg: print(f"[UI错误] {msg}"))
-    controller.dispensing_started.connect(lambda: print(f"[UI] 分药开始"))
-    controller.current_medicine_info.connect(lambda name, cur, total: print(f"[UI] 分药进度: {name} ({cur}/{total})"))
-    controller.dispensing_completed.connect(lambda: print(f"[UI] 分药完成"))
+    # 连接信号
+    controller.error_occurred_signal.connect(lambda msg: print(f"[UI错误] {msg}"))
+    controller.dispensing_started_signal.connect(lambda: print(f"[UI] 分药开始"))
+    controller.current_medicine_info_signal.connect(lambda name, cur, total: print(f"[UI] 分药进度: {name} ({cur}/{total})"))
+    controller.dispensing_completed_signal.connect(lambda: print(f"[UI] 分药完成"))
     
     if controller.initialize_hardware():
         print("硬件初始化成功，开始测试流程...")

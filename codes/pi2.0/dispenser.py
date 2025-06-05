@@ -35,7 +35,7 @@ class Dispenser:
 
         # 设置分药机相关参数
         self.timeout = 5 * 60 # 分药超时时间(s)
-        self.is_plate_open = False
+        self.is_plate_opened = False
         self.is_receiver_thread_running = False # 接收串口信息线程是否在运行
         self.machine_state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停工作; 3.完成工作;
         self.is_send_package_start = False # 是否正在发送数据包
@@ -241,7 +241,7 @@ class Dispenser:
         cmd = b'\x03'
         if(not self.send_package(cmd, self.repeat)):
             return 1
-        self.is_plate_open = True
+        self.is_plate_opened = True
         return 0
         
     def close_plate(self):
@@ -255,7 +255,7 @@ class Dispenser:
         cmd = b'\x04'
         if(not self.send_package(cmd, self.repeat)):
             return 1
-        self.is_plate_open = False
+        self.is_plate_opened = False
         return 0
     
     def pause(self):
