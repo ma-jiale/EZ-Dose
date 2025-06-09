@@ -288,7 +288,7 @@ QComboBox::drop-down {
            <bool>false</bool>
           </property>
           <property name="placeholderText">
-           <string>未连接分药机</string>
+           <string>已连接分药机</string>
           </property>
          </widget>
         </widget>
@@ -592,7 +592,7 @@ line-height: normal;
               <string>  退出药盘</string>
              </property>
             </widget>
-            <widget class="QLabel" name="label">
+            <widget class="QLabel" name="green_check_mark_1">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -611,7 +611,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_17">
+            <widget class="QLabel" name="green_check_mark_2">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -630,7 +630,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_18">
+            <widget class="QLabel" name="green_check_mark_3">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -649,7 +649,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_19">
+            <widget class="QLabel" name="green_check_mark_4">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -668,7 +668,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_20">
+            <widget class="QLabel" name="green_check_mark_5">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -687,7 +687,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_21">
+            <widget class="QLabel" name="green_check_mark_6">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -706,7 +706,7 @@ line-height: normal;
               <bool>true</bool>
              </property>
             </widget>
-            <widget class="QLabel" name="label_22">
+            <widget class="QLabel" name="green_check_mark_7">
              <property name="geometry">
               <rect>
                <x>140</x>
@@ -763,7 +763,7 @@ color: #2E344F;
 
 /* 三级标题 */
 font-family: &quot;Source Han Sans SC&quot;;
-font-size: 16px;
+font-size: 12px;
 font-style: normal;
 font-weight: 400;
 line-height: normal;
@@ -922,7 +922,7 @@ QProgressBar::chunk {
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="start_page">
        <widget class="QLabel" name="guide_msg_1">
@@ -932,10 +932,16 @@ QProgressBar::chunk {
         <property name="geometry">
          <rect>
           <x>48</x>
-          <y>60</y>
+          <y>70</y>
           <width>671</width>
           <height>131</height>
          </rect>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
         </property>
         <property name="styleSheet">
          <string notr="true">QLabel
@@ -969,7 +975,7 @@ line-height: normal;
         <property name="geometry">
          <rect>
           <x>260</x>
-          <y>250</y>
+          <y>260</y>
           <width>240</width>
           <height>50</height>
          </rect>
@@ -980,11 +986,13 @@ line-height: normal;
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
         <property name="styleSheet">
          <string notr="true">QPushButton {
 	border-radius: 25px;
 	background: #7EBEAE;
-	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);
     border: none;
     color: #FFF;
     font-size: 24px;
@@ -1049,7 +1057,7 @@ line-height: normal;
        <widget class="QLabel" name="get_prescription_msg">
         <property name="geometry">
          <rect>
-          <x>230</x>
+          <x>243</x>
           <y>209</y>
           <width>321</width>
           <height>16</height>
@@ -1076,7 +1084,7 @@ line-height: normal;
        <widget class="QPushButton" name="send_plate_in_button">
         <property name="geometry">
          <rect>
-          <x>260</x>
+          <x>230</x>
           <y>270</y>
           <width>240</width>
           <height>50</height>
@@ -1092,7 +1100,6 @@ line-height: normal;
          <string notr="true">QPushButton {
 	border-radius: 25px;
 	background: #7EBEAE;
-	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);
     border: none;
     color: #FFF;
     font-size: 24px;
@@ -1115,7 +1122,7 @@ QPushButton:pressed {
        <widget class="QLabel" name="check_mark_2">
         <property name="geometry">
          <rect>
-          <x>207</x>
+          <x>220</x>
           <y>210</y>
           <width>16</width>
           <height>16</height>
@@ -1284,7 +1291,7 @@ line-height: normal;
 }</string>
            </property>
            <property name="text">
-            <string>100%</string>
+            <string>0%</string>
            </property>
           </widget>
           <widget class="QProgressBar" name="dispense_progressBar">
@@ -1407,7 +1414,7 @@ line-height: normal;
             <rect>
              <x>15</x>
              <y>258</y>
-             <width>131</width>
+             <width>271</width>
              <height>21</height>
             </rect>
            </property>
@@ -1430,7 +1437,7 @@ line-height: normal;
             <rect>
              <x>15</x>
              <y>281</y>
-             <width>171</width>
+             <width>271</width>
              <height>21</height>
             </rect>
            </property>
@@ -1614,7 +1621,6 @@ border: none;
 {
 border-radius: 15px;
 background: #FFF;
-box-shadow: 0px 196.5px 55px 0px rgba(0, 0, 0, 0.00), 0px 126px 50.5px 0px rgba(0, 0, 0, 0.01), 0px 71px 42.5px 0px rgba(0, 0, 0, 0.03), 0px 31.5px 31.5px 0px rgba(0, 0, 0, 0.05), 0px 8px 17.5px 0px rgba(0, 0, 0, 0.06);
 }</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -1803,7 +1809,6 @@ line-height: normal;
          <string notr="true">QPushButton {
 	border-radius: 25px;
 	background: #7EBEAE;
-	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);
     border: none;
     color: #FFF;
     font-size: 24px;
@@ -1861,6 +1866,44 @@ line-height: normal;
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="finish_dispensing_button">
+        <property name="geometry">
+         <rect>
+          <x>260</x>
+          <y>340</y>
+          <width>240</width>
+          <height>50</height>
+         </rect>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+	border-radius: 25px;
+	background: #2E344F;
+    border: none;
+    color: #FFF;
+    font-size: 24px;
+    font-weight: 400;
+    padding: 10px;
+}
+
+QPushButton:hover {
+    background-color: #212538;
+}
+
+QPushButton:pressed {
+    background-color: #2E344F;
+}</string>
+        </property>
+        <property name="text">
+         <string>结束分药</string>
         </property>
        </widget>
       </widget>
