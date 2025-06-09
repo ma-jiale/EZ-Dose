@@ -398,8 +398,7 @@ class Ui_MainWindow(object):
 "    border-top-right-radius: 10px;     /* \u53f3\u4e0a\u89d2\u5706\u89d2 */\n"
 "    border-bottom-left-radius: 0px;    /* \u5de6\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
 "    border-bottom-right-radius: 0px;   /* \u53f3\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
-"    background: #7EBEAE;\n"
-"    color: #FFF;\n"
+"    color: #000;\n"
 "    \n"
 "    /* \u4e09\u7ea7\u6807\u9898 */\n"
 "    font-family: \"Source Han Sans SC\";\n"
@@ -435,26 +434,16 @@ class Ui_MainWindow(object):
         self.rignt_stackedWidget.setStyleSheet(u"")
         self.start_page = QWidget()
         self.start_page.setObjectName(u"start_page")
-        self.pan_img = QLabel(self.start_page)
-        self.pan_img.setObjectName(u"pan_img")
-        self.pan_img.setGeometry(QRect(160, 210, 321, 141))
-        self.pan_img.setPixmap(QPixmap(u"imgs/green_pan.png"))
-        self.pan_img.setAlignment(Qt.AlignCenter)
-        self.green_arrow = QLabel(self.start_page)
-        self.green_arrow.setObjectName(u"green_arrow")
-        self.green_arrow.setGeometry(QRect(450, 200, 121, 141))
-        self.green_arrow.setPixmap(QPixmap(u"imgs/green_arrow.png"))
-        self.green_arrow.setAlignment(Qt.AlignCenter)
         self.guide_msg_1 = QLabel(self.start_page)
         self.guide_msg_1.setObjectName(u"guide_msg_1")
         self.guide_msg_1.setEnabled(True)
-        self.guide_msg_1.setGeometry(QRect(40, 60, 671, 131))
+        self.guide_msg_1.setGeometry(QRect(48, 60, 671, 131))
         self.guide_msg_1.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
 "text-align: center;\n"
 "font-family: \"Source Han Sans SC\";\n"
-"font-size: 64px;\n"
+"font-size: 72px;\n"
 "font-style: normal;\n"
 "font-weight: 700;\n"
 "line-height: normal;\n"
@@ -463,13 +452,36 @@ class Ui_MainWindow(object):
         self.guide_msg_1.setLineWidth(1)
         self.guide_msg_1.setTextFormat(Qt.AutoText)
         self.guide_msg_1.setAlignment(Qt.AlignCenter)
+        self.start_dispense_button = QPushButton(self.start_page)
+        self.start_dispense_button.setObjectName(u"start_dispense_button")
+        self.start_dispense_button.setGeometry(QRect(260, 250, 240, 50))
+        self.start_dispense_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.start_dispense_button.setLayoutDirection(Qt.LeftToRight)
+        self.start_dispense_button.setStyleSheet(u"QPushButton {\n"
+"	border-radius: 25px;\n"
+"	background: #7EBEAE;\n"
+"	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);\n"
+"    border: none;\n"
+"    color: #FFF;\n"
+"    font-size: 24px;\n"
+"    font-weight: 400;\n"
+"    padding: 10px;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: #66A696;\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    background-color: #7EBEAE;\n"
+"}")
         self.rignt_stackedWidget.addWidget(self.start_page)
         self.put_pan_in_page = QWidget()
         self.put_pan_in_page.setObjectName(u"put_pan_in_page")
         self.guide_msg_2 = QLabel(self.put_pan_in_page)
         self.guide_msg_2.setObjectName(u"guide_msg_2")
         self.guide_msg_2.setEnabled(True)
-        self.guide_msg_2.setGeometry(QRect(40, 60, 671, 131))
+        self.guide_msg_2.setGeometry(QRect(-3, 60, 721, 131))
         self.guide_msg_2.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -484,10 +496,10 @@ class Ui_MainWindow(object):
         self.guide_msg_2.setLineWidth(1)
         self.guide_msg_2.setTextFormat(Qt.AutoText)
         self.guide_msg_2.setAlignment(Qt.AlignCenter)
-        self.prescription_msg = QLabel(self.put_pan_in_page)
-        self.prescription_msg.setObjectName(u"prescription_msg")
-        self.prescription_msg.setGeometry(QRect(273, 220, 271, 16))
-        self.prescription_msg.setStyleSheet(u"QLabel\n"
+        self.get_prescription_msg = QLabel(self.put_pan_in_page)
+        self.get_prescription_msg.setObjectName(u"get_prescription_msg")
+        self.get_prescription_msg.setGeometry(QRect(230, 209, 321, 16))
+        self.get_prescription_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
 "font-family: \"Source Han Sans SC\";\n"
@@ -496,10 +508,10 @@ class Ui_MainWindow(object):
 "font-weight: 400;\n"
 "line-height: normal;\n"
 "}")
-        self.prescription_msg.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+        self.get_prescription_msg.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
         self.send_plate_in_button = QPushButton(self.put_pan_in_page)
         self.send_plate_in_button.setObjectName(u"send_plate_in_button")
-        self.send_plate_in_button.setGeometry(QRect(250, 280, 267, 63))
+        self.send_plate_in_button.setGeometry(QRect(260, 270, 240, 50))
         self.send_plate_in_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.send_plate_in_button.setLayoutDirection(Qt.LeftToRight)
         self.send_plate_in_button.setStyleSheet(u"QPushButton {\n"
@@ -508,7 +520,7 @@ class Ui_MainWindow(object):
 "	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);\n"
 "    border: none;\n"
 "    color: #FFF;\n"
-"    font-size: 32px;\n"
+"    font-size: 24px;\n"
 "    font-weight: 400;\n"
 "    padding: 10px;\n"
 "}\n"
@@ -522,7 +534,7 @@ class Ui_MainWindow(object):
 "}")
         self.check_mark_2 = QLabel(self.put_pan_in_page)
         self.check_mark_2.setObjectName(u"check_mark_2")
-        self.check_mark_2.setGeometry(QRect(250, 221, 16, 16))
+        self.check_mark_2.setGeometry(QRect(207, 210, 16, 16))
         self.check_mark_2.setPixmap(QPixmap(u"imgs/green_check_mark.png"))
         self.check_mark_2.setScaledContents(True)
         self.check_mark_2.setAlignment(Qt.AlignCenter)
@@ -559,6 +571,16 @@ class Ui_MainWindow(object):
 "font-weight: 400;\n"
 "line-height: normal;\n"
 "}")
+        self.pan_img = QLabel(self.put_pan_in_page)
+        self.pan_img.setObjectName(u"pan_img")
+        self.pan_img.setGeometry(QRect(170, 220, 321, 141))
+        self.pan_img.setPixmap(QPixmap(u"imgs/green_pan.png"))
+        self.pan_img.setAlignment(Qt.AlignCenter)
+        self.green_arrow = QLabel(self.put_pan_in_page)
+        self.green_arrow.setObjectName(u"green_arrow")
+        self.green_arrow.setGeometry(QRect(460, 210, 121, 141))
+        self.green_arrow.setPixmap(QPixmap(u"imgs/green_arrow.png"))
+        self.green_arrow.setAlignment(Qt.AlignCenter)
         self.rignt_stackedWidget.addWidget(self.put_pan_in_page)
         self.dispense_page = QWidget()
         self.dispense_page.setObjectName(u"dispense_page")
@@ -597,7 +619,7 @@ class Ui_MainWindow(object):
 "    border-radius: 7px;  /* \u6bd4\u5916\u6846\u5c0f2px */\n"
 "    margin: 1px;  /* \u4e0epadding\u914d\u5408\u4f7f\u7528 */\n"
 "}")
-        self.dispense_progressBar.setValue(43)
+        self.dispense_progressBar.setValue(0)
         self.dispense_progressBar.setTextVisible(False)
         self.pills_num_msg_1 = QLabel(self.dispense_info_widget)
         self.pills_num_msg_1.setObjectName(u"pills_num_msg_1")
@@ -793,7 +815,7 @@ class Ui_MainWindow(object):
         self.guide_msg_4 = QLabel(self.finish_dispense_page)
         self.guide_msg_4.setObjectName(u"guide_msg_4")
         self.guide_msg_4.setEnabled(True)
-        self.guide_msg_4.setGeometry(QRect(40, 60, 671, 131))
+        self.guide_msg_4.setGeometry(QRect(40, 20, 671, 131))
         self.guide_msg_4.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -810,7 +832,7 @@ class Ui_MainWindow(object):
         self.guide_msg_4.setAlignment(Qt.AlignCenter)
         self.dispense_error_msg = QLabel(self.finish_dispense_page)
         self.dispense_error_msg.setObjectName(u"dispense_error_msg")
-        self.dispense_error_msg.setGeometry(QRect(330, 210, 121, 16))
+        self.dispense_error_msg.setGeometry(QRect(330, 219, 121, 16))
         self.dispense_error_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -823,13 +845,13 @@ class Ui_MainWindow(object):
         self.dispense_error_msg.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
         self.check_mark_4 = QLabel(self.finish_dispense_page)
         self.check_mark_4.setObjectName(u"check_mark_4")
-        self.check_mark_4.setGeometry(QRect(307, 211, 16, 16))
+        self.check_mark_4.setGeometry(QRect(307, 220, 16, 16))
         self.check_mark_4.setPixmap(QPixmap(u"imgs/green_check_mark.png"))
         self.check_mark_4.setScaledContents(True)
         self.check_mark_4.setAlignment(Qt.AlignCenter)
         self.next_patient_button = QPushButton(self.finish_dispense_page)
         self.next_patient_button.setObjectName(u"next_patient_button")
-        self.next_patient_button.setGeometry(QRect(250, 280, 267, 63))
+        self.next_patient_button.setGeometry(QRect(260, 280, 240, 50))
         self.next_patient_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.next_patient_button.setLayoutDirection(Qt.LeftToRight)
         self.next_patient_button.setStyleSheet(u"QPushButton {\n"
@@ -838,7 +860,7 @@ class Ui_MainWindow(object):
 "	box-shadow: 0px 124.017px 34.944px 0px rgba(0, 0, 0, 0.00), 0px 79.481px 31.518px 0px rgba(0, 0, 0, 0.01), 0px 44.537px 26.722px 0px rgba(0, 0, 0, 0.03), 0px 19.87px 19.87px 0px rgba(0, 0, 0, 0.04), 0px 4.796px 10.963px 0px rgba(0, 0, 0, 0.05);\n"
 "    border: none;\n"
 "    color: #FFF;\n"
-"    font-size: 32px;\n"
+"    font-size: 24px;\n"
 "    font-weight: 400;\n"
 "    padding: 10px;\n"
 "}\n"
@@ -850,6 +872,24 @@ class Ui_MainWindow(object):
 "QPushButton:pressed {\n"
 "    background-color: #7EBEAE;\n"
 "}")
+        self.guide_msg_5 = QLabel(self.finish_dispense_page)
+        self.guide_msg_5.setObjectName(u"guide_msg_5")
+        self.guide_msg_5.setEnabled(True)
+        self.guide_msg_5.setGeometry(QRect(50, 100, 671, 131))
+        self.guide_msg_5.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2E344F;\n"
+"text-align: center;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 64px;\n"
+"font-style: normal;\n"
+"font-weight: 700;\n"
+"line-height: normal;\n"
+"}")
+        self.guide_msg_5.setFrameShape(QFrame.NoFrame)
+        self.guide_msg_5.setLineWidth(1)
+        self.guide_msg_5.setTextFormat(Qt.AutoText)
+        self.guide_msg_5.setAlignment(Qt.AlignCenter)
         self.rignt_stackedWidget.addWidget(self.finish_dispense_page)
 
         self.gridLayout_3.addWidget(self.rignt_stackedWidget, 1, 1, 1, 1)
@@ -858,7 +898,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.rignt_stackedWidget.setCurrentIndex(2)
+        self.rignt_stackedWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -890,15 +930,16 @@ class Ui_MainWindow(object):
         self.process_title.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u4efb\u52a1\u6d41\u7a0b", None))
         self.setting_page_button.setText(QCoreApplication.translate("MainWindow", u"\u8bbe\u7f6e", None))
         self.main_page_button.setText(QCoreApplication.translate("MainWindow", u"\u4e3b\u9875", None))
-        self.pan_img.setText("")
-        self.green_arrow.setText("")
-        self.guide_msg_1.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u5c06\u7a7a\u836f\u76d8\u653e\u5165\u5206\u836f\u673a", None))
-        self.guide_msg_2.setText(QCoreApplication.translate("MainWindow", u"\u9001\u5165\u836f\u76d8\u5f00\u59cb\u5206\u836f", None))
-        self.prescription_msg.setText(QCoreApplication.translate("MainWindow", u"\u6210\u529f\u83b7\u53d6\u5230\u5904\u65b9,\u5f53\u524d\u60a3\u8005\uff1a\u5f20\u4e09", None))
+        self.guide_msg_1.setText(QCoreApplication.translate("MainWindow", u"EZ Dose", None))
+        self.start_dispense_button.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb\u5206\u836f", None))
+        self.guide_msg_2.setText(QCoreApplication.translate("MainWindow", u"\u5c06\u836f\u76d8\u653e\u5165\u673a\u5668\u6258\u76d8\u4e2d", None))
+        self.get_prescription_msg.setText(QCoreApplication.translate("MainWindow", u"\u6210\u529f\u83b7\u53d6\u5230\u5904\u65b9,\u5f53\u524d\u60a3\u8005\uff1a\u674e\u5c0f\u4e8c", None))
         self.send_plate_in_button.setText(QCoreApplication.translate("MainWindow", u"\u9001\u5165\u836f\u76d8", None))
         self.check_mark_2.setText("")
         self.refresh_rfid_button.setText("")
         self.refresh_rfid_msg.setText(QCoreApplication.translate("MainWindow", u"\u91cd\u65b0\u83b7\u53d6\u5904\u65b9", None))
+        self.pan_img.setText("")
+        self.green_arrow.setText("")
         self.progressBar_percentage.setText(QCoreApplication.translate("MainWindow", u"100%", None))
         self.pills_num_msg_1.setText(QCoreApplication.translate("MainWindow", u"\u5171\u9700\u8981", None))
         self.pills_num_msg_3.setText(QCoreApplication.translate("MainWindow", u"\u7247", None))
@@ -915,5 +956,6 @@ class Ui_MainWindow(object):
         self.dispense_error_msg.setText(QCoreApplication.translate("MainWindow", u"\u672a\u53d1\u73b0\u5206\u836f\u9519\u8bef", None))
         self.check_mark_4.setText("")
         self.next_patient_button.setText(QCoreApplication.translate("MainWindow", u"\u7ee7\u7eed\u5206\u836f", None))
+        self.guide_msg_5.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u62ff\u51fa\u836f\u76d8", None))
     # retranslateUi
 

@@ -134,7 +134,7 @@ class DispenserController(QObject):
             return False
         
     @Slot()
-    def close_plate_test(self):
+    def close_plate(self):
         """关闭药盘"""
         try:
             if not self.dispenser:
@@ -385,14 +385,13 @@ class DispenserController(QObject):
         try:
             self.is_dispensing = False
             self.monitor_timer.stop()
+            print("[分药] 所有药品分发完成")
+            self.dispensing_completed_signal.emit()
             
             # 开启药盘
             print("[分药] 开启药盘...")
             if self.open_plate():
                 print("[警告] 开启药盘失败")
-            
-            print("[分药] 所有药品分发完成")
-            self.dispensing_completed_signal.emit()
             
         except Exception as e:
             error_msg = f"完成分药异常: {str(e)}"
@@ -418,15 +417,14 @@ class MainWindow(QMainWindow):
     def connection(self):
         """连接UI信号和控制器槽函数"""
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
-        self.ui.exit_button.clicked.connect(self.prepare_for_dispensing)
-        self.ui.push_plate_in_button.clicked.connect(self.close_palte)
+        self.ui.next_patient_button.clicked.connect(self.prepare_for_dispensing)
+        self.ui.send_plate_in_button.clicked.connect(self.close_plate)
+        self.ui.refresh_rfid_button.clicked.connect(self.refresh_rdid)
 
-        self.controller.rfid_detected_signal.connect(self.show_rfid_message)
-        self.controller.pills_dispensing_list_loaded_signal.connect(self.show_prescription_message)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.show_get_prescription_message)
         self.controller.current_medicine_info_signal.connect(self.update_prescription_info)
         self.controller.dispensing_completed_signal.connect(self.move_to_finish_page)
         self.controller.dispensing_progress_signal.connect(self.set_dispense_progress_bar_value)
-
         self.controller.hardware_initialized_signal.connect(self.update_hardware_status_label)
         self.controller.prescription_database_initialized_signal.connect(self.update_database_status_label)
         self.controller.rfid_detected_signal.connect(self.update_rfid_status_label)
@@ -434,85 +432,8 @@ class MainWindow(QMainWindow):
         self.controller.dispensing_completed_signal.connect(self.update_dispensing_finished_label)
         self.controller.plate_opened_signal.connect(self.update_plate_opened_label)
         self.controller.plate_closed_signal.connect(self.update_plate_closed_label)
+        self.controller.error_occurred_signal.connect(self.update_error_msg)
 
-
-
-
-    ####################
-    # 更新分药流程进度栏 #
-    ####################
-    @Slot()
-    def update_hardware_status_label(self):
-        """更新硬件连接状态标签显示"""
-        if hasattr(self.ui, 'hardware_status_label'):
-            self.ui.hardware_status_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(0)
-
-    @Slot()
-    def update_database_status_label(self):
-        """更新处方连接状态标签显示"""
-        if hasattr(self.ui, 'database_status_label'):
-            self.ui.database_status_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(1)
-    
-    @Slot()
-    def update_rfid_status_label(self):
-        """更新RFID连接状态标签显示"""
-        if hasattr(self.ui, 'rfid_status_label'):
-            self.ui.rfid_status_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(2)
-    
-    @Slot()
-    def update_pills_dispensing_list_label(self):
-        """更新处方信息状态标签显示"""
-        if hasattr(self.ui, 'pills_dispensing_list_label'):
-            self.ui.pills_dispensing_list_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(3)
-
-    @Slot()
-    def update_plate_closed_label(self):
-        """更新药盘状态标签显示"""
-        if hasattr(self.ui, 'plate_closed_label'):
-            self.ui.plate_closed_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(4)
-
-    @Slot()
-    def update_plate_opened_label(self):
-        """更新药盘状态标签显示"""
-        if hasattr(self.ui, 'plate_opened_label'):
-            self.ui.plate_opened_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(5)
-
-    @Slot()
-    def update_dispensing_finished_label(self):
-        """更新分药状态标签显示"""
-        if hasattr(self.ui, 'dispensing_finished_label'):
-            self.ui.dispensing_finished_label.setStyleSheet("color: blue;")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(6)
-
-    def reset_labels(self):
-        """重置所有状态标签的样式"""
-        # if hasattr(self.ui, 'hardware_status_label'):
-        #     self.ui.hardware_status_label.setStyleSheet("color: black;")
-        # if hasattr(self.ui, 'database_status_label'):
-        #     self.ui.database_status_label.setStyleSheet("color: black;")
-        if hasattr(self.ui, 'rfid_status_label'):
-            self.ui.rfid_status_label.setStyleSheet("color: black;")
-        if hasattr(self.ui, 'pills_dispensing_list_label'):
-            self.ui.pills_dispensing_list_label.setStyleSheet("color: black;")
-        if hasattr(self.ui, 'plate_closed_label'):
-            self.ui.plate_closed_label.setStyleSheet("color: black;")
-        if hasattr(self.ui, 'plate_opened_label'):
-            self.ui.plate_opened_label.setStyleSheet("color: black;")
-        if hasattr(self.ui, 'dispensing_finished_label'):
-            self.ui.dispensing_finished_label.setStyleSheet("color: black;")
 
     ############
     # 页面切换 #
@@ -520,13 +441,17 @@ class MainWindow(QMainWindow):
     def move_to_start_page(self):
         """切换到开始页面"""
         self.ui.rignt_stackedWidget.setCurrentIndex(0)
-    
+
+    @Slot()
     def move_to_put_pan_in_page(self):
         """切换到放入药盘页面"""
         self.reset_labels()
-        self.ui.RFID_msg.hide()  # Hide the RFID message initially
-        self.ui.prescription_msg.hide()  # Hide the prescription message initially
-        self.ui.push_plate_in_button.hide()  # Hide the button initially
+        self.ui.pan_img.show()  # Show the pan image
+        self.ui.green_arrow.show()  # Show the green arrow
+        self.ui.guide_msg_2.setText("将药盘放入机器托盘中")
+        self.ui.check_mark_2.hide()  # Hide the check mark initially
+        self.ui.get_prescription_msg.hide()  # Hide the prescription message initially
+        self.ui.send_plate_in_button.hide()  # Hide the button initially
         self.ui.rignt_stackedWidget.setCurrentIndex(1)
 
     def move_to_dispensing_page(self):
@@ -537,10 +462,124 @@ class MainWindow(QMainWindow):
         """切换到完成页面"""
         self.ui.rignt_stackedWidget.setCurrentIndex(3)
 
+    ##############
+    # 更新GUI信息 #
+    ##############
+    @Slot(dict)
+    def show_get_prescription_message(self, pills_dispensing_list):
+        """显示处方信息"""
+
+        self.ui.get_prescription_msg.setText(f"成功获取到处方,当前患者：{pills_dispensing_list['name']}")
+        self.ui.check_mark_2.show()
+        self.ui.get_prescription_msg.show()
+        self.ui.send_plate_in_button.show()  # 显示放入药盘按钮
+        self.ui.patient_name.setText(pills_dispensing_list['name'])
+
+
+    @Slot(str, int, int, int)
+    def update_prescription_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
+        """更新处方信息显示"""
+        self.ui.current_drug.setText(current_medicine_name)
+        self.ui.pills_num_msg_2.setText(str(total_pills_num))
+
+    @Slot(int)
+    def set_dispense_progress_bar_value(self, value):
+        """设置分药进度条的值"""
+        self.ui.dispense_progressBar.setValue(value)
+        self.ui.progressBar_percentage.setText(f"{value}%")
+
+    @Slot()
+    def update_error_msg(self, error_msg):
+        """更新错误信息显示"""
+        if "RFID读取失败" in error_msg:
+            self.ui.get_prescription_msg.setText("处方读取失败，请正确放入药盘后点击刷新按钮重新读取")
+            self.ui.get_prescription_msg.show()
+            self.ui.check_mark_2.hide()
+
+    ###########################
+    # 更新GUI分药流程进度栏信息 #
+    ###########################
+    @Slot()
+    def update_hardware_status_label(self):
+        """更新硬件连接状态标签显示"""
+        if hasattr(self.ui, 'hardware_status_label'):
+            self.ui.hardware_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(1)
+
+    @Slot()
+    def update_database_status_label(self):
+        """更新处方连接状态标签显示"""
+        if hasattr(self.ui, 'database_status_label'):
+            self.ui.database_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(2)
+    
+    @Slot()
+    def update_rfid_status_label(self):
+        """更新RFID连接状态标签显示"""
+        self.ui.pan_img.hide()  # 隐藏药盘图片
+        self.ui.green_arrow.hide()  # 隐藏绿色箭头
+        self.ui.guide_msg_2.setText("送入药盘开始分药")
+
+        if hasattr(self.ui, 'rfid_status_label'):
+            self.ui.rfid_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(3)
+    
+    @Slot()
+    def update_pills_dispensing_list_label(self):
+        """更新处方信息状态标签显示"""
+        if hasattr(self.ui, 'pills_dispensing_list_label'):
+            self.ui.pills_dispensing_list_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(4)
+
+    @Slot()
+    def update_plate_closed_label(self):
+        """更新药盘状态标签显示"""
+        if hasattr(self.ui, 'plate_closed_label'):
+            self.ui.plate_closed_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(5)
+
+    @Slot()
+    def update_dispensing_finished_label(self):
+        """更新分药状态标签显示"""
+        if hasattr(self.ui, 'dispensing_finished_label'):
+            self.ui.dispensing_finished_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(6)
+
+    @Slot()
+    def update_plate_opened_label(self):
+        """更新药盘状态标签显示"""
+        if hasattr(self.ui, 'plate_opened_label'):
+            self.ui.plate_opened_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(7)
+
+    def reset_labels(self):
+        """重置所有状态标签的样式"""
+        if hasattr(self.ui, 'rfid_status_label'):
+            self.ui.rfid_status_label.setStyleSheet("color:  rgb(136, 136, 136);")
+        if hasattr(self.ui, 'pills_dispensing_list_label'):
+            self.ui.pills_dispensing_list_label.setStyleSheet("color:  rgb(136, 136, 136);")
+        if hasattr(self.ui, 'plate_closed_label'):
+            self.ui.plate_closed_label.setStyleSheet("color:  rgb(136, 136, 136);")
+        if hasattr(self.ui, 'plate_opened_label'):
+            self.ui.plate_opened_label.setStyleSheet("color:  rgb(136, 136, 136);")
+        if hasattr(self.ui, 'dispensing_finished_label'):
+            self.ui.dispensing_finished_label.setStyleSheet("color:  rgb(136, 136, 136);")
+
+    ###############################
+    # 调用controller线程控制分药机 #
+    ###############################
     @Slot(str)
     def prepare_for_dispensing(self):
         # 重置标签
         self.move_to_put_pan_in_page()
+
         if not self.controller.hardware_initialized:
             from PySide6.QtCore import QMetaObject, Qt
             QMetaObject.invokeMethod(self.controller, "initialize_hardware", Qt.QueuedConnection)
@@ -553,53 +592,36 @@ class MainWindow(QMainWindow):
         # 延迟1秒后执行start_rfid_detection
         QTimer.singleShot(1000, lambda: QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection))
     
-    def start_rfid_detection(self):
-        """开始RFID检测"""
-        if self.controller.prepare_for_rfid_detection():
-            self.controller.start_rfid_detection()
-
-    @Slot(str)
-    def show_rfid_message(self, rfid):
-        """显示RFID检测结果"""
-        self.ui.RFID_msg.setText(f"检测到RFID: {rfid}")
-        self.ui.RFID_msg.show()
-
-    @Slot(dict)
-    def show_prescription_message(self, pills_dispensing_list):
-        """显示处方信息"""
-        self.ui.prescription_msg.show()
-        self.ui.push_plate_in_button.show()  # 显示放入药盘按钮
-        self.ui.patient_name.setText(f"患者姓名: {pills_dispensing_list['name']}")
-        self.ui.current_drug.setText(f"当前药品: {pills_dispensing_list['medicines'][0]['medicine_name']}")
-
-    def close_palte(self):
+    def close_plate(self):
         """关闭药盘"""
         from PySide6.QtCore import QMetaObject, Qt
-        QMetaObject.invokeMethod(self.controller, "close_plate_test", Qt.QueuedConnection)
+        QMetaObject.invokeMethod(self.controller, "close_plate", Qt.QueuedConnection)
 
         self.move_to_dispensing_page()  # 切换到分药页面
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "start_dispensing", Qt.QueuedConnection)
 
-
-
-    @Slot(str, int, int, int)
-    def update_prescription_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
-        """更新处方信息显示"""
-        self.ui.current_drug.setText(current_medicine_name)
-        self.ui.guide_msg.setText(f"共需要{total_pills_num}片")
-
-    @Slot(int)
-    def set_dispense_progress_bar_value(self, value):
-        """设置分药进度条的值"""
-        self.ui.dispense_progressBar.setValue(value)
-        self.ui.progressBar_percentage.setText(f"{value}%")
-
-
-
+    @Slot()
+    def refresh_rdid(self):
+        """刷新RFID"""
+        self.ui.get_prescription_msg.setText("正在重新读取处方信息...")
+        self.ui.check_mark_2.hide()  # 隐藏勾选标记
+        if not self.controller.rfid_reader:
+            print("[错误] RFID读卡器未初始化")
+            self.controller.error_occurred_signal.emit("RFID读卡器未初始化")
+            return
+        
+        # 重新开始RFID检测
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
 
 
 
+
+
+############################
+# 无GUI controller 测试函数 #
+############################
 def control_test():
     # 测试控制器
     app = QApplication(sys.argv)
