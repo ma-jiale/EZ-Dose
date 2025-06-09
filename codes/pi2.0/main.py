@@ -21,6 +21,7 @@ class DispenserController(QObject):
     dispensing_completed_signal = Signal()  # 分药流程完成信号
     plate_opened_signal = Signal()  # 药盘打开信号
     plate_closed_signal = Signal()  # 药盘关闭信号
+    medicine_transition_signal = Signal(str, str)  # 当前药品完成，下一药品信息 (current_medicine, next_medicine)
     
 
     def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
@@ -337,13 +338,23 @@ class DispenserController(QObject):
             
             self.pill_remain = self.dispenser.pill_remain if hasattr(self.dispenser, 'pill_remain') else 0
             self.dispensing_progress_signal.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
-            
+
+            # 发射药品转换信号
+            if self.dispenser.pill_remain == 0 and self.current_medicine_index < len(self.current_medicines):
+                current_medicine_name = self.current_medicines[self.current_medicine_index]['medicine_name']
+                next_medicine_index = self.current_medicine_index + 1
+                if next_medicine_index < len(self.current_medicines):
+                    next_medicine_name = self.current_medicines[next_medicine_index]['medicine_name']
+                    self.medicine_transition_signal.emit(current_medicine_name, next_medicine_name)
+                else:
+                    # 最后一个药品分发完成
+                    self.medicine_transition_signal.emit(current_medicine_name, "")      
+
             # 检查分药机状态
             print(f"[监控] 分药机状态: {self.dispenser.machine_state}, 错误码: {self.dispenser.err_code}, 未分发药片: {self.dispenser.pill_remain}")
             
             if self.dispenser.machine_state == 3:  # 分药完成
-                self.monitor_timer.stop()
-                
+                self.monitor_timer.stop()                
                 current_medicine = self.current_medicines[self.current_medicine_index]
                 medicine_name = current_medicine['medicine_name']
                 
@@ -352,7 +363,7 @@ class DispenserController(QObject):
                     if hasattr(self.dispenser, 'pill_remain'):
                         print(f"[分药] 剩余药片: {self.dispenser.pill_remain}")
 
-                    
+
                     # 准备分发下一种药品
                     self.current_medicine_index += 1
                     # 等待一小段时间再分发下一种药品
@@ -367,7 +378,7 @@ class DispenserController(QObject):
                     # 准备分发下一种药品
                     self.current_medicine_index += 1
                     # 等待一小段时间再分发下一种药品
-                    QTimer.singleShot(1000, self.dispense_next_medicine)
+                    self.dispense_next_medicine()
                     
             elif self.dispenser.machine_state == 2:  # 暂停状态
                 print("[分药] 分药已暂停")
@@ -387,7 +398,7 @@ class DispenserController(QObject):
             self.monitor_timer.stop()
             print("[分药] 所有药品分发完成")
             self.dispensing_completed_signal.emit()
-            
+
             # 开启药盘
             print("[分药] 开启药盘...")
             if self.open_plate():
@@ -420,19 +431,21 @@ class MainWindow(QMainWindow):
         self.ui.next_patient_button.clicked.connect(self.prepare_for_dispensing)
         self.ui.send_plate_in_button.clicked.connect(self.close_plate)
         self.ui.refresh_rfid_button.clicked.connect(self.refresh_rdid)
+        self.ui.finish_dispensing_button.clicked.connect(self.finish_dispensing)
 
-        self.controller.pills_dispensing_list_loaded_signal.connect(self.show_get_prescription_message)
-        self.controller.current_medicine_info_signal.connect(self.update_prescription_info)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_prescription_info)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_pills_dispensing_list_label)
+        self.controller.current_medicine_info_signal.connect(self.update_current_medicine_info)
         self.controller.dispensing_completed_signal.connect(self.move_to_finish_page)
+        self.controller.dispensing_completed_signal.connect(self.update_dispensing_finished_label)
         self.controller.dispensing_progress_signal.connect(self.set_dispense_progress_bar_value)
         self.controller.hardware_initialized_signal.connect(self.update_hardware_status_label)
         self.controller.prescription_database_initialized_signal.connect(self.update_database_status_label)
         self.controller.rfid_detected_signal.connect(self.update_rfid_status_label)
-        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_pills_dispensing_list_label)
-        self.controller.dispensing_completed_signal.connect(self.update_dispensing_finished_label)
         self.controller.plate_opened_signal.connect(self.update_plate_opened_label)
         self.controller.plate_closed_signal.connect(self.update_plate_closed_label)
         self.controller.error_occurred_signal.connect(self.update_error_msg)
+        self.controller.medicine_transition_signal.connect(self.update_medicine_transition_status)
 
 
     ############
@@ -440,6 +453,7 @@ class MainWindow(QMainWindow):
     ############
     def move_to_start_page(self):
         """切换到开始页面"""
+        self.reset_labels()  # 重置所有状态标签
         self.ui.rignt_stackedWidget.setCurrentIndex(0)
 
     @Slot()
@@ -466,9 +480,8 @@ class MainWindow(QMainWindow):
     # 更新GUI信息 #
     ##############
     @Slot(dict)
-    def show_get_prescription_message(self, pills_dispensing_list):
-        """显示处方信息"""
-
+    def update_prescription_info(self, pills_dispensing_list):
+        """更新获取处方信息的消息和显示放入药盘按钮"""
         self.ui.get_prescription_msg.setText(f"成功获取到处方,当前患者：{pills_dispensing_list['name']}")
         self.ui.check_mark_2.show()
         self.ui.get_prescription_msg.show()
@@ -477,8 +490,10 @@ class MainWindow(QMainWindow):
 
 
     @Slot(str, int, int, int)
-    def update_prescription_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
-        """更新处方信息显示"""
+    def update_current_medicine_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
+        """更新当前药品信息显示"""
+        self.ui.is_dispensing_msg.setText("正在分发药品...")
+        self.ui.put_pills_in_msg.setText("请投入药品到分药机中")
         self.ui.current_drug.setText(current_medicine_name)
         self.ui.pills_num_msg_2.setText(str(total_pills_num))
 
@@ -495,6 +510,25 @@ class MainWindow(QMainWindow):
             self.ui.get_prescription_msg.setText("处方读取失败，请正确放入药盘后点击刷新按钮重新读取")
             self.ui.get_prescription_msg.show()
             self.ui.check_mark_2.hide()
+
+    @Slot(str, str)
+    def update_medicine_transition_status(self, current_medicine, next_medicine):
+        """更新药品转换状态标签"""
+        if next_medicine:
+            status_text_1 = f"{current_medicine}分发完成"
+            status_text_2 = f"即将分发{next_medicine}，请准备"
+        else:
+            status_text_1 = f"{current_medicine}分发完成"
+            status_text_2 = "所有药品分发完成，即将开启药盘"
+        
+        # 假设你有一个用于显示状态的标签，比如叫status_label
+        # 请根据你的实际UI设计替换为正确的标签名称
+        if hasattr(self.ui, 'is_dispensing_msg'):
+            self.ui.is_dispensing_msg.setText(status_text_1)
+        if hasattr(self.ui, 'put_pills_in_msg'):
+            self.ui.put_pills_in_msg.setText(status_text_2)
+        # 打印状态更新信息
+        print(f"[状态更新] {status_text_1}, {status_text_2}")
 
     ###########################
     # 更新GUI分药流程进度栏信息 #
@@ -614,6 +648,16 @@ class MainWindow(QMainWindow):
         # 重新开始RFID检测
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
+
+    @Slot()
+    def finish_dispensing(self):
+        """完成分药流程"""
+        # 关闭药盘
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "close_plate", Qt.QueuedConnection)
+        
+        # 切换到完成页面
+        self.move_to_start_page()
 
 
 
