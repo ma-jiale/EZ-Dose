@@ -6,6 +6,7 @@ from dispenser import Dispenser
 from rfid_reader import RFIDReader
 from prescription_database import PrescriptionDatabase
 import numpy as np
+import serial.tools.list_ports
 
 class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
@@ -24,12 +25,17 @@ class DispenserController(QObject):
     medicine_transition_signal = Signal(str, str)  # 当前药品完成，下一药品信息 (current_medicine, next_medicine)
     
 
-    def __init__(self, dispenser_port="COM6", rfid_port="COM9"):
+    def __init__(self, dispenser_port=None, rfid_port=None):
         super().__init__()
 
-        # 初始化分药机和RFID读卡器的端口
-        self.dispenser_port = dispenser_port
-        self.rfid_port = rfid_port
+        # 自动检测串口
+        detected_dispenser_port, detected_rfid_port = self.auto_detect_ports()
+        
+        # 使用检测到的端口，如果检测失败则使用传入的参数或默认值
+        self.dispenser_port = detected_dispenser_port or dispenser_port or "COM6"
+        self.rfid_port = detected_rfid_port or rfid_port or "COM9"
+        
+        print(f"[初始化] 使用端口 - 分药机: {self.dispenser_port}, RFID: {self.rfid_port}")
         
         # 初始化组件
         self.dispenser = None
@@ -92,7 +98,8 @@ class DispenserController(QObject):
         except Exception as e:
             print(f"[错误] 处方数据库初始化失败: {str(e)}")
             self.error_occurred_signal.emit(f"处方数据库初始化失败: {str(e)}")
-        
+            
+    @Slot()
     def cleanup_hardware(self):
         """清理硬件资源"""
         try:
@@ -151,6 +158,29 @@ class DispenserController(QObject):
                 
                 print("[分药机] 药盘关闭成功")
             self.plate_closed_signal.emit()  # 发射药盘关闭信号
+            return True
+
+        except Exception as e:
+            self.error_occurred_signal.emit(f"关闭药盘失败: {str(e)}")
+            return False
+        
+    @Slot()
+    def close_plate_when_exit(self):
+        """关闭药盘"""
+        try:
+            if not self.dispenser:
+                self.error_occurred_signal.emit("分药机未初始化")
+                return False
+            else:
+                print("[分药机] 正在关闭药盘...")
+                close_result = self.dispenser.close_plate()
+                
+                if close_result != 0:
+                    self.error_occurred_signal.emit(f"关闭药盘失败，错误码: {close_result}")
+                    return False
+                
+                print("[分药机] 药盘关闭成功")
+            # self.plate_closed_signal.emit()  # 发射药盘关闭信号
             return True
 
         except Exception as e:
@@ -348,7 +378,7 @@ class DispenserController(QObject):
                     self.medicine_transition_signal.emit(current_medicine_name, next_medicine_name)
                 else:
                     # 最后一个药品分发完成
-                    self.medicine_transition_signal.emit(current_medicine_name, "")      
+                    self.medicine_transition_signal.emit(current_medicine_name, "")
 
             # 检查分药机状态
             print(f"[监控] 分药机状态: {self.dispenser.machine_state}, 错误码: {self.dispenser.err_code}, 未分发药片: {self.dispenser.pill_remain}")
@@ -409,41 +439,166 @@ class DispenserController(QObject):
             print(f"[错误] {error_msg}")
             self.error_occurred_signal.emit(error_msg)
 
+    def auto_detect_ports(self):
+        """自动检测分药机和RFID设备的串口"""
+        try:
+            # 获取所有可用串口
+            ports = serial.tools.list_ports.comports()
+            
+            dispenser_port = None
+            rfid_port = None
+            
+            print("[检测] 正在扫描可用串口...")
+            
+            for port in ports:
+                port_name = port.device
+                description = port.description
+                manufacturer = (port.manufacturer or "")
+                
+                print(f"[检测] 发现串口: {port_name}")
+                print(f"  描述: {description}")
+                print(f"  制造商: {manufacturer}")
+                print("---")
+                
+                # 根据你提供的设备描述进行匹配
+                # 分药机识别：USB-SERIAL CH340
+                if "USB-SERIAL CH340" in description or "CH340" in description:
+                    if not dispenser_port:
+                        dispenser_port = port_name
+                        print(f"[检测] 识别为分药机: {port_name} (CH340)")
+                
+                # RFID识别：Silicon Labs CP210x USB to UART Bridge
+                elif "Silicon Labs CP210x USB to UART Bridge" in description or \
+                     ("Silicon Labs" in description and "CP210" in description):
+                    if not rfid_port:
+                        rfid_port = port_name
+                        print(f"[检测] 识别为RFID读卡器: {port_name} (CP210x)")
+            
+            # 如果无法通过精确描述识别，尝试备用关键词
+            if not dispenser_port or not rfid_port:
+                print("[检测] 精确匹配失败，尝试关键词匹配...")
+                
+                for port in ports:
+                    port_name = port.device
+                    description = port.description.lower()
+                    
+                    # 分药机备用关键词
+                    if not dispenser_port and any(keyword in description for keyword in ['ch340', 'ch341']):
+                        dispenser_port = port_name
+                        print(f"[检测] 通过关键词识别为分药机: {port_name}")
+                    
+                    # RFID备用关键词
+                    elif not rfid_port and any(keyword in description for keyword in ['cp210', 'silicon labs']):
+                        rfid_port = port_name
+                        print(f"[检测] 通过关键词识别为RFID: {port_name}")
+            
+            # 如果仍然无法识别，按端口顺序分配
+            if not dispenser_port or not rfid_port:
+                available_ports = [port.device for port in ports]
+                available_ports.sort()  # 按端口号排序
+                
+                print(f"[检测] 关键词匹配失败，可用端口: {available_ports}")
+                
+                if not dispenser_port and available_ports:
+                    dispenser_port = available_ports[0]
+                    print(f"[检测] 默认分配分药机端口: {dispenser_port}")
+                
+                if not rfid_port and len(available_ports) > 1:
+                    # 找一个不是分药机的端口
+                    for port in available_ports:
+                        if port != dispenser_port:
+                            rfid_port = port
+                            break
+                    print(f"[检测] 默认分配RFID端口: {rfid_port}")
+                elif not rfid_port and len(available_ports) == 1:
+                    # 如果只有一个端口，可能两个设备共用
+                    rfid_port = available_ports[0]
+                    print(f"[检测] 使用共用端口: {rfid_port}")
+            
+            if dispenser_port and rfid_port:
+                print(f"[成功] 自动检测完成 - 分药机: {dispenser_port}, RFID: {rfid_port}")
+            else:
+                print(f"[警告] 自动检测不完整 - 分药机: {dispenser_port}, RFID: {rfid_port}")
+            
+            return dispenser_port, rfid_port
+            
+        except Exception as e:
+            print(f"[错误] 自动检测串口失败: {e}")
+            return None, None
+
+    def show_all_ports_info(self):
+        """显示所有串口详细信息（调试用）"""
+        try:
+            ports = serial.tools.list_ports.comports()
+            print("=== 所有可用串口信息 ===")
+            for i, port in enumerate(ports):
+                print(f"串口 {i+1}: {port.device}")
+                print(f"  描述: {port.description}")
+                print(f"  制造商: {port.manufacturer}")
+                print(f"  VID:PID: {port.vid}:{port.pid}")
+                print(f"  序列号: {port.serial_number}")
+                print("---")
+        except Exception as e:
+            print(f"获取串口信息失败: {e}")
+
+    def test_port_connection(self, port, device_type):
+        """测试端口连接是否正常"""
+        try:
+            if not port:
+                return False
+                
+            print(f"[测试] 正在测试{device_type}端口: {port}")
+            
+            # 尝试打开串口
+            test_serial = serial.Serial(
+                port=port,
+                baudrate=115200,
+                timeout=1.0
+            )
+            test_serial.close()
+            print(f"[测试] {device_type}端口{port}连接正常")
+            return True
+            
+        except Exception as e:
+            print(f"[测试] {device_type}端口{port}连接失败: {e}")
+            return False
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
-        self.ui.setupUi(self) # 设置UI界面
+        self.ui.setupUi(self)
 
-        self.controller = DispenserController()  # 实例化控制器
-        # self.controller.initialize_hardware()  # 初始化硬件
-        # self.controller.initialize_prescription_database()  # 初始化处方数据库
-        self.controller_worker_thread = QThread()  # 创建工作线程
+        # 使用自动检测的控制器（不传入端口参数，让它自动检测）
+        self.controller = DispenserController()
+        
+        self.controller_worker_thread = QThread()
         self.controller.moveToThread(self.controller_worker_thread)
-        self.controller_worker_thread.start() 
+        self.controller_worker_thread.start()
 
-        self.ui.rignt_stackedWidget.setCurrentIndex(0)  # Set the initial page
+        self.ui.rignt_stackedWidget.setCurrentIndex(0)
+        
+        # 初始化check_marks（隐藏所有）
+        self.initialize_check_marks()
 
     def connection(self):
         """连接UI信号和控制器槽函数"""
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
-        self.ui.next_patient_button.clicked.connect(self.prepare_for_dispensing)
+        self.ui.next_patient_button.clicked.connect(self.go_to_next_patient)
         self.ui.send_plate_in_button.clicked.connect(self.close_plate)
         self.ui.refresh_rfid_button.clicked.connect(self.refresh_rdid)
         self.ui.finish_dispensing_button.clicked.connect(self.finish_dispensing)
 
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_prescription_info)
-        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_pills_dispensing_list_label)
+        self.controller.pills_dispensing_list_loaded_signal.connect(self.update_to_plate_closed_label)
         self.controller.current_medicine_info_signal.connect(self.update_current_medicine_info)
         self.controller.dispensing_completed_signal.connect(self.move_to_finish_page)
-        self.controller.dispensing_completed_signal.connect(self.update_dispensing_finished_label)
+        self.controller.dispensing_completed_signal.connect(self.update_to_plate_opened_label)
         self.controller.dispensing_progress_signal.connect(self.set_dispense_progress_bar_value)
-        self.controller.hardware_initialized_signal.connect(self.update_hardware_status_label)
-        self.controller.prescription_database_initialized_signal.connect(self.update_database_status_label)
-        self.controller.rfid_detected_signal.connect(self.update_rfid_status_label)
-        self.controller.plate_opened_signal.connect(self.update_plate_opened_label)
-        self.controller.plate_closed_signal.connect(self.update_plate_closed_label)
+        self.controller.hardware_initialized_signal.connect(self.update_to_database_status_label)
+        self.controller.prescription_database_initialized_signal.connect(self.update_to_rfid_status_label)
+        self.controller.rfid_detected_signal.connect(self.update_to_pills_dispensing_list_label)
+        self.controller.plate_closed_signal.connect(self.update_to_dispensin_finished_label)
         self.controller.error_occurred_signal.connect(self.update_error_msg)
         self.controller.medicine_transition_signal.connect(self.update_medicine_transition_status)
 
@@ -453,13 +608,11 @@ class MainWindow(QMainWindow):
     ############
     def move_to_start_page(self):
         """切换到开始页面"""
-        self.reset_labels()  # 重置所有状态标签
         self.ui.rignt_stackedWidget.setCurrentIndex(0)
 
     @Slot()
     def move_to_put_pan_in_page(self):
         """切换到放入药盘页面"""
-        self.reset_labels()
         self.ui.pan_img.show()  # Show the pan image
         self.ui.green_arrow.show()  # Show the green arrow
         self.ui.guide_msg_2.setText("将药盘放入机器托盘中")
@@ -519,10 +672,8 @@ class MainWindow(QMainWindow):
             status_text_2 = f"即将分发{next_medicine}，请准备"
         else:
             status_text_1 = f"{current_medicine}分发完成"
-            status_text_2 = "所有药品分发完成，即将开启药盘"
+            status_text_2 = "所有药品分发完成，即将退出药盘"
         
-        # 假设你有一个用于显示状态的标签，比如叫status_label
-        # 请根据你的实际UI设计替换为正确的标签名称
         if hasattr(self.ui, 'is_dispensing_msg'):
             self.ui.is_dispensing_msg.setText(status_text_1)
         if hasattr(self.ui, 'put_pills_in_msg'):
@@ -533,85 +684,226 @@ class MainWindow(QMainWindow):
     ###########################
     # 更新GUI分药流程进度栏信息 #
     ###########################
+    def set_label_active_style(self, label):
+        """设置标签为当前激活状态的样式（绿色背景+白色文字）"""
+        label.setStyleSheet("""
+            color: white;
+            font-family: "Source Han Sans SC";
+            background-color: hsla(165, 33%, 62%, 1);
+            padding: 5px;
+            border-radius: 4px;
+            font-weight: normal;
+        """)
+        
+        # 隐藏对应的check_mark（当前激活状态不显示完成标记）
+        self.hide_check_mark_for_label(label)
+
+    def set_label_completed_style(self, label):
+        """设置标签为已完成状态的样式（绿色文字+无背景）"""
+        label.setStyleSheet("""
+            color: hsla(165, 33%, 62%, 1);
+            font-family: "Source Han Sans SC";
+            background-color: transparent;
+            padding: 5px;
+            border-radius: 4px;
+            font-weight: normal;
+        """)
+        
+        # 显示对应的check_mark
+        self.show_check_mark_for_label(label)
+
+    def show_check_mark_for_label(self, label):
+        """根据标签显示对应的check_mark"""
+        # 定义标签与check_mark的对应关系
+        label_to_check_mark = {
+            'hardware_status_label': 'green_check_mark_1',
+            'database_status_label': 'green_check_mark_2', 
+            'rfid_status_label': 'green_check_mark_3',
+            'pills_dispensing_list_label': 'green_check_mark_4',
+            'plate_closed_label': 'green_check_mark_5',
+            'dispensing_finished_label': 'green_check_mark_6',
+            'plate_opened_label': 'green_check_mark_7'
+        }
+        
+        # 获取标签的对象名
+        label_name = label.objectName()
+        
+        # 如果找到对应的check_mark，则显示它
+        if label_name in label_to_check_mark:
+            check_mark_name = label_to_check_mark[label_name]
+            if hasattr(self.ui, check_mark_name):
+                check_mark = getattr(self.ui, check_mark_name)
+                check_mark.show()
+                print(f"[UI] 显示完成标记: {check_mark_name}")
+
+    def hide_check_mark_for_label(self, label):
+        """隐藏对应标签的check_mark"""
+        # 定义标签与check_mark的对应关系
+        label_to_check_mark = {
+            'hardware_status_label': 'green_check_mark_1',
+            'database_status_label': 'green_check_mark_2',
+            'rfid_status_label': 'green_check_mark_3',
+            'pills_dispensing_list_label': 'green_check_mark_4',
+            'plate_closed_label': 'green_check_mark_5',
+            'dispensing_finished_label': 'green_check_mark_6',
+            'plate_opened_label': 'green_check_mark_7'
+        }
+        
+        # 获取标签的对象名
+        label_name = label.objectName()
+        
+        # 如果找到对应的check_mark，则隐藏它
+        if label_name in label_to_check_mark:
+            check_mark_name = label_to_check_mark[label_name]
+            if hasattr(self.ui, check_mark_name):
+                check_mark = getattr(self.ui, check_mark_name)
+                check_mark.hide()
+
+    def initialize_check_marks(self):
+        """初始化时隐藏所有check_mark"""
+        check_marks = [
+            'green_check_mark_1',
+            'green_check_mark_2', 
+            'green_check_mark_3',
+            'green_check_mark_4',
+            'green_check_mark_5',
+            'green_check_mark_6',
+            'green_check_mark_7'
+        ]
+        
+        for check_mark_name in check_marks:
+            if hasattr(self.ui, check_mark_name):
+                check_mark = getattr(self.ui, check_mark_name)
+                check_mark.hide()
+                print(f"[初始化] 隐藏check_mark: {check_mark_name}")
+
+    def set_label_pending_style(self, label):
+        """设置标签为待完成状态的样式（灰色文字+无背景）"""
+        label.setStyleSheet("""
+            color: rgb(136, 136, 136);
+            background-color: transparent;
+            font-family: "Source Han Sans SC";
+            padding: 5px;
+            border-radius: 4px;
+            font-weight: normal;
+        """)
+    
+        # 隐藏对应的check_mark（待完成状态不显示完成标记）
+        self.hide_check_mark_for_label(label)
+
+    def update_all_labels_status(self, current_step):
+        """
+        根据当前步骤更新所有标签的状态
+        :param current_step: 当前步骤（1-7）
+        """
+        # 定义所有标签的顺序
+        label_sequence = [
+            'hardware_status_label',          # 步骤1
+            'database_status_label',          # 步骤2  
+            'rfid_status_label',              # 步骤3
+            'pills_dispensing_list_label',    # 步骤4
+            'plate_closed_label',             # 步骤5
+            'dispensing_finished_label',      # 步骤6
+            'plate_opened_label'              # 步骤7
+        ]
+        
+        for i, label_name in enumerate(label_sequence):
+            if hasattr(self.ui, label_name):
+                label = getattr(self.ui, label_name)
+                step_number = i + 1
+                
+                if step_number < current_step:
+                    # 已完成的步骤：绿色文字，无背景
+                    self.set_label_completed_style(label)
+                elif step_number == current_step:
+                    # 当前步骤：绿色背景，白色文字
+                    self.set_label_active_style(label)
+                else:
+                    # 未完成的步骤：灰色文字，无背景
+                    self.set_label_pending_style(label)
+
     @Slot()
-    def update_hardware_status_label(self):
+    def update_to_hardware_status_label(self):
         """更新硬件连接状态标签显示"""
-        if hasattr(self.ui, 'hardware_status_label'):
-            self.ui.hardware_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(1)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(1)
 
     @Slot()
-    def update_database_status_label(self):
+    def update_to_database_status_label(self):
         """更新处方连接状态标签显示"""
-        if hasattr(self.ui, 'database_status_label'):
-            self.ui.database_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(2)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(2)
-    
+
     @Slot()
-    def update_rfid_status_label(self):
+    def update_to_rfid_status_label(self):
         """更新RFID连接状态标签显示"""
+        
+        self.update_all_labels_status(3)
+        if hasattr(self.ui, 'task_progressBar'):
+            self.ui.task_progressBar.setValue(3)
+
+    @Slot()
+    def update_to_pills_dispensing_list_label(self):
+        """更新处方信息状态标签显示"""
         self.ui.pan_img.hide()  # 隐藏药盘图片
         self.ui.green_arrow.hide()  # 隐藏绿色箭头
         self.ui.guide_msg_2.setText("送入药盘开始分药")
-
-        if hasattr(self.ui, 'rfid_status_label'):
-            self.ui.rfid_status_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
-        if hasattr(self.ui, 'task_progressBar'):
-            self.ui.task_progressBar.setValue(3)
-    
-    @Slot()
-    def update_pills_dispensing_list_label(self):
-        """更新处方信息状态标签显示"""
-        if hasattr(self.ui, 'pills_dispensing_list_label'):
-            self.ui.pills_dispensing_list_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(4)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(4)
 
     @Slot()
-    def update_plate_closed_label(self):
+    def update_to_plate_closed_label(self):
         """更新药盘状态标签显示"""
-        if hasattr(self.ui, 'plate_closed_label'):
-            self.ui.plate_closed_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(5)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(5)
 
     @Slot()
-    def update_dispensing_finished_label(self):
+    def update_to_dispensin_finished_label(self):
         """更新分药状态标签显示"""
-        if hasattr(self.ui, 'dispensing_finished_label'):
-            self.ui.dispensing_finished_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(6)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(6)
 
     @Slot()
-    def update_plate_opened_label(self):
+    def update_to_plate_opened_label(self):
         """更新药盘状态标签显示"""
-        if hasattr(self.ui, 'plate_opened_label'):
-            self.ui.plate_opened_label.setStyleSheet("color: hsla(165, 33%, 62%, 1);")
+        self.update_all_labels_status(7)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(7)
 
-    def reset_labels(self):
-        """重置所有状态标签的样式"""
-        if hasattr(self.ui, 'rfid_status_label'):
-            self.ui.rfid_status_label.setStyleSheet("color:  rgb(136, 136, 136);")
-        if hasattr(self.ui, 'pills_dispensing_list_label'):
-            self.ui.pills_dispensing_list_label.setStyleSheet("color:  rgb(136, 136, 136);")
-        if hasattr(self.ui, 'plate_closed_label'):
-            self.ui.plate_closed_label.setStyleSheet("color:  rgb(136, 136, 136);")
-        if hasattr(self.ui, 'plate_opened_label'):
-            self.ui.plate_opened_label.setStyleSheet("color:  rgb(136, 136, 136);")
-        if hasattr(self.ui, 'dispensing_finished_label'):
-            self.ui.dispensing_finished_label.setStyleSheet("color:  rgb(136, 136, 136);")
+    def reset_labels(self, text_color="rgb(136, 136, 136)", background_color="transparent"):
+        """
+        重置所有状态标签的样式
+        :param text_color: 文字颜色，默认为灰色 rgb(136, 136, 136)
+        :param background_color: 背景颜色，默认为透明 transparent
+        """
+        # 构建样式字符串
+        style = f"color: {text_color}; background-color: {background_color}; padding: 5px; border-radius: 4px; font-weight: normal;"
+        
+        label_list = [
+            'hardware_status_label',
+            'database_status_label', 
+            'rfid_status_label',
+            'pills_dispensing_list_label',
+            'plate_closed_label',
+            'dispensing_finished_label',
+            'plate_opened_label'
+        ]
+        
+        for label_name in label_list:
+            if hasattr(self.ui, label_name):
+                getattr(self.ui, label_name).setStyleSheet(style)
+
 
     ###############################
     # 调用controller线程控制分药机 #
     ###############################
     @Slot(str)
     def prepare_for_dispensing(self):
-        # 重置标签
         self.move_to_put_pan_in_page()
 
         if not self.controller.hardware_initialized:
@@ -654,10 +946,18 @@ class MainWindow(QMainWindow):
         """完成分药流程"""
         # 关闭药盘
         from PySide6.QtCore import QMetaObject, Qt
-        QMetaObject.invokeMethod(self.controller, "close_plate", Qt.QueuedConnection)
-        
+        QMetaObject.invokeMethod(self.controller, "close_plate_when_exit", Qt.QueuedConnection)
+
         # 切换到完成页面
+        self.update_to_rfid_status_label()
         self.move_to_start_page()
+
+    @Slot()
+    def go_to_next_patient(self):
+        """切换到下一个患者"""
+        self.update_to_rfid_status_label()
+        self.prepare_for_dispensing()
+
 
 
 
