@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow
-from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread
+from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread, Qt
 from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
@@ -568,6 +568,11 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # 固定窗口大小为960x540，并禁止最大化和拉伸
+        self.setFixedSize(960, 540)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)
+        # ...existing code...
 
         # 使用自动检测的控制器（不传入端口参数，让它自动检测）
         self.controller = DispenserController()
