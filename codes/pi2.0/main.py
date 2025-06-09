@@ -1,6 +1,8 @@
 import sys
+import os
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread, Qt
+from PySide6.QtGui import QPixmap, QIcon
 from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
@@ -572,7 +574,10 @@ class MainWindow(QMainWindow):
         # 固定窗口大小为960x540，并禁止最大化和拉伸
         self.setFixedSize(960, 540)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)
-        # ...existing code...
+        
+        # 设置药品图片目录路径
+        self.medicine_images_dir = "imgs/medicines"  # 根据你的实际目录调整
+        self.placeholder_image = "imgs/medicines/place_holder.png"  # 占位图片路径
 
         # 使用自动检测的控制器（不传入端口参数，让它自动检测）
         self.controller = DispenserController()
@@ -591,7 +596,7 @@ class MainWindow(QMainWindow):
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
         self.ui.next_patient_button.clicked.connect(self.go_to_next_patient)
         self.ui.send_plate_in_button.clicked.connect(self.close_plate)
-        self.ui.refresh_rfid_button.clicked.connect(self.refresh_rdid)
+        self.ui.refresh_rfid_button.clicked.connect(self.refresh_rfid)
         self.ui.finish_dispensing_button.clicked.connect(self.finish_dispensing)
 
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_prescription_info)
@@ -647,6 +652,76 @@ class MainWindow(QMainWindow):
         self.ui.patient_name.setText(pills_dispensing_list['name'])
 
 
+    def load_medicine_image(self, medicine_name):
+        """
+        根据药品名加载对应的图片
+        :param medicine_name: 药品名称
+        :return: 是否成功加载图片
+        """
+        try:
+            # 常见的图片格式
+            image_extensions = ['.png', '.jpg', '.jpeg', '.bmp', '.gif']
+            
+            # 清理药品名称（移除特殊字符，替换空格为下划线）
+            clean_name = medicine_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+            
+            # 尝试不同的文件名格式和扩展名
+            possible_names = [
+                clean_name,
+                medicine_name,
+                clean_name.lower(),
+                medicine_name.lower()
+            ]
+            
+            for name in possible_names:
+                for ext in image_extensions:
+                    image_path = os.path.join(self.medicine_images_dir, f"{name}{ext}")
+                    if os.path.exists(image_path):
+                        pixmap = QPixmap(image_path)
+                        if not pixmap.isNull():
+                            # 缩放到固定尺寸 300x200，保持纵横比
+                            scaled_pixmap = pixmap.scaled(
+                                300, 200,
+                                Qt.KeepAspectRatio,
+                                Qt.SmoothTransformation
+                            )
+                            self.ui.current_drug_img.setPixmap(scaled_pixmap)
+                            print(f"[图片] 成功加载药品图片: {image_path}")
+                            return True
+        
+            # 如果没有找到对应图片，使用占位图片
+            self.load_placeholder_image()
+            print(f"[图片] 未找到药品 '{medicine_name}' 的图片，使用占位图片")
+            return False
+        
+        except Exception as e:
+            print(f"[错误] 加载药品图片失败: {e}")
+            self.load_placeholder_image()
+            return False
+
+    def load_placeholder_image(self):
+        """加载占位图片"""
+        try:
+            if os.path.exists(self.placeholder_image):
+                pixmap = QPixmap(self.placeholder_image)
+                if not pixmap.isNull():
+                    # 缩放到固定尺寸 300x200
+                    scaled_pixmap = pixmap.scaled(
+                        300, 200,
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation
+                    )
+                    self.ui.current_drug_img.setPixmap(scaled_pixmap)
+                    print(f"[图片] 加载占位图片: {self.placeholder_image}")
+                else:
+                    self.ui.current_drug_img.setText("暂无图片")
+            else:
+                self.ui.current_drug_img.setText("暂无图片")
+                print(f"[警告] 占位图片不存在: {self.placeholder_image}")
+        except Exception as e:
+            print(f"[错误] 加载占位图片失败: {e}")
+            self.ui.current_drug_img.setText("暂无图片")
+
     @Slot(str, int, int, int)
     def update_current_medicine_info(self, current_medicine_name, total_pills_num, current_medicine_index, total_medicines_num):
         """更新当前药品信息显示"""
@@ -654,6 +729,9 @@ class MainWindow(QMainWindow):
         self.ui.put_pills_in_msg.setText("请投入药品到分药机中")
         self.ui.current_drug.setText(current_medicine_name)
         self.ui.pills_num_msg_2.setText(str(total_pills_num))
+        
+        # 加载药品图片
+        self.load_medicine_image(current_medicine_name)
 
     @Slot(int)
     def set_dispense_progress_bar_value(self, value):
@@ -683,8 +761,6 @@ class MainWindow(QMainWindow):
             self.ui.is_dispensing_msg.setText(status_text_1)
         if hasattr(self.ui, 'put_pills_in_msg'):
             self.ui.put_pills_in_msg.setText(status_text_2)
-        # 打印状态更新信息
-        print(f"[状态更新] {status_text_1}, {status_text_2}")
 
     ###########################
     # 更新GUI分药流程进度栏信息 #
@@ -933,15 +1009,19 @@ class MainWindow(QMainWindow):
         QMetaObject.invokeMethod(self.controller, "start_dispensing", Qt.QueuedConnection)
 
     @Slot()
-    def refresh_rdid(self):
+    def refresh_rfid(self):
         """刷新RFID"""
-        self.ui.get_prescription_msg.setText("正在重新读取处方信息...")
-        self.ui.check_mark_2.hide()  # 隐藏勾选标记
+        self.ui.get_prescription_msg.setText("正在重新读取处方信息中，请稍后...")
         if not self.controller.rfid_reader:
             print("[错误] RFID读卡器未初始化")
             self.controller.error_occurred_signal.emit("RFID读卡器未初始化")
             return
         
+        # 重置所有状态标签
+        self.hide_check_mark_for_label(self.ui.rfid_status_label)
+        self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
+        self.update_to_rfid_status_label()
+
         # 重新开始RFID检测
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
@@ -1016,6 +1096,10 @@ def control_test():
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    # 设置应用程序图标
+    app.setWindowIcon(QIcon("imgs/icon.png"))  # 替换为你的图标路径
+    
     window = MainWindow()
     window.connection()
     window.show()
