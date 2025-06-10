@@ -1,6 +1,7 @@
 import sys
 import os
-from PySide6.QtWidgets import QApplication, QMainWindow
+import tempfile
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread, Qt
 from PySide6.QtGui import QPixmap, QIcon
 from main_window_ui import Ui_MainWindow
@@ -9,6 +10,55 @@ from rfid_reader import RFIDReader
 from prescription_database import PrescriptionDatabase
 import numpy as np
 import serial.tools.list_ports
+
+def check_single_instance():
+    """检查是否已有实例运行"""
+    lock_file = os.path.join(tempfile.gettempdir(), "ez_dose_app.lock")
+    
+    try:
+        # 尝试创建锁文件
+        if os.path.exists(lock_file):
+            # 检查进程是否还在运行
+            try:
+                with open(lock_file, 'r') as f:
+                    pid = int(f.read().strip())
+                
+                # 在Windows上检查进程
+                if os.name == 'nt':
+                    import subprocess
+                    try:
+                        result = subprocess.run(['tasklist', '/PID', str(pid)], 
+                                              capture_output=True, text=True)
+                        if str(pid) in result.stdout:
+                            return False, None  # 进程还在运行
+                    except:
+                        pass
+                else:
+                    # 在Unix/Linux上检查进程
+                    try:
+                        os.kill(pid, 0)  # 发送信号0检查进程是否存在
+                        return False, None  # 进程还在运行
+                    except OSError:
+                        pass  # 进程不存在，继续
+                
+                # 进程不存在，删除过期的锁文件
+                os.remove(lock_file)
+            except:
+                # 锁文件损坏，删除它
+                try:
+                    os.remove(lock_file)
+                except:
+                    pass
+        
+        # 创建新的锁文件
+        with open(lock_file, 'w') as f:
+            f.write(str(os.getpid()))
+        
+        return True, lock_file
+        
+    except Exception as e:
+        print(f"检查单实例失败: {e}")
+        return False, None
 
 class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
@@ -1240,14 +1290,48 @@ def control_test():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    # 检查单实例
+    is_single, lock_file = check_single_instance()
+    if not is_single:
+        # 显示错误消息
+        temp_app = QApplication(sys.argv)
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle("EZ Dose - 警告")
+        msg_box.setText("程序已在运行中！")
+        msg_box.setInformativeText("请检查系统托盘或任务栏，EZ Dose 已经在运行。\n同时只能运行一个实例。")
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec()
+        sys.exit(1)
     
-    # 设置应用程序图标
-    app.setWindowIcon(QIcon("imgs/icon.png"))  # 替换为你的图标路径
-    
-    window = MainWindow()
-    window.connection()
-    window.show()
+    try:
+        app = QApplication(sys.argv)
+        
+        # 设置应用程序图标
+        app.setWindowIcon(QIcon("imgs/icon.png"))
+        
+        window = MainWindow()
+        window.connection()
+        window.show()
 
-    sys.exit(app.exec())
+        # 程序退出时删除锁文件
+        def cleanup_on_exit():
+            if lock_file and os.path.exists(lock_file):
+                try:
+                    os.remove(lock_file)
+                except:
+                    pass
+        
+        app.aboutToQuit.connect(cleanup_on_exit)
+        
+        sys.exit(app.exec())
+        
+    except Exception as e:
+        print(f"程序启动失败: {e}")
+        if lock_file and os.path.exists(lock_file):
+            try:
+                os.remove(lock_file)
+            except:
+                pass
+        sys.exit(1)
 
