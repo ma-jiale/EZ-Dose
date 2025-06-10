@@ -231,8 +231,7 @@ class Ui_MainWindow(object):
         self.pills_dispensing_list_label.setStyleSheet(u"QLabel\n"
 "{\n"
 "border-radius: 4.5px;\n"
-"\n"
-"	color: rgb(136, 136, 136);\n"
+"color: rgb(136, 136, 136);\n"
 "font-family: \"Source Han Sans SC\";\n"
 "font-size: 12px;\n"
 "font-style: normal;\n"
@@ -344,7 +343,7 @@ class Ui_MainWindow(object):
 "font-family: \"Source Han Sans SC\";\n"
 "font-size: 12px;\n"
 "font-style: normal;\n"
-"font-weight: 400;\n"
+"font-weight: 800;\n"
 "line-height: normal;\n"
 "}")
         self.process_title.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
@@ -422,16 +421,16 @@ class Ui_MainWindow(object):
 "    font-family: \"Source Han Sans SC\";\n"
 "    font-size: 12px;\n"
 "    font-style: normal;\n"
-"    font-weight: 400;\n"
+"    font-weight: 800;\n"
 "    line-height: normal;\n"
 "}")
 
         self.gridLayout_3.addWidget(self.menu_bar, 0, 0, 1, 2)
 
-        self.rignt_stackedWidget = QStackedWidget(self.centralwidget)
-        self.rignt_stackedWidget.setObjectName(u"rignt_stackedWidget")
-        self.rignt_stackedWidget.setMaximumSize(QSize(16677215, 16777215))
-        self.rignt_stackedWidget.setStyleSheet(u"")
+        self.right_stackedWidget = QStackedWidget(self.centralwidget)
+        self.right_stackedWidget.setObjectName(u"right_stackedWidget")
+        self.right_stackedWidget.setMaximumSize(QSize(16677215, 16777215))
+        self.right_stackedWidget.setStyleSheet(u"")
         self.start_page = QWidget()
         self.start_page.setObjectName(u"start_page")
         self.guide_msg_1 = QLabel(self.start_page)
@@ -477,7 +476,7 @@ class Ui_MainWindow(object):
 "QPushButton:pressed {\n"
 "    background-color: #7EBEAE;\n"
 "}")
-        self.rignt_stackedWidget.addWidget(self.start_page)
+        self.right_stackedWidget.addWidget(self.start_page)
         self.put_pan_in_page = QWidget()
         self.put_pan_in_page.setObjectName(u"put_pan_in_page")
         self.guide_msg_2 = QLabel(self.put_pan_in_page)
@@ -500,7 +499,7 @@ class Ui_MainWindow(object):
         self.guide_msg_2.setAlignment(Qt.AlignCenter)
         self.get_prescription_msg = QLabel(self.put_pan_in_page)
         self.get_prescription_msg.setObjectName(u"get_prescription_msg")
-        self.get_prescription_msg.setGeometry(QRect(243, 209, 371, 16))
+        self.get_prescription_msg.setGeometry(QRect(223, 209, 501, 16))
         self.get_prescription_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -535,13 +534,13 @@ class Ui_MainWindow(object):
 "}")
         self.check_mark_2 = QLabel(self.put_pan_in_page)
         self.check_mark_2.setObjectName(u"check_mark_2")
-        self.check_mark_2.setGeometry(QRect(220, 210, 16, 16))
+        self.check_mark_2.setGeometry(QRect(200, 210, 16, 16))
         self.check_mark_2.setPixmap(QPixmap(u"imgs/green_check_mark.png"))
         self.check_mark_2.setScaledContents(True)
         self.check_mark_2.setAlignment(Qt.AlignCenter)
         self.refresh_rfid_button = QPushButton(self.put_pan_in_page)
         self.refresh_rfid_button.setObjectName(u"refresh_rfid_button")
-        self.refresh_rfid_button.setGeometry(QRect(716, 0, 24, 24))
+        self.refresh_rfid_button.setGeometry(QRect(716, -1, 24, 24))
         self.refresh_rfid_button.setStyleSheet(u"QPushButton {\n"
 "    border: none;\n"
 "    background-color: transparent;\n"
@@ -560,7 +559,7 @@ class Ui_MainWindow(object):
         self.refresh_rfid_button.setIconSize(QSize(20, 20))
         self.refresh_rfid_msg = QLabel(self.put_pan_in_page)
         self.refresh_rfid_msg.setObjectName(u"refresh_rfid_msg")
-        self.refresh_rfid_msg.setGeometry(QRect(640, 0, 81, 21))
+        self.refresh_rfid_msg.setGeometry(QRect(644, 0, 81, 21))
         self.refresh_rfid_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #000;\n"
@@ -584,11 +583,11 @@ class Ui_MainWindow(object):
         self.green_arrow.setAlignment(Qt.AlignCenter)
         self.error_mark_2 = QLabel(self.put_pan_in_page)
         self.error_mark_2.setObjectName(u"error_mark_2")
-        self.error_mark_2.setGeometry(QRect(220, 210, 16, 16))
+        self.error_mark_2.setGeometry(QRect(200, 210, 16, 16))
         self.error_mark_2.setPixmap(QPixmap(u"imgs/red_error_mark.png"))
         self.error_mark_2.setScaledContents(True)
         self.error_mark_2.setAlignment(Qt.AlignCenter)
-        self.rignt_stackedWidget.addWidget(self.put_pan_in_page)
+        self.right_stackedWidget.addWidget(self.put_pan_in_page)
         self.dispense_page = QWidget()
         self.dispense_page.setObjectName(u"dispense_page")
         self.gridLayout_2 = QGridLayout(self.dispense_page)
@@ -700,7 +699,7 @@ class Ui_MainWindow(object):
 "}")
         self.stop_dispensing_button = QPushButton(self.dispense_info_widget)
         self.stop_dispensing_button.setObjectName(u"stop_dispensing_button")
-        self.stop_dispensing_button.setGeometry(QRect(290, 0, 24, 24))
+        self.stop_dispensing_button.setGeometry(QRect(290, -1, 24, 24))
         self.stop_dispensing_button.setStyleSheet(u"QPushButton {\n"
 "    border: none;\n"
 "    background-color: transparent;\n"
@@ -721,7 +720,7 @@ class Ui_MainWindow(object):
         self.stop_dispensing_button.setIconSize(QSize(12, 12))
         self.stop_dispensing_msg = QLabel(self.dispense_info_widget)
         self.stop_dispensing_msg.setObjectName(u"stop_dispensing_msg")
-        self.stop_dispensing_msg.setGeometry(QRect(214, 0, 81, 21))
+        self.stop_dispensing_msg.setGeometry(QRect(218, 0, 81, 21))
         self.stop_dispensing_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #000;\n"
@@ -848,13 +847,13 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.drug_info_widget, 1, 0, 1, 3)
 
-        self.rignt_stackedWidget.addWidget(self.dispense_page)
+        self.right_stackedWidget.addWidget(self.dispense_page)
         self.finish_dispense_page = QWidget()
         self.finish_dispense_page.setObjectName(u"finish_dispense_page")
         self.guide_msg_4 = QLabel(self.finish_dispense_page)
         self.guide_msg_4.setObjectName(u"guide_msg_4")
         self.guide_msg_4.setEnabled(True)
-        self.guide_msg_4.setGeometry(QRect(40, 0, 671, 131))
+        self.guide_msg_4.setGeometry(QRect(40, 10, 671, 131))
         self.guide_msg_4.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -871,7 +870,7 @@ class Ui_MainWindow(object):
         self.guide_msg_4.setAlignment(Qt.AlignCenter)
         self.dispense_error_msg = QLabel(self.finish_dispense_page)
         self.dispense_error_msg.setObjectName(u"dispense_error_msg")
-        self.dispense_error_msg.setGeometry(QRect(303, 219, 231, 16))
+        self.dispense_error_msg.setGeometry(QRect(303, 229, 231, 16))
         self.dispense_error_msg.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -884,13 +883,13 @@ class Ui_MainWindow(object):
         self.dispense_error_msg.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
         self.check_mark_4 = QLabel(self.finish_dispense_page)
         self.check_mark_4.setObjectName(u"check_mark_4")
-        self.check_mark_4.setGeometry(QRect(280, 220, 16, 16))
+        self.check_mark_4.setGeometry(QRect(280, 230, 16, 16))
         self.check_mark_4.setPixmap(QPixmap(u"imgs/green_check_mark.png"))
         self.check_mark_4.setScaledContents(True)
         self.check_mark_4.setAlignment(Qt.AlignCenter)
         self.next_patient_button = QPushButton(self.finish_dispense_page)
         self.next_patient_button.setObjectName(u"next_patient_button")
-        self.next_patient_button.setGeometry(QRect(260, 310, 240, 50))
+        self.next_patient_button.setGeometry(QRect(260, 300, 240, 50))
         self.next_patient_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.next_patient_button.setLayoutDirection(Qt.LeftToRight)
         self.next_patient_button.setStyleSheet(u"QPushButton {\n"
@@ -913,7 +912,7 @@ class Ui_MainWindow(object):
         self.guide_msg_5 = QLabel(self.finish_dispense_page)
         self.guide_msg_5.setObjectName(u"guide_msg_5")
         self.guide_msg_5.setEnabled(True)
-        self.guide_msg_5.setGeometry(QRect(50, 80, 671, 131))
+        self.guide_msg_5.setGeometry(QRect(50, 90, 671, 131))
         self.guide_msg_5.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #2E344F;\n"
@@ -930,7 +929,7 @@ class Ui_MainWindow(object):
         self.guide_msg_5.setAlignment(Qt.AlignCenter)
         self.finish_dispensing_button = QPushButton(self.finish_dispense_page)
         self.finish_dispensing_button.setObjectName(u"finish_dispensing_button")
-        self.finish_dispensing_button.setGeometry(QRect(260, 370, 240, 50))
+        self.finish_dispensing_button.setGeometry(QRect(260, 360, 240, 50))
         self.finish_dispensing_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.finish_dispensing_button.setLayoutDirection(Qt.LeftToRight)
         self.finish_dispensing_button.setStyleSheet(u"QPushButton {\n"
@@ -952,7 +951,7 @@ class Ui_MainWindow(object):
 "}")
         self.error_mark_4 = QLabel(self.finish_dispense_page)
         self.error_mark_4.setObjectName(u"error_mark_4")
-        self.error_mark_4.setGeometry(QRect(280, 220, 16, 16))
+        self.error_mark_4.setGeometry(QRect(280, 230, 16, 16))
         self.error_mark_4.setPixmap(QPixmap(u"imgs/red_error_mark.png"))
         self.error_mark_4.setScaledContents(True)
         self.error_mark_4.setAlignment(Qt.AlignCenter)
@@ -969,15 +968,15 @@ class Ui_MainWindow(object):
 "line-height: normal;\n"
 "}")
         self.fail_dispense_medicines_msg.setAlignment(Qt.AlignCenter)
-        self.rignt_stackedWidget.addWidget(self.finish_dispense_page)
+        self.right_stackedWidget.addWidget(self.finish_dispense_page)
 
-        self.gridLayout_3.addWidget(self.rignt_stackedWidget, 1, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.right_stackedWidget, 1, 1, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
 
-        self.rignt_stackedWidget.setCurrentIndex(2)
+        self.right_stackedWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
