@@ -25,7 +25,7 @@ class DispenserController(QObject):
     plate_opened_signal = Signal()  # 药盘打开信号
     plate_closed_signal = Signal()  # 药盘关闭信号
     medicine_transition_signal = Signal(str, str)  # 当前药品完成，下一药品信息 (current_medicine, next_medicine)
-    
+    plate_presence_checked_signal = Signal(bool)  # 药盘存在检查信号
 
     def __init__(self, dispenser_port=None, rfid_port=None):
         super().__init__()
@@ -54,6 +54,7 @@ class DispenserController(QObject):
         self.pill_remain = 0 # 当前分发的药品剩余需要的药片数量
         self.total_pill = 0 # 当前分发的药品的总药片数量
         self.is_dispensing = False # 是否正在分药
+        self.plate_on_tray = False  # 药盘是否在托盘上
 
     @Slot()
     def initialize_hardware(self):
@@ -118,6 +119,62 @@ class DispenserController(QObject):
             print("[清理] 硬件资源已释放")
         except Exception as e:
             print(f"[错误] 清理硬件资源时发生错误: {e}")
+
+    @Slot()
+    def check_plate_presence(self):
+        """检查药盘是否在托盘上（通过RFID检测）"""
+        try:
+            if not self.rfid_reader:
+                print("[错误] RFID读卡器未初始化")
+                self.error_occurred_signal.emit("RFID读卡器未初始化")
+                return False
+            
+            print("[检测] 正在检查药盘是否在托盘上...")
+            
+            # 尝试快速读取RFID，超时时间设短一些
+            result = self.rfid_reader.read_single(timeout=3.0)
+            
+            if result["error_code"] == 0 and result["epc"]:
+                # 检测到RFID，说明药盘在托盘上
+                self.plate_on_tray = True
+                print("[检测] 药盘在托盘上")
+                self.plate_presence_checked_signal.emit(True)
+                return True
+            else:
+                # 未检测到RFID，说明药盘不在托盘上
+                self.plate_on_tray = False
+                print("[检测] 药盘不在托盘上")
+                self.plate_presence_checked_signal.emit(False)
+                return False
+                
+        except Exception as e:
+            print(f"[错误] 检测药盘存在异常: {str(e)}")
+            self.plate_on_tray = False
+            self.plate_presence_checked_signal.emit(False)
+            return False
+        
+    @Slot()
+    def safe_finish_dispensing(self):
+        """安全完成分药流程 - 仅在药盘不在托盘上时执行"""
+        try:
+            # 首先检查药盘是否在托盘上
+            if self.check_plate_presence():
+                # 药盘还在托盘上，不能执行关闭操作
+                error_msg = "请先取出药盘后再结束分药"
+                print(f"[安全检查] {error_msg}")
+                self.error_occurred_signal.emit(error_msg)
+                return False
+            
+            # 药盘不在托盘上，可以安全关闭
+            print("[安全检查] 药盘已取出，开始关闭托盘...")
+            close_result = self.close_plate_when_exit()
+            return close_result
+            
+        except Exception as e:
+            error_msg = f"安全完成分药异常: {str(e)}"
+            print(f"[错误] {error_msg}")
+            self.error_occurred_signal.emit(error_msg)
+            return False
 
     @Slot()
     def open_plate(self):
@@ -591,13 +648,17 @@ class MainWindow(QMainWindow):
         # 初始化check_marks（隐藏所有）
         self.initialize_check_marks()
 
+        # 添加药盘状态追踪
+        self.plate_on_tray = False
+        self.checking_plate_presence = False
+
     def connection(self):
         """连接UI信号和控制器槽函数"""
         self.ui.start_dispense_button.clicked.connect(self.prepare_for_dispensing)
         self.ui.next_patient_button.clicked.connect(self.go_to_next_patient)
         self.ui.send_plate_in_button.clicked.connect(self.close_plate)
         self.ui.refresh_rfid_button.clicked.connect(self.refresh_rfid)
-        self.ui.finish_dispensing_button.clicked.connect(self.finish_dispensing)
+        self.ui.finish_dispensing_button.clicked.connect(self.safe_finish_dispensing)
 
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_prescription_info)
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_to_plate_closed_label)
@@ -612,6 +673,7 @@ class MainWindow(QMainWindow):
         self.controller.plate_closed_signal.connect(self.update_to_dispensin_finished_label)
         self.controller.error_occurred_signal.connect(self.update_error_msg)
         self.controller.medicine_transition_signal.connect(self.update_medicine_transition_status)
+        self.controller.plate_presence_checked_signal.connect(self.on_plate_presence_checked)
 
 
     ############
@@ -628,8 +690,11 @@ class MainWindow(QMainWindow):
         self.ui.green_arrow.show()
         self.ui.guide_msg_2.setText("将药盘放入机器托盘中")
         self.ui.check_mark_2.hide()  # Hide the check mark initially
+        self.ui.error_mark_2.hide()  # Hide the error mark initially
         self.ui.get_prescription_msg.hide()  # Hide the prescription message initially
         self.ui.send_plate_in_button.hide()  # Hide the button initially
+        self.ui.refresh_rfid_button.hide()  # Hide the refresh button initially
+        self.ui.refresh_rfid_msg.hide()  # Hide the refresh message initially
         self.ui.rignt_stackedWidget.setCurrentIndex(1)
 
     def move_to_dispensing_page(self):
@@ -657,6 +722,8 @@ class MainWindow(QMainWindow):
         self.ui.check_mark_2.show()
         self.ui.get_prescription_msg.show()
         self.ui.send_plate_in_button.show()  # 显示放入药盘按钮
+        self.ui.refresh_rfid_button.show()  # 显示刷新按钮
+        self.ui.refresh_rfid_msg.show()  # 显示刷新消息
         self.ui.patient_name.setText(pills_dispensing_list['name'])
 
 
@@ -751,8 +818,9 @@ class MainWindow(QMainWindow):
     def update_error_msg(self, error_msg):
         """更新错误信息显示"""
         if "RFID读取失败" in error_msg:
-            self.ui.get_prescription_msg.setText("处方读取失败，请正确放入药盘后点击刷新按钮重新读取")
+            self.ui.get_prescription_msg.setText("处方读取失败，放入药盘后点击按钮重新读取")
             self.ui.get_prescription_msg.show()
+            self.ui.error_mark_2.show()
             self.ui.check_mark_2.hide()
 
     @Slot(str, str)
@@ -1038,8 +1106,44 @@ class MainWindow(QMainWindow):
         QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
 
     @Slot()
-    def finish_dispensing(self):
-        """完成分药流程"""
+    def go_to_next_patient(self):
+        """切换到下一个患者"""
+        self.update_to_rfid_status_label()
+        self.prepare_for_dispensing()
+
+    # 处理安全结束分药流程
+    @Slot(bool)
+    def on_plate_presence_checked(self, plate_present):
+        """处理药盘存在检测结果"""
+        self.plate_on_tray = plate_present
+        self.checking_plate_presence = False
+        
+        if plate_present:
+            # 药盘还在托盘上，显示警告信息
+            self.show_plate_removal_warning()
+        else:
+            # 药盘不在托盘上，可以安全结束
+            self.proceed_with_finish_dispensing()
+
+    def show_plate_removal_warning(self):
+        """显示药盘移除警告"""
+        # 可以在UI上显示警告信息
+        if hasattr(self.ui, 'finish_dispensing_button'):
+            # 暂时禁用按钮并更改文本
+            self.ui.finish_dispensing_button.setText("请先取出药盘")
+            self.ui.finish_dispensing_button.setEnabled(False)
+            
+            # 2秒后恢复按钮状态
+            QTimer.singleShot(2000, self.restore_finish_button)
+
+    def restore_finish_button(self):
+        """恢复完成按钮状态"""
+        if hasattr(self.ui, 'finish_dispensing_button'):
+            self.ui.finish_dispensing_button.setText("完成分药")
+            self.ui.finish_dispensing_button.setEnabled(True)
+
+    def proceed_with_finish_dispensing(self):
+        """继续执行完成分药流程"""
         # 关闭药盘
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "close_plate_when_exit", Qt.QueuedConnection)
@@ -1049,11 +1153,30 @@ class MainWindow(QMainWindow):
         self.move_to_start_page()
 
     @Slot()
-    def go_to_next_patient(self):
-        """切换到下一个患者"""
-        self.update_to_rfid_status_label()
-        self.prepare_for_dispensing()
+    def safe_finish_dispensing(self):
+        """安全完成分药流程"""
+        if self.checking_plate_presence:
+            return  # 正在检查中，忽略重复点击
+        
+        # 禁用按钮防止重复点击
+        self.ui.finish_dispensing_button.setEnabled(False)
+        self.ui.finish_dispensing_button.setText("检查中...")
+        self.checking_plate_presence = True
+        
+        # 检查药盘是否在托盘上
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "check_plate_presence", Qt.QueuedConnection)
 
+    # @Slot()
+    # def finish_dispensing(self):
+    #     """完成分药流程"""
+    #     # 关闭药盘
+    #     from PySide6.QtCore import QMetaObject, Qt
+    #     QMetaObject.invokeMethod(self.controller, "close_plate_when_exit", Qt.QueuedConnection)
+
+    #     # 切换到完成页面
+    #     self.update_to_rfid_status_label()
+    #     self.move_to_start_page()
 
 
 
