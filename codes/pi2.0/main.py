@@ -132,7 +132,7 @@ class DispenserController(QObject):
             print("[检测] 正在检查药盘是否在托盘上...")
             
             # 尝试快速读取RFID，超时时间设短一些
-            result = self.rfid_reader.read_single(timeout=3.0)
+            result = self.rfid_reader.read_single(timeout=2.0)
             
             if result["error_code"] == 0 and result["epc"]:
                 # 检测到RFID，说明药盘在托盘上
@@ -316,6 +316,7 @@ class DispenserController(QObject):
             
             if not success:
                 self.error_occurred_signal.emit(f"生成分药矩阵失败: {error}")
+                print(f"[错误] 生成分药矩阵失败: {error}")
                 return
 
             print(pills_disensing_list)
@@ -654,6 +655,7 @@ class MainWindow(QMainWindow):
         self.checking_plate_presence = False
 
         self.fail_dispense_medicines = []  # 用于记录分药失败的药品
+        self.ui.fail_dispense_medicines_msg.hide()  # 隐藏失败药品消息标签
 
     def connection(self):
         """连接UI信号和控制器槽函数"""
@@ -662,6 +664,7 @@ class MainWindow(QMainWindow):
         self.ui.send_plate_in_button.clicked.connect(self.close_plate)
         self.ui.refresh_rfid_button.clicked.connect(self.refresh_rfid)
         self.ui.finish_dispensing_button.clicked.connect(self.safe_finish_dispensing)
+        self.ui.refresh_database_button.clicked.connect(self.refresh_prescription_database)
 
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_prescription_info)
         self.controller.pills_dispensing_list_loaded_signal.connect(self.update_to_plate_closed_label)
@@ -708,6 +711,8 @@ class MainWindow(QMainWindow):
         """切换到完成页面"""
         if self.fail_dispense_medicines:
             self.ui.fail_dispense_medicines_msg.setText("分药失败的药品: " + ", ".join(self.fail_dispense_medicines))
+            self.ui.fail_dispense_medicines_msg.show()
+            self.fail_dispense_medicines = []  # 清空失败药品列表
         self.ui.rignt_stackedWidget.setCurrentIndex(3)
 
     ##############
@@ -725,6 +730,7 @@ class MainWindow(QMainWindow):
         """更新获取处方信息的消息和显示放入药盘按钮"""
         self.ui.get_prescription_msg.setText(f"成功获取到处方,当前患者：{pills_dispensing_list['name']}")
         self.ui.check_mark_2.show()
+        self.ui.error_mark_2.hide()
         self.ui.get_prescription_msg.show()
         self.ui.send_plate_in_button.show()  # 显示放入药盘按钮
         self.ui.refresh_rfid_button.show()  # 显示刷新按钮
@@ -823,16 +829,26 @@ class MainWindow(QMainWindow):
     def update_error_msg(self, error_msg):
         """更新错误信息显示"""
         if "RFID读取失败" in error_msg:
-            self.ui.get_prescription_msg.setText("处方读取失败，放入药盘后点击按钮重新读取")
+            self.ui.get_prescription_msg.setText("RFID读取失败，放入药盘后点击按钮重新读取")
             self.ui.get_prescription_msg.show()
             self.ui.error_mark_2.show()
             self.ui.check_mark_2.hide()
+            self.ui.refresh_rfid_button.show()  # 显示刷新按钮
+            self.ui.refresh_rfid_msg.show()  # 显示刷新消息
 
         if "分药错误" in error_msg:
             self.ui.dispense_error_msg.setText("有药品分发错误，请手动检查")
             self.fail_dispense_medicines.append(self.ui.current_drug.text())
             self.ui.error_mark_4.show()
             self.ui.check_mark_4.hide()
+
+        if "生成分药矩阵失败" in error_msg:
+            self.ui.get_prescription_msg.setText("处方读取失败，放入药盘后点击按钮重新读取")
+            self.ui.get_prescription_msg.show()
+            self.ui.error_mark_2.show()
+            self.ui.check_mark_2.hide()
+            self.ui.refresh_rfid_button.show()  # 显示刷新按钮
+            self.ui.refresh_rfid_msg.show()  # 显示刷新消息
 
     @Slot(str, str)
     def update_medicine_transition_status(self, current_medicine, next_medicine):
@@ -1007,7 +1023,7 @@ class MainWindow(QMainWindow):
     @Slot()
     def update_to_rfid_status_label(self):
         """更新RFID连接状态标签显示"""
-        
+        self.ui.guide_msg_2.setText("请将药盘放入机器托盘中")
         self.update_all_labels_status(3)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(3)
@@ -1017,7 +1033,7 @@ class MainWindow(QMainWindow):
         """更新处方信息状态标签显示"""
         self.ui.pan_img.hide()  # 隐藏药盘图片
         self.ui.green_arrow.hide()  # 隐藏绿色箭头
-        self.ui.guide_msg_2.setText("送入药盘开始分药")
+        self.ui.guide_msg_2.setText("读取处方中...")
         self.update_all_labels_status(4)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(4)
@@ -1025,6 +1041,7 @@ class MainWindow(QMainWindow):
     @Slot()
     def update_to_plate_closed_label(self):
         """更新药盘状态标签显示"""
+        self.ui.guide_msg_2.setText("送入药盘开始分药")
         self.update_all_labels_status(5)
         if hasattr(self.ui, 'task_progressBar'):
             self.ui.task_progressBar.setValue(5)
@@ -1070,20 +1087,39 @@ class MainWindow(QMainWindow):
     ###############################
     # 调用controller线程控制分药机 #
     ###############################
+    @Slot()
+    def refresh_prescription_database(self):
+        """刷新处方数据库"""        
+        # 重置所有状态标签
+        self.update_to_database_status_label()
+        self.hide_check_mark_for_label(self.ui.rfid_status_label)
+        self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
+        self.ui.get_prescription_msg.hide()  # Hide the prescription message initially
+        self.ui.check_mark_2.hide()  # Hide the check mark initially
+        
+        # 调用控制器方法刷新处方数据库
+        self.ui.guide_msg_2.setText("初始化处方数据库中...")
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "initialize_prescription_database", Qt.QueuedConnection)
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
+        # 延迟1秒后执行start_rfid_detection
+        QTimer.singleShot(1000, lambda: QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection))
+        
     @Slot(str)
     def prepare_for_dispensing(self):
         self.move_to_put_pan_in_page()
 
         if not self.controller.hardware_initialized:
-            self.ui.guide_msg_2.setText("初始化硬件中...")
+            self.ui.guide_msg_2.setText("初始化分药机中...")
             self.ui.pan_img.hide()
             self.ui.green_arrow.hide()
             from PySide6.QtCore import QMetaObject, Qt
             QMetaObject.invokeMethod(self.controller, "initialize_hardware", Qt.QueuedConnection)
         if not self.controller.prescription_database_initialized:
+            self.ui.guide_msg_2.setText("初始化处方数据库中...")
             from PySide6.QtCore import QMetaObject, Qt
             QMetaObject.invokeMethod(self.controller, "initialize_prescription_database", Qt.QueuedConnection)
-        # 使用QMetaObject.invokeMethod在工作线程中调用方法
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
         # 延迟1秒后执行start_rfid_detection
