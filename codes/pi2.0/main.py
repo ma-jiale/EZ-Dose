@@ -647,10 +647,13 @@ class MainWindow(QMainWindow):
         
         # 初始化check_marks（隐藏所有）
         self.initialize_check_marks()
+        self.ui.error_mark_4.hide()
 
         # 添加药盘状态追踪
         self.plate_on_tray = False
         self.checking_plate_presence = False
+
+        self.fail_dispense_medicines = []  # 用于记录分药失败的药品
 
     def connection(self):
         """连接UI信号和控制器槽函数"""
@@ -703,6 +706,8 @@ class MainWindow(QMainWindow):
 
     def move_to_finish_page(self):
         """切换到完成页面"""
+        if self.fail_dispense_medicines:
+            self.ui.fail_dispense_medicines_msg.setText("分药失败的药品: " + ", ".join(self.fail_dispense_medicines))
         self.ui.rignt_stackedWidget.setCurrentIndex(3)
 
     ##############
@@ -822,6 +827,12 @@ class MainWindow(QMainWindow):
             self.ui.get_prescription_msg.show()
             self.ui.error_mark_2.show()
             self.ui.check_mark_2.hide()
+
+        if "分药错误" in error_msg:
+            self.ui.dispense_error_msg.setText("有药品分发错误，请手动检查")
+            self.fail_dispense_medicines.append(self.ui.current_drug.text())
+            self.ui.error_mark_4.show()
+            self.ui.check_mark_4.hide()
 
     @Slot(str, str)
     def update_medicine_transition_status(self, current_medicine, next_medicine):
