@@ -606,6 +606,7 @@ class MainWindow(QMainWindow):
         self.controller.dispensing_completed_signal.connect(self.update_to_plate_opened_label)
         self.controller.dispensing_progress_signal.connect(self.set_dispense_progress_bar_value)
         self.controller.hardware_initialized_signal.connect(self.update_to_database_status_label)
+        self.controller.hardware_initialized_signal.connect(self.update_put_pan_in_msg)
         self.controller.prescription_database_initialized_signal.connect(self.update_to_rfid_status_label)
         self.controller.rfid_detected_signal.connect(self.update_to_pills_dispensing_list_label)
         self.controller.plate_closed_signal.connect(self.update_to_dispensin_finished_label)
@@ -623,8 +624,8 @@ class MainWindow(QMainWindow):
     @Slot()
     def move_to_put_pan_in_page(self):
         """切换到放入药盘页面"""
-        self.ui.pan_img.show()  # Show the pan image
-        self.ui.green_arrow.show()  # Show the green arrow
+        self.ui.pan_img.show()
+        self.ui.green_arrow.show()
         self.ui.guide_msg_2.setText("将药盘放入机器托盘中")
         self.ui.check_mark_2.hide()  # Hide the check mark initially
         self.ui.get_prescription_msg.hide()  # Hide the prescription message initially
@@ -642,6 +643,13 @@ class MainWindow(QMainWindow):
     ##############
     # 更新GUI信息 #
     ##############
+    @Slot()
+    def update_put_pan_in_msg(self):
+        """更新放入药盘页面信息"""
+        self.ui.guide_msg_2.setText("请将药盘放入机器托盘中")
+        self.ui.pan_img.show()
+        self.ui.green_arrow.show()
+
     @Slot(dict)
     def update_prescription_info(self, pills_dispensing_list):
         """更新获取处方信息的消息和显示放入药盘按钮"""
@@ -988,6 +996,9 @@ class MainWindow(QMainWindow):
         self.move_to_put_pan_in_page()
 
         if not self.controller.hardware_initialized:
+            self.ui.guide_msg_2.setText("初始化硬件中...")
+            self.ui.pan_img.hide()
+            self.ui.green_arrow.hide()
             from PySide6.QtCore import QMetaObject, Qt
             QMetaObject.invokeMethod(self.controller, "initialize_hardware", Qt.QueuedConnection)
         if not self.controller.prescription_database_initialized:
