@@ -922,7 +922,7 @@ QProgressBar::chunk {
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="start_page">
        <widget class="QLabel" name="guide_msg_1">
@@ -1059,7 +1059,7 @@ line-height: normal;
          <rect>
           <x>243</x>
           <y>209</y>
-          <width>321</width>
+          <width>371</width>
           <height>16</height>
          </rect>
         </property>
@@ -1239,6 +1239,28 @@ line-height: normal;
         </property>
         <property name="pixmap">
          <pixmap>imgs/green_arrow.png</pixmap>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QLabel" name="error_mark_2">
+        <property name="geometry">
+         <rect>
+          <x>220</x>
+          <y>210</y>
+          <width>16</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap>imgs/red_error_mark.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -1570,8 +1592,6 @@ line-height: normal;
            <property name="styleSheet">
             <string notr="true">QLabel
 {
-/*border-radius: 12px;*/
-border: 0.5px solid #515151;
 }</string>
            </property>
            <property name="text">
@@ -1708,7 +1728,7 @@ line-height: normal;
         <property name="geometry">
          <rect>
           <x>40</x>
-          <y>20</y>
+          <y>0</y>
           <width>671</width>
           <height>131</height>
          </rect>
@@ -1744,9 +1764,9 @@ line-height: normal;
        <widget class="QLabel" name="dispense_error_msg">
         <property name="geometry">
          <rect>
-          <x>330</x>
+          <x>303</x>
           <y>219</y>
-          <width>121</width>
+          <width>231</width>
           <height>16</height>
          </rect>
         </property>
@@ -1771,7 +1791,7 @@ line-height: normal;
        <widget class="QLabel" name="check_mark_4">
         <property name="geometry">
          <rect>
-          <x>307</x>
+          <x>280</x>
           <y>220</y>
           <width>16</width>
           <height>16</height>
@@ -1794,7 +1814,7 @@ line-height: normal;
         <property name="geometry">
          <rect>
           <x>260</x>
-          <y>280</y>
+          <y>310</y>
           <width>240</width>
           <height>50</height>
          </rect>
@@ -1835,7 +1855,7 @@ QPushButton:pressed {
         <property name="geometry">
          <rect>
           <x>50</x>
-          <y>100</y>
+          <y>80</y>
           <width>671</width>
           <height>131</height>
          </rect>
@@ -1872,7 +1892,7 @@ line-height: normal;
         <property name="geometry">
          <rect>
           <x>260</x>
-          <y>340</y>
+          <y>370</y>
           <width>240</width>
           <height>50</height>
          </rect>
@@ -1904,6 +1924,55 @@ QPushButton:pressed {
         </property>
         <property name="text">
          <string>结束分药</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="error_mark_4">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>220</y>
+          <width>16</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="pixmap">
+         <pixmap>imgs/red_error_mark.png</pixmap>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+       <widget class="QLabel" name="fail_dispense_medicines_msg">
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>250</y>
+          <width>661</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel
+{
+color: rgb(255, 0, 0);
+font-family: &quot;Source Han Sans SC&quot;;
+font-size: 16px;
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+}</string>
+        </property>
+        <property name="text">
+         <string>阿莫西林，复方甘草片</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </widget>
