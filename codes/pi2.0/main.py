@@ -11,55 +11,6 @@ from prescription_database import PrescriptionDatabase
 import numpy as np
 import serial.tools.list_ports
 
-def check_single_instance():
-    """检查是否已有实例运行"""
-    lock_file = os.path.join(tempfile.gettempdir(), "ez_dose_app.lock")
-    
-    try:
-        # 尝试创建锁文件
-        if os.path.exists(lock_file):
-            # 检查进程是否还在运行
-            try:
-                with open(lock_file, 'r') as f:
-                    pid = int(f.read().strip())
-                
-                # 在Windows上检查进程
-                if os.name == 'nt':
-                    import subprocess
-                    try:
-                        result = subprocess.run(['tasklist', '/PID', str(pid)], 
-                                              capture_output=True, text=True)
-                        if str(pid) in result.stdout:
-                            return False, None  # 进程还在运行
-                    except:
-                        pass
-                else:
-                    # 在Unix/Linux上检查进程
-                    try:
-                        os.kill(pid, 0)  # 发送信号0检查进程是否存在
-                        return False, None  # 进程还在运行
-                    except OSError:
-                        pass  # 进程不存在，继续
-                
-                # 进程不存在，删除过期的锁文件
-                os.remove(lock_file)
-            except:
-                # 锁文件损坏，删除它
-                try:
-                    os.remove(lock_file)
-                except:
-                    pass
-        
-        # 创建新的锁文件
-        with open(lock_file, 'w') as f:
-            f.write(str(os.getpid()))
-        
-        return True, lock_file
-        
-    except Exception as e:
-        print(f"检查单实例失败: {e}")
-        return False, None
-
 class DispenserController(QObject):
     """分药机控制器，运行在单独的线程中"""
     # 信号定义
@@ -105,6 +56,7 @@ class DispenserController(QObject):
         self.total_pill = 0 # 当前分发的药品的总药片数量
         self.is_dispensing = False # 是否正在分药
         self.plate_on_tray = False  # 药盘是否在托盘上
+        self.is_reading_rfid = False  # 是否正在读取RFID
 
     @Slot()
     def initialize_hardware(self):
@@ -326,6 +278,7 @@ class DispenserController(QObject):
                 self.error_occurred_signal.emit("RFID读卡器未初始化")
                 return
             
+            self.is_reading_rfid = True
             self.current_rfid = None  # 重置当前RFID
             print("[RFID] 开始检测RFID...")
             # 读取RFID
@@ -352,6 +305,10 @@ class DispenserController(QObject):
         except Exception as e:
             print(f"[错误] RFID检测异常: {str(e)}")
             self.error_occurred_signal.emit(f"RFID检测异常: {str(e)}")
+        finally:
+            # 无论成功或失败，都要重置RFID读取状态
+            self.is_reading_rfid = False
+            print("[RFID] RFID读取状态已重置")
 
     def load_pills_disensing_list(self, rfid):
         """加载处方信息并生成分药清单"""
@@ -1142,27 +1099,51 @@ class MainWindow(QMainWindow):
     @Slot()
     def refresh_prescription_database(self):
         """刷新处方数据库"""        
-        # 重置所有状态标签
-        if self.controller.prescription_database_initialized:
-            self.ui.send_plate_in_button.hide()
-            self.update_to_database_status_label()
-            self.hide_check_mark_for_label(self.ui.rfid_status_label)
-            self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
-            self.ui.get_prescription_msg.hide()  # Hide the prescription message initially
-            self.ui.check_mark_2.hide()  # Hide the check mark initially
-            self.ui.error_mark_2.hide()  # Hide the error mark initially
-            self.ui.pan_img.hide()  # Hide the pan image
-            self.ui.green_arrow.hide()  # Hide the green arrow
-            
-            # 调用控制器方法刷新处方数据库
-            self.ui.guide_msg_2.setText("初始化处方数据库中...")
-            from PySide6.QtCore import QMetaObject, Qt
-            QMetaObject.invokeMethod(self.controller, "initialize_prescription_database", Qt.QueuedConnection)
-            from PySide6.QtCore import QMetaObject, Qt
-            QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
-            # 延迟1秒后执行start_rfid_detection
-            QTimer.singleShot(1000, lambda: QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection))
+        # 检查是否可以刷新数据库并给出具体提示
+        if not self.controller.prescription_database_initialized:
+            self.show_refresh_error_message("数据库尚未初始化，请先完成系统初始化")
+            return
         
+        if self.controller.is_reading_rfid:
+            self.show_refresh_error_message("正在读取RFID，请等待完成后再刷新数据库")
+            return
+        
+        if self.controller.is_dispensing:
+            self.show_refresh_error_message("正在分药中，无法刷新数据库，请等待分药完成")
+            return
+        
+        # 所有条件满足，执行刷新操作
+        self.ui.send_plate_in_button.hide()
+        self.update_to_database_status_label()
+        self.hide_check_mark_for_label(self.ui.rfid_status_label)
+        self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
+        self.ui.get_prescription_msg.hide()
+        self.ui.check_mark_2.hide()
+        self.ui.error_mark_2.hide()
+        self.ui.pan_img.hide()
+        self.ui.green_arrow.hide()
+        
+        # 调用控制器方法刷新处方数据库
+        self.ui.guide_msg_2.setText("初始化处方数据库中...")
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.controller, "initialize_prescription_database", Qt.QueuedConnection)
+        self.ui.get_prescription_msg.setText("数据库更新完毕，请刷新按钮重新读取处方信息")
+        self.ui.get_prescription_msg.show()
+        self.ui.check_mark_2.show()  # 显示完成标记
+        # QMetaObject.invokeMethod(self.controller, "prepare_for_rfid_detection", Qt.QueuedConnection)
+        # # 延迟1秒后执行start_rfid_detection
+        # QTimer.singleShot(1000, lambda: QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection))
+
+    def show_refresh_error_message(self, message):
+        """显示刷新数据库错误信息"""
+        # 使用消息框显示错误
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle("无法刷新数据库")
+        msg_box.setText(message)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec()
+
     @Slot(str)
     def prepare_for_dispensing(self):
         self.move_to_put_pan_in_page()
@@ -1194,25 +1175,26 @@ class MainWindow(QMainWindow):
     @Slot()
     def refresh_rfid(self):
         """刷新RFID"""
-        self.ui.get_prescription_msg.setText("正在重新读取处方信息中，请稍后...")
-        self.ui.send_plate_in_button.hide()
-        self.ui.check_mark_2.hide()  # 隐藏完成标记
-        self.ui.error_mark_2.hide()  # 隐藏错误标记
-        self.ui.pan_img.show()  # 显示药盘图片
-        self.ui.green_arrow.show()  # 显示绿色箭头
-        if not self.controller.rfid_reader:
-            print("[错误] RFID读卡器未初始化")
-            self.controller.error_occurred_signal.emit("RFID读卡器未初始化")
-            return
-        
-        # 重置所有状态标签
-        self.hide_check_mark_for_label(self.ui.rfid_status_label)
-        self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
-        self.update_to_rfid_status_label()
+        if not self.controller.is_dispensing:
+            self.ui.get_prescription_msg.setText("正在重新读取处方信息中，请稍后...")
+            self.ui.send_plate_in_button.hide()
+            self.ui.check_mark_2.hide()  # 隐藏完成标记
+            self.ui.error_mark_2.hide()  # 隐藏错误标记
+            self.ui.pan_img.show()  # 显示药盘图片
+            self.ui.green_arrow.show()  # 显示绿色箭头
+            if not self.controller.rfid_reader:
+                print("[错误] RFID读卡器未初始化")
+                self.controller.error_occurred_signal.emit("RFID读卡器未初始化")
+                return
+            
+            # 重置所有状态标签
+            self.hide_check_mark_for_label(self.ui.rfid_status_label)
+            self.hide_check_mark_for_label(self.ui.pills_dispensing_list_label)
+            self.update_to_rfid_status_label()
 
-        # 重新开始RFID检测
-        from PySide6.QtCore import QMetaObject, Qt
-        QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
+            # 重新开始RFID检测
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.controller, "start_rfid_detection", Qt.QueuedConnection)
 
     @Slot()
     def go_to_next_patient(self):
@@ -1338,21 +1320,6 @@ def control_test():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    # 检查单实例
-    is_single, lock_file = check_single_instance()
-    if not is_single:
-        # 显示错误消息
-        temp_app = QApplication(sys.argv)
-        msg_box = QMessageBox()
-        msg_box.setIcon(QMessageBox.Warning)
-        msg_box.setWindowTitle("EZ Dose - 警告")
-        msg_box.setText("程序已在运行中！")
-        msg_box.setInformativeText("请检查系统托盘或任务栏，EZ Dose 已经在运行。\n同时只能运行一个实例。")
-        msg_box.setStandardButtons(QMessageBox.Ok)
-        msg_box.exec()
-        sys.exit(1)
-    
-    try:
         app = QApplication(sys.argv)
         
         # 设置应用程序图标
@@ -1361,25 +1328,6 @@ if __name__ == "__main__":
         window = MainWindow()
         window.connection()
         window.show()
-
-        # 程序退出时删除锁文件
-        def cleanup_on_exit():
-            if lock_file and os.path.exists(lock_file):
-                try:
-                    os.remove(lock_file)
-                except:
-                    pass
-        
-        app.aboutToQuit.connect(cleanup_on_exit)
         
         sys.exit(app.exec())
-        
-    except Exception as e:
-        print(f"程序启动失败: {e}")
-        if lock_file and os.path.exists(lock_file):
-            try:
-                os.remove(lock_file)
-            except:
-                pass
-        sys.exit(1)
 
