@@ -26,10 +26,10 @@ class PrescriptionDatabase:
                 print(f"[成功] 加载处方数据库: {len(self.df)} 条记录")
             else:
                 print(f"[警告] 数据库文件不存在，创建示例数据库: {self.csv_file_path}")
-                self._create_sample_database()
+                # self._create_sample_database()
         except Exception as e:
             print(f"[错误] 加载数据库失败: {e}")
-            self._create_sample_database()
+            # self._create_sample_database()
     
     def _create_sample_database(self):
         """创建示例处方数据库"""
@@ -139,12 +139,11 @@ class PrescriptionDatabase:
                         'morning': int(record['morning_dosage']),
                         'noon': int(record['noon_dosage']),
                         'evening': int(record['evening_dosage']),
-                        'night': int(record['night_dosage'])
                     },
                     'duration_days': int(record['duration_days']),
-                    'notes': record.get('notes', ''),
                     'daily_total': int(record['morning_dosage'] + record['noon_dosage'] + 
-                                     record['evening_dosage'] + record['night_dosage'])
+                                     record['evening_dosage']),
+                    'meal_timing': record['meal_timing']
                 }
                 medicines.append(medicine)
             
@@ -188,9 +187,10 @@ class PrescriptionDatabase:
             字典格式: {
                 "name": "患者姓名", 
                 "medicines": [
-                    {"medicine_name": "药品名称", "pill_matrix": 4x7矩阵},
-                    {"medicine_name": "药品名称", "pill_matrix": 4x7矩阵}
-                ]
+                    {"medicine_name": "药品名称", "pill_matrix": 4x7矩阵, "meal_timing": "用药时间"},
+                    {"medicine_name": "药品名称", "pill_matrix": 4x7矩阵, "meal_timing": "用药时间"}
+                ],
+                "max_days": 实际排药天数
             }
         """
         try:
@@ -204,37 +204,60 @@ class PrescriptionDatabase:
             
             print(f"[调试] 为患者 {patient_name} 找到 {len(medicines)} 种药品:")
             
+            # 检查是否有不同meal_timing的药物
+            has_before_meal = any(med.get('meal_timing') == 'before' or med.get('meal_timing') == 'anytime' for med in medicines)
+            has_after_meal = any(med.get('meal_timing') == 'after' for med in medicines)
+            
+            # 根据药物类型确定最多排几天药
+            max_days = 7  # 默认7天
+            if has_before_meal and has_after_meal:
+                max_days = 3  # 如果既有饭前也有饭后药，最多3天
+            
             # 创建新格式的分药清单
             pills_disensing_list = {
                 "name": patient_name,
-                "medicines": []
+                "medicines": [],
+                "max_days": max_days
             }
             
             for medicine in medicines:
                 medicine_name = medicine['medicine_name']
                 dosage = medicine['dosage']
-                duration_days = min(medicine['duration_days'], 7)  # 最多7天
+                meal_time = medicine.get('meal_timing', 'before')  # 默认饭前服用
+                duration_days = min(medicine['duration_days'], max_days)  # 根据前面计算的max_days限制天数
                 
                 # 为每种药品创建独立的4x7矩阵
                 pill_matrix = np.zeros([4, 7], dtype=np.byte)
                 
+                # 根据用药时间分配列
                 for day in range(duration_days):
-                    pill_matrix[0, day] = dosage['morning']   # 早上
-                    pill_matrix[1, day] = dosage['noon']      # 中午
-                    pill_matrix[2, day] = dosage['evening']   # 晚上
-                    pill_matrix[3, day] = dosage['night']     # 夜间
+                    # 计算当前药物应放在第几列
+                    col = day
+                    if has_before_meal and has_after_meal:
+                        # 如果既有饭前也有饭后药，每天占用2列
+                        col = day * 2
+                        if meal_time == 'after':
+                            col += 1  # 饭后药放在奇数列
+                    
+                    # 确保不超出矩阵列数
+                    if col < 7:
+                        pill_matrix[2, col] = dosage['morning']   # 早上
+                        pill_matrix[1, col] = dosage['noon']      # 中午
+                        pill_matrix[0, col] = dosage['evening']   # 晚上
+                        pill_matrix[3, col] = 0    # 第四列默认为0
                 
                 # 添加到药品矩阵列表
                 drug_info = {
                     "medicine_name": medicine_name,
-                    "pill_matrix": pill_matrix
+                    "pill_matrix": pill_matrix,
+                    "meal_timing": meal_time
                 }
                 pills_disensing_list["medicines"].append(drug_info)
                 
                 # 打印调试信息
-                print(f"  - {medicine_name}: 持续{duration_days}天，每日总量{medicine['daily_total']}片")
+                print(f"  - {medicine_name}: 持续{duration_days}天，每日总量{medicine['daily_total']}片，服用时间：{meal_time}")
             
-            print(f"[成功] 生成患者 {patient_name} 的分药清单，包含 {len(pills_disensing_list['medicines'])} 种药品")
+            print(f"[成功] 生成患者 {patient_name} 的分药清单，包含 {len(pills_disensing_list['medicines'])} 种药品，最多排药 {max_days} 天")
             
             return True, pills_disensing_list, ""
             
@@ -297,7 +320,7 @@ def demo_usage():
         print(f"处方ID: {result['patient_info']['prescription_id']}")
         print(f"药品数量: {result['prescription_summary']['total_medicines']}")
         for med in result['medicines']:
-            print(f"  - {med['medicine_name']}: 早{med['dosage']['morning']} 中{med['dosage']['noon']} 晚{med['dosage']['evening']} 夜{med['dosage']['night']}")
+            print(f"  - {med['medicine_name']}: 早{med['dosage']['morning']} 中{med['dosage']['noon']} 晚{med['dosage']['evening']}")
     else:
         print(f"错误: {result['error']}")
     
