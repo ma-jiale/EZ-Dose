@@ -382,51 +382,6 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.left_widget, 1, 0, 1, 1)
 
-        self.menu_bar = QWidget(self.centralwidget)
-        self.menu_bar.setObjectName(u"menu_bar")
-        self.menu_bar.setMinimumSize(QSize(0, 32))
-        self.menu_bar.setStyleSheet(u"QWidget {\n"
-"    background: rgb(242, 243, 245);\n"
-"    border-bottom: 0.5px solid #ccc;\n"
-"}")
-        self.setting_page_button = QPushButton(self.menu_bar)
-        self.setting_page_button.setObjectName(u"setting_page_button")
-        self.setting_page_button.setGeometry(QRect(66, 6, 54, 26))
-        self.setting_page_button.setStyleSheet(u"QPushButton {\n"
-"    border-top-left-radius: 10px;      /* \u5de6\u4e0a\u89d2\u5706\u89d2 */\n"
-"    border-top-right-radius: 10px;     /* \u53f3\u4e0a\u89d2\u5706\u89d2 */\n"
-"    border-bottom-left-radius: 0px;    /* \u5de6\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
-"    border-bottom-right-radius: 0px;   /* \u53f3\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
-"    color: #000;\n"
-"    \n"
-"    /* \u4e09\u7ea7\u6807\u9898 */\n"
-"    font-family: \"Source Han Sans SC\";\n"
-"    font-size: 12px;\n"
-"    font-style: normal;\n"
-"    font-weight: 400;\n"
-"    line-height: normal;\n"
-"}")
-        self.main_page_button = QPushButton(self.menu_bar)
-        self.main_page_button.setObjectName(u"main_page_button")
-        self.main_page_button.setGeometry(QRect(10, 6, 54, 26))
-        self.main_page_button.setStyleSheet(u"QPushButton {\n"
-"    border-top-left-radius: 10px;      /* \u5de6\u4e0a\u89d2\u5706\u89d2 */\n"
-"    border-top-right-radius: 10px;     /* \u53f3\u4e0a\u89d2\u5706\u89d2 */\n"
-"    border-bottom-left-radius: 0px;    /* \u5de6\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
-"    border-bottom-right-radius: 0px;   /* \u53f3\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
-"    background: #7EBEAE;\n"
-"    color: #FFF;\n"
-"    \n"
-"    /* \u4e09\u7ea7\u6807\u9898 */\n"
-"    font-family: \"Source Han Sans SC\";\n"
-"    font-size: 12px;\n"
-"    font-style: normal;\n"
-"    font-weight: 800;\n"
-"    line-height: normal;\n"
-"}")
-
-        self.gridLayout_3.addWidget(self.menu_bar, 0, 0, 1, 2)
-
         self.right_stackedWidget = QStackedWidget(self.centralwidget)
         self.right_stackedWidget.setObjectName(u"right_stackedWidget")
         self.right_stackedWidget.setMaximumSize(QSize(16677215, 16777215))
@@ -594,146 +549,61 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setSpacing(0)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.dispense_info_widget = QWidget(self.dispense_page)
-        self.dispense_info_widget.setObjectName(u"dispense_info_widget")
-        self.dispense_info_widget.setMinimumSize(QSize(320, 0))
-        self.progressBar_percentage = QLabel(self.dispense_info_widget)
-        self.progressBar_percentage.setObjectName(u"progressBar_percentage")
-        self.progressBar_percentage.setGeometry(QRect(200, 201, 71, 41))
-        self.progressBar_percentage.setStyleSheet(u"QLabel\n"
+        self.drug_info_widget = QWidget(self.dispense_page)
+        self.drug_info_widget.setObjectName(u"drug_info_widget")
+        self.drug_info_widget.setMinimumSize(QSize(400, 390))
+        self.drug_info_widget.setMaximumSize(QSize(1677215, 16777215))
+        self.drug_info_widget.setStyleSheet(u"QWidget\n"
 "{\n"
-"color: #515151;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 24px;\n"
-"font-style: normal;\n"
-"font-weight: 400;\n"
-"line-height: normal;\n"
+"border: none;\n"
+"	background-color: rgba(255, 255, 255, 0);\n"
 "}")
-        self.dispense_progressBar = QProgressBar(self.dispense_info_widget)
-        self.dispense_progressBar.setObjectName(u"dispense_progressBar")
-        self.dispense_progressBar.setGeometry(QRect(10, 210, 181, 26))
-        self.dispense_progressBar.setStyleSheet(u"QProgressBar {\n"
-"    border: 2px solid #ddd;\n"
-"    border-radius: 10px;  /* \u7a0d\u5fae\u5927\u4e00\u70b9\u7684\u5706\u89d2 */\n"
-"    background-color: hsla(0, 0%, 84%, 1);\n"
-"    text-align: center;\n"
-"    padding: 1px;  /* \u5185\u8fb9\u8ddd */\n"
-"}\n"
-"\n"
-"QProgressBar::chunk {\n"
-"    background-color: hsla(165, 33%, 62%, 1);\n"
-"    border-radius: 7px;  /* \u6bd4\u5916\u6846\u5c0f2px */\n"
-"    margin: 1px;  /* \u4e0epadding\u914d\u5408\u4f7f\u7528 */\n"
-"}")
-        self.dispense_progressBar.setValue(0)
-        self.dispense_progressBar.setTextVisible(False)
-        self.pills_num_msg_1 = QLabel(self.dispense_info_widget)
-        self.pills_num_msg_1.setObjectName(u"pills_num_msg_1")
-        self.pills_num_msg_1.setGeometry(QRect(10, 150, 101, 41))
-        font1 = QFont()
-        font1.setFamilies([u"Source Han Sans SC"])
-        font1.setBold(True)
-        font1.setItalic(False)
-        self.pills_num_msg_1.setFont(font1)
-        self.pills_num_msg_1.setStyleSheet(u"QLabel\n"
+        self.drug_card = QWidget(self.drug_info_widget)
+        self.drug_card.setObjectName(u"drug_card")
+        self.drug_card.setGeometry(QRect(60, 10, 334, 280))
+        self.drug_card.setStyleSheet(u"QWidget\n"
 "{\n"
-"color: #2E344F;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 24px;\n"
-"font-style: normal;\n"
-"font-weight: 700;\n"
-"line-height: normal;\n"
+"border-radius: 15px;\n"
+"background: #FFF;\n"
 "}")
-        self.pills_num_msg_3 = QLabel(self.dispense_info_widget)
-        self.pills_num_msg_3.setObjectName(u"pills_num_msg_3")
-        self.pills_num_msg_3.setGeometry(QRect(180, 150, 31, 41))
-        self.pills_num_msg_3.setStyleSheet(u"QLabel\n"
+        self.verticalLayout_2 = QVBoxLayout(self.drug_card)
+        self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout_2.setContentsMargins(17, 17, 17, 0)
+        self.current_drug_img = QLabel(self.drug_card)
+        self.current_drug_img.setObjectName(u"current_drug_img")
+        self.current_drug_img.setStyleSheet(u"QLabel\n"
 "{\n"
-"color: #2E344F;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 24px;\n"
-"font-style: normal;\n"
-"font-weight: 700;\n"
-"line-height: normal;\n"
+"border-radius: 15px;\n"
 "}")
-        self.pills_num_msg_2 = QLabel(self.dispense_info_widget)
-        self.pills_num_msg_2.setObjectName(u"pills_num_msg_2")
-        self.pills_num_msg_2.setGeometry(QRect(70, 120, 111, 71))
-        self.pills_num_msg_2.setStyleSheet(u"QLabel\n"
-"{\n"
-"color: #2E344F;\n"
-"text-align: center;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 64px;\n"
-"font-style: normal;\n"
-"font-weight: 700;\n"
-"line-height: normal;\n"
-"}")
-        self.pills_num_msg_2.setAlignment(Qt.AlignCenter)
-        self.is_dispensing_msg = QLabel(self.dispense_info_widget)
-        self.is_dispensing_msg.setObjectName(u"is_dispensing_msg")
-        self.is_dispensing_msg.setGeometry(QRect(15, 258, 271, 21))
-        self.is_dispensing_msg.setStyleSheet(u"QLabel{\n"
-"color: #2E344F;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 16px;\n"
-"font-style: normal;\n"
-"font-weight: 400;\n"
-"line-height: normal;\n"
-"}")
-        self.put_pills_in_msg = QLabel(self.dispense_info_widget)
-        self.put_pills_in_msg.setObjectName(u"put_pills_in_msg")
-        self.put_pills_in_msg.setGeometry(QRect(15, 281, 271, 21))
-        font2 = QFont()
-        font2.setFamilies([u"Source Han Sans SC"])
-        font2.setBold(False)
-        font2.setItalic(False)
-        self.put_pills_in_msg.setFont(font2)
-        self.put_pills_in_msg.setStyleSheet(u"QLabel{\n"
-"color: #2E344F;\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 16px;\n"
-"font-style: normal;\n"
-"font-weight: 400;\n"
-"line-height: normal;\n"
-"}")
-        self.stop_dispensing_button = QPushButton(self.dispense_info_widget)
-        self.stop_dispensing_button.setObjectName(u"stop_dispensing_button")
-        self.stop_dispensing_button.setGeometry(QRect(290, -1, 24, 24))
-        self.stop_dispensing_button.setStyleSheet(u"QPushButton {\n"
-"    border: none;\n"
-"    background-color: transparent;\n"
-"    outline: none;\n"
-"}\n"
-"\n"
-"QPushButton:hover {\n"
-"    background-color: rgba(200, 200, 200, 50);\n"
-"    border-radius: 5px;\n"
-"}\n"
-"\n"
-"QPushButton:pressed {\n"
-"    background-color: rgba(150, 150, 150, 100);\n"
-"}")
-        icon1 = QIcon()
-        icon1.addFile(u"imgs/stop_dispensing.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.stop_dispensing_button.setIcon(icon1)
-        self.stop_dispensing_button.setIconSize(QSize(12, 12))
-        self.stop_dispensing_msg = QLabel(self.dispense_info_widget)
-        self.stop_dispensing_msg.setObjectName(u"stop_dispensing_msg")
-        self.stop_dispensing_msg.setGeometry(QRect(218, 0, 81, 21))
-        self.stop_dispensing_msg.setStyleSheet(u"QLabel\n"
-"{\n"
-"color: #000;\n"
-"\n"
-"/* \u4e09\u7ea7\u6807\u9898 */\n"
-"font-family: \"Source Han Sans SC\";\n"
-"font-size: 12px;\n"
-"font-style: normal;\n"
-"font-weight: 400;\n"
-"line-height: normal;\n"
-"}")
+        self.current_drug_img.setPixmap(QPixmap(u"imgs/\u963f\u83ab\u897f\u6797.png"))
+        self.current_drug_img.setScaledContents(True)
+        self.current_drug_img.setAlignment(Qt.AlignBottom|Qt.AlignHCenter)
 
-        self.gridLayout_2.addWidget(self.dispense_info_widget, 0, 3, 2, 1)
+        self.verticalLayout_2.addWidget(self.current_drug_img)
+
+        self.current_drug = QLabel(self.drug_card)
+        self.current_drug.setObjectName(u"current_drug")
+        self.current_drug.setMinimumSize(QSize(0, 63))
+        self.current_drug.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #363636;\n"
+"text-align: center;\n"
+"\n"
+"/* \u4e8c\u7ea7\u6807\u9898 */\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 16px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"}")
+        self.current_drug.setScaledContents(True)
+        self.current_drug.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_2.addWidget(self.current_drug)
+
+
+        self.gridLayout_2.addWidget(self.drug_info_widget, 1, 0, 1, 3)
 
         self.patient_info_widget = QWidget(self.dispense_page)
         self.patient_info_widget.setObjectName(u"patient_info_widget")
@@ -791,61 +661,162 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.patient_info_widget, 0, 0, 1, 3)
 
-        self.drug_info_widget = QWidget(self.dispense_page)
-        self.drug_info_widget.setObjectName(u"drug_info_widget")
-        self.drug_info_widget.setMinimumSize(QSize(400, 390))
-        self.drug_info_widget.setMaximumSize(QSize(1677215, 16777215))
-        self.drug_info_widget.setStyleSheet(u"QWidget\n"
+        self.dispense_info_widget = QWidget(self.dispense_page)
+        self.dispense_info_widget.setObjectName(u"dispense_info_widget")
+        self.dispense_info_widget.setMinimumSize(QSize(320, 0))
+        self.verticalLayout_3 = QVBoxLayout(self.dispense_info_widget)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.widget_2 = QWidget(self.dispense_info_widget)
+        self.widget_2.setObjectName(u"widget_2")
+        self.stop_dispensing_msg = QLabel(self.widget_2)
+        self.stop_dispensing_msg.setObjectName(u"stop_dispensing_msg")
+        self.stop_dispensing_msg.setGeometry(QRect(218, 1, 81, 21))
+        self.stop_dispensing_msg.setStyleSheet(u"QLabel\n"
 "{\n"
-"border: none;\n"
-"	background-color: rgba(255, 255, 255, 0);\n"
-"}")
-        self.drug_card = QWidget(self.drug_info_widget)
-        self.drug_card.setObjectName(u"drug_card")
-        self.drug_card.setGeometry(QRect(60, 10, 334, 280))
-        self.drug_card.setStyleSheet(u"QWidget\n"
-"{\n"
-"border-radius: 15px;\n"
-"background: #FFF;\n"
-"}")
-        self.verticalLayout_2 = QVBoxLayout(self.drug_card)
-        self.verticalLayout_2.setSpacing(0)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setContentsMargins(17, 17, 17, 0)
-        self.current_drug_img = QLabel(self.drug_card)
-        self.current_drug_img.setObjectName(u"current_drug_img")
-        self.current_drug_img.setStyleSheet(u"QLabel\n"
-"{\n"
-"border-radius: 15px;\n"
-"}")
-        self.current_drug_img.setPixmap(QPixmap(u"imgs/\u963f\u83ab\u897f\u6797.png"))
-        self.current_drug_img.setScaledContents(True)
-        self.current_drug_img.setAlignment(Qt.AlignBottom|Qt.AlignHCenter)
-
-        self.verticalLayout_2.addWidget(self.current_drug_img)
-
-        self.current_drug = QLabel(self.drug_card)
-        self.current_drug.setObjectName(u"current_drug")
-        self.current_drug.setMinimumSize(QSize(0, 63))
-        self.current_drug.setStyleSheet(u"QLabel\n"
-"{\n"
-"color: #363636;\n"
-"text-align: center;\n"
+"color: #000;\n"
 "\n"
-"/* \u4e8c\u7ea7\u6807\u9898 */\n"
+"/* \u4e09\u7ea7\u6807\u9898 */\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 12px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"}")
+        self.stop_dispensing_button = QPushButton(self.widget_2)
+        self.stop_dispensing_button.setObjectName(u"stop_dispensing_button")
+        self.stop_dispensing_button.setGeometry(QRect(290, 0, 24, 24))
+        self.stop_dispensing_button.setStyleSheet(u"QPushButton {\n"
+"    border: none;\n"
+"    background-color: transparent;\n"
+"    outline: none;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: rgba(200, 200, 200, 50);\n"
+"    border-radius: 5px;\n"
+"}\n"
+"\n"
+"QPushButton:pressed {\n"
+"    background-color: rgba(150, 150, 150, 100);\n"
+"}")
+        icon1 = QIcon()
+        icon1.addFile(u"imgs/stop_dispensing.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.stop_dispensing_button.setIcon(icon1)
+        self.stop_dispensing_button.setIconSize(QSize(12, 12))
+        self.camera_label = QLabel(self.widget_2)
+        self.camera_label.setObjectName(u"camera_label")
+        self.camera_label.setGeometry(QRect(10, 40, 291, 181))
+
+        self.verticalLayout_3.addWidget(self.widget_2)
+
+        self.widget = QWidget(self.dispense_info_widget)
+        self.widget.setObjectName(u"widget")
+        self.pills_num_msg_3 = QLabel(self.widget)
+        self.pills_num_msg_3.setObjectName(u"pills_num_msg_3")
+        self.pills_num_msg_3.setGeometry(QRect(185, 29, 31, 41))
+        self.pills_num_msg_3.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2E344F;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 24px;\n"
+"font-style: normal;\n"
+"font-weight: 700;\n"
+"line-height: normal;\n"
+"}")
+        self.pills_num_msg_2 = QLabel(self.widget)
+        self.pills_num_msg_2.setObjectName(u"pills_num_msg_2")
+        self.pills_num_msg_2.setGeometry(QRect(75, -1, 111, 71))
+        self.pills_num_msg_2.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2E344F;\n"
+"text-align: center;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 64px;\n"
+"font-style: normal;\n"
+"font-weight: 700;\n"
+"line-height: normal;\n"
+"}")
+        self.pills_num_msg_2.setAlignment(Qt.AlignCenter)
+        self.progressBar_percentage = QLabel(self.widget)
+        self.progressBar_percentage.setObjectName(u"progressBar_percentage")
+        self.progressBar_percentage.setGeometry(QRect(205, 80, 71, 41))
+        self.progressBar_percentage.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #515151;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 24px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"}")
+        self.is_dispensing_msg = QLabel(self.widget)
+        self.is_dispensing_msg.setObjectName(u"is_dispensing_msg")
+        self.is_dispensing_msg.setGeometry(QRect(20, 137, 271, 21))
+        self.is_dispensing_msg.setStyleSheet(u"QLabel{\n"
+"color: #2E344F;\n"
 "font-family: \"Source Han Sans SC\";\n"
 "font-size: 16px;\n"
 "font-style: normal;\n"
 "font-weight: 400;\n"
 "line-height: normal;\n"
 "}")
-        self.current_drug.setScaledContents(True)
-        self.current_drug.setAlignment(Qt.AlignCenter)
+        self.pills_num_msg_1 = QLabel(self.widget)
+        self.pills_num_msg_1.setObjectName(u"pills_num_msg_1")
+        self.pills_num_msg_1.setGeometry(QRect(15, 29, 101, 41))
+        font1 = QFont()
+        font1.setFamilies([u"Source Han Sans SC"])
+        font1.setBold(True)
+        font1.setItalic(False)
+        self.pills_num_msg_1.setFont(font1)
+        self.pills_num_msg_1.setStyleSheet(u"QLabel\n"
+"{\n"
+"color: #2E344F;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 24px;\n"
+"font-style: normal;\n"
+"font-weight: 700;\n"
+"line-height: normal;\n"
+"}")
+        self.put_pills_in_msg = QLabel(self.widget)
+        self.put_pills_in_msg.setObjectName(u"put_pills_in_msg")
+        self.put_pills_in_msg.setGeometry(QRect(20, 160, 271, 21))
+        font2 = QFont()
+        font2.setFamilies([u"Source Han Sans SC"])
+        font2.setBold(False)
+        font2.setItalic(False)
+        self.put_pills_in_msg.setFont(font2)
+        self.put_pills_in_msg.setStyleSheet(u"QLabel{\n"
+"color: #2E344F;\n"
+"font-family: \"Source Han Sans SC\";\n"
+"font-size: 16px;\n"
+"font-style: normal;\n"
+"font-weight: 400;\n"
+"line-height: normal;\n"
+"}")
+        self.dispense_progressBar = QProgressBar(self.widget)
+        self.dispense_progressBar.setObjectName(u"dispense_progressBar")
+        self.dispense_progressBar.setGeometry(QRect(15, 89, 181, 26))
+        self.dispense_progressBar.setStyleSheet(u"QProgressBar {\n"
+"    border: 2px solid #ddd;\n"
+"    border-radius: 10px;  /* \u7a0d\u5fae\u5927\u4e00\u70b9\u7684\u5706\u89d2 */\n"
+"    background-color: hsla(0, 0%, 84%, 1);\n"
+"    text-align: center;\n"
+"    padding: 1px;  /* \u5185\u8fb9\u8ddd */\n"
+"}\n"
+"\n"
+"QProgressBar::chunk {\n"
+"    background-color: hsla(165, 33%, 62%, 1);\n"
+"    border-radius: 7px;  /* \u6bd4\u5916\u6846\u5c0f2px */\n"
+"    margin: 1px;  /* \u4e0epadding\u914d\u5408\u4f7f\u7528 */\n"
+"}")
+        self.dispense_progressBar.setValue(0)
+        self.dispense_progressBar.setTextVisible(False)
 
-        self.verticalLayout_2.addWidget(self.current_drug)
+        self.verticalLayout_3.addWidget(self.widget)
 
 
-        self.gridLayout_2.addWidget(self.drug_info_widget, 1, 0, 1, 3)
+        self.gridLayout_2.addWidget(self.dispense_info_widget, 0, 3, 2, 1)
 
         self.right_stackedWidget.addWidget(self.dispense_page)
         self.finish_dispense_page = QWidget()
@@ -972,11 +943,56 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.right_stackedWidget, 1, 1, 1, 1)
 
+        self.menu_bar = QWidget(self.centralwidget)
+        self.menu_bar.setObjectName(u"menu_bar")
+        self.menu_bar.setMinimumSize(QSize(0, 32))
+        self.menu_bar.setStyleSheet(u"QWidget {\n"
+"    background: rgb(242, 243, 245);\n"
+"    border-bottom: 0.5px solid #ccc;\n"
+"}")
+        self.setting_page_button = QPushButton(self.menu_bar)
+        self.setting_page_button.setObjectName(u"setting_page_button")
+        self.setting_page_button.setGeometry(QRect(66, 6, 54, 26))
+        self.setting_page_button.setStyleSheet(u"QPushButton {\n"
+"    border-top-left-radius: 10px;      /* \u5de6\u4e0a\u89d2\u5706\u89d2 */\n"
+"    border-top-right-radius: 10px;     /* \u53f3\u4e0a\u89d2\u5706\u89d2 */\n"
+"    border-bottom-left-radius: 0px;    /* \u5de6\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
+"    border-bottom-right-radius: 0px;   /* \u53f3\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
+"    color: #000;\n"
+"    \n"
+"    /* \u4e09\u7ea7\u6807\u9898 */\n"
+"    font-family: \"Source Han Sans SC\";\n"
+"    font-size: 12px;\n"
+"    font-style: normal;\n"
+"    font-weight: 400;\n"
+"    line-height: normal;\n"
+"}")
+        self.main_page_button = QPushButton(self.menu_bar)
+        self.main_page_button.setObjectName(u"main_page_button")
+        self.main_page_button.setGeometry(QRect(10, 6, 54, 26))
+        self.main_page_button.setStyleSheet(u"QPushButton {\n"
+"    border-top-left-radius: 10px;      /* \u5de6\u4e0a\u89d2\u5706\u89d2 */\n"
+"    border-top-right-radius: 10px;     /* \u53f3\u4e0a\u89d2\u5706\u89d2 */\n"
+"    border-bottom-left-radius: 0px;    /* \u5de6\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
+"    border-bottom-right-radius: 0px;   /* \u53f3\u4e0b\u89d2\u65e0\u5706\u89d2 */\n"
+"    background: #7EBEAE;\n"
+"    color: #FFF;\n"
+"    \n"
+"    /* \u4e09\u7ea7\u6807\u9898 */\n"
+"    font-family: \"Source Han Sans SC\";\n"
+"    font-size: 12px;\n"
+"    font-style: normal;\n"
+"    font-weight: 800;\n"
+"    line-height: normal;\n"
+"}")
+
+        self.gridLayout_3.addWidget(self.menu_bar, 0, 0, 1, 2)
+
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
 
-        self.right_stackedWidget.setCurrentIndex(0)
+        self.right_stackedWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -1006,8 +1022,6 @@ class Ui_MainWindow(object):
         self.green_check_mark_6.setText("")
         self.green_check_mark_7.setText("")
         self.process_title.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u4efb\u52a1\u6d41\u7a0b", None))
-        self.setting_page_button.setText(QCoreApplication.translate("MainWindow", u"\u8bbe\u7f6e", None))
-        self.main_page_button.setText(QCoreApplication.translate("MainWindow", u"\u4e3b\u9875", None))
         self.guide_msg_1.setText(QCoreApplication.translate("MainWindow", u"EZ Dose", None))
         self.start_dispense_button.setText(QCoreApplication.translate("MainWindow", u"\u5f00\u59cb\u5206\u836f", None))
         self.guide_msg_2.setText(QCoreApplication.translate("MainWindow", u"\u5c06\u836f\u76d8\u653e\u5165\u673a\u5668\u6258\u76d8\u4e2d", None))
@@ -1019,20 +1033,21 @@ class Ui_MainWindow(object):
         self.pan_img.setText("")
         self.green_arrow.setText("")
         self.error_mark_2.setText("")
-        self.progressBar_percentage.setText(QCoreApplication.translate("MainWindow", u"0%", None))
-        self.pills_num_msg_1.setText(QCoreApplication.translate("MainWindow", u"\u5171\u9700\u8981", None))
-        self.pills_num_msg_3.setText(QCoreApplication.translate("MainWindow", u"\u7247", None))
-        self.pills_num_msg_2.setText(QCoreApplication.translate("MainWindow", u"7", None))
-        self.is_dispensing_msg.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u4e2d\u00b7\u00b7\u00b7", None))
-        self.put_pills_in_msg.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u6295\u5165\u836f\u54c1\u5230\u5206\u836f\u673a\u4e2d", None))
-        self.stop_dispensing_button.setText("")
-        self.stop_dispensing_msg.setText(QCoreApplication.translate("MainWindow", u"         \u6682\u505c\u5206\u836f", None))
+        self.current_drug_img.setText("")
+        self.current_drug.setText(QCoreApplication.translate("MainWindow", u"\u963f\u83ab\u897f\u6797\u80f6\u56ca", None))
         self.prescription_data.setText(QCoreApplication.translate("MainWindow", u"\u5904\u65b9\u8d77\u59cb\u65e5\u671f\uff1a2025\u5e743\u670824\u65e5", None))
         self.patient_name.setText(QCoreApplication.translate("MainWindow", u"\u5f20\u963f\u83b2", None))
         self.room_msg.setText(QCoreApplication.translate("MainWindow", u"6\u697c608\u53f7\u623f\u95f4", None))
         self.patient_img.setText("")
-        self.current_drug_img.setText("")
-        self.current_drug.setText(QCoreApplication.translate("MainWindow", u"\u963f\u83ab\u897f\u6797\u80f6\u56ca", None))
+        self.stop_dispensing_msg.setText(QCoreApplication.translate("MainWindow", u"         \u6682\u505c\u5206\u836f", None))
+        self.stop_dispensing_button.setText("")
+        self.camera_label.setText("")
+        self.pills_num_msg_3.setText(QCoreApplication.translate("MainWindow", u"\u7247", None))
+        self.pills_num_msg_2.setText(QCoreApplication.translate("MainWindow", u"7", None))
+        self.progressBar_percentage.setText(QCoreApplication.translate("MainWindow", u"0%", None))
+        self.is_dispensing_msg.setText(QCoreApplication.translate("MainWindow", u"\u5206\u836f\u4e2d\u00b7\u00b7\u00b7", None))
+        self.pills_num_msg_1.setText(QCoreApplication.translate("MainWindow", u"\u5171\u9700\u8981", None))
+        self.put_pills_in_msg.setText(QCoreApplication.translate("MainWindow", u"\u8bf7\u6295\u5165\u836f\u54c1\u5230\u5206\u836f\u673a\u4e2d", None))
         self.guide_msg_4.setText(QCoreApplication.translate("MainWindow", u"\u5df2\u5206\u5b8c\u6240\u6709\u836f\u54c1", None))
         self.dispense_error_msg.setText(QCoreApplication.translate("MainWindow", u"\u672a\u53d1\u73b0\u5206\u836f\u9519\u8bef", None))
         self.check_mark_4.setText("")
@@ -1041,5 +1056,7 @@ class Ui_MainWindow(object):
         self.finish_dispensing_button.setText(QCoreApplication.translate("MainWindow", u"\u7ed3\u675f\u5206\u836f", None))
         self.error_mark_4.setText("")
         self.fail_dispense_medicines_msg.setText(QCoreApplication.translate("MainWindow", u"\u963f\u83ab\u897f\u6797\uff0c\u590d\u65b9\u7518\u8349\u7247", None))
+        self.setting_page_button.setText(QCoreApplication.translate("MainWindow", u"\u8bbe\u7f6e", None))
+        self.main_page_button.setText(QCoreApplication.translate("MainWindow", u"\u4e3b\u9875", None))
     # retranslateUi
 

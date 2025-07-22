@@ -7,6 +7,7 @@ from main_window_ui import Ui_MainWindow
 from dispenser import Dispenser
 from rfid_reader import RFIDReader
 from prescription_database import PrescriptionDatabase
+from camera_controller import CameraController
 import numpy as np
 import serial.tools.list_ports
 
@@ -652,13 +653,17 @@ class MainWindow(QMainWindow):
         self.setFixedSize(960, 540)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)
         
-
-
         # 初始化分药机控制器
         self.controller = DispenserController()
         self.controller_worker_thread = QThread()
         self.controller.moveToThread(self.controller_worker_thread)
         self.controller_worker_thread.start()
+
+        # 初始化摄像头控制器
+        self.camera_controller = CameraController(camera_index=1)
+        self.camera_thread = QThread()
+        self.camera_controller.moveToThread(self.camera_thread)
+        self.camera_thread.start()
 
         # 初始化状态
         self.medicine_images_dir = "imgs/medicines"  # 根据你的实际目录调整
@@ -668,9 +673,21 @@ class MainWindow(QMainWindow):
         self.fail_dispense_medicines = []  # 用于记录分药失败的药品
         self.ui.fail_dispense_medicines_msg.hide()  # 隐藏失败药品消息标签
 
+        # 摄像头相关状态
+        self.camera_initialized = False
+        self.camera_streaming = False
+
         self.ui.right_stackedWidget.setCurrentIndex(0)
         self.initialize_check_marks()
         self.ui.error_mark_4.hide()
+
+        # 初始化摄像头
+        self.initialize_camera()
+
+    def initialize_camera(self):
+        """初始化摄像头"""
+        from PySide6.QtCore import QMetaObject, Qt
+        QMetaObject.invokeMethod(self.camera_controller, "initialize_camera", Qt.QueuedConnection)
 
     def connection(self):
         """连接UI信号和控制器槽函数"""
@@ -696,6 +713,13 @@ class MainWindow(QMainWindow):
         self.controller.medicine_transition_signal.connect(self.update_medicine_transition_status)
         self.controller.plate_presence_checked_signal.connect(self.on_plate_presence_checked)
 
+        # 摄像头控制器信号连接
+        self.camera_controller.camera_error_signal.connect(self.handle_camera_error)
+        self.camera_controller.camera_connected_signal.connect(self.on_camera_connected)
+        self.camera_controller.camera_disconnected_signal.connect(self.on_camera_disconnected)
+        
+        # 新增：药片识别信号连接
+        self.camera_controller.annotated_frame_signal.connect(self.update_annotated_frame)
 
     ############
     # 页面切换 #
@@ -1259,6 +1283,91 @@ class MainWindow(QMainWindow):
         # 检查药盘是否在托盘上
         from PySide6.QtCore import QMetaObject, Qt
         QMetaObject.invokeMethod(self.controller, "check_plate_presence", Qt.QueuedConnection)
+
+################
+# 摄像头画面呈现 #
+################
+
+    @Slot(QPixmap)
+    def update_annotated_frame(self, pixmap):
+        """更新标注后的画面"""
+        if hasattr(self.ui, 'camera_label'):
+            scaled_pixmap = pixmap.scaled(
+                self.ui.camera_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.ui.camera_label.setPixmap(scaled_pixmap)
+
+    @Slot(str)
+    def handle_camera_error(self, error_msg):
+        """处理摄像头错误"""
+        print(f"[摄像头错误] {error_msg}")
+        if hasattr(self.ui, 'camera_label'):
+            self.ui.camera_label.setText(f"摄像头错误: {error_msg}")
+
+    @Slot()
+    def on_camera_connected(self):
+        """摄像头连接成功"""
+        print("[摄像头] 连接成功")
+        self.camera_initialized = True
+        self.start_camera_streaming()
+
+    @Slot()
+    def on_camera_disconnected(self):
+        """摄像头断开连接"""
+        print("[摄像头] 已断开连接")
+        self.camera_initialized = False
+        self.camera_streaming = False
+        if hasattr(self.ui, 'camera_label'):
+            self.ui.camera_label.setText("摄像头未连接")
+
+    def start_camera_streaming(self):
+        """开始摄像头流"""
+        if not self.camera_initialized:
+            return
+        
+        if not self.camera_streaming:
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.camera_controller, "start_streaming", Qt.QueuedConnection)
+            self.camera_streaming = True
+
+    def stop_camera_streaming(self):
+        """停止摄像头流"""
+        if self.camera_streaming:
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.camera_controller, "stop_streaming", Qt.QueuedConnection)
+            self.camera_streaming = False
+
+    def closeEvent(self, event):
+        """窗口关闭事件，清理资源"""
+        try:
+            # 停止摄像头
+            self.stop_camera_streaming()
+            
+            # 清理摄像头资源
+            from PySide6.QtCore import QMetaObject, Qt
+            QMetaObject.invokeMethod(self.camera_controller, "cleanup", Qt.QueuedConnection)
+            
+            # 清理分药机资源
+            self.controller.cleanup_hardware()
+            
+            # 等待线程结束
+            if hasattr(self, 'camera_thread'):
+                self.camera_thread.quit()
+                self.camera_thread.wait(3000)  # 等待3秒
+            
+            if hasattr(self, 'controller_worker_thread'):
+                self.controller_worker_thread.quit()
+                self.controller_worker_thread.wait(3000)
+            
+            print("[清理] 所有资源已清理")
+            event.accept()
+            
+        except Exception as e:
+            print(f"[错误] 清理资源时出错: {e}")
+            event.accept()
+
 
 ############################
 # 无GUI controller 测试函数 #
