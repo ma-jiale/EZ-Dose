@@ -96,27 +96,26 @@ class CameraController:
                 
                 # Print to console
                 print(f"QR Code detected - Type: {qr_type}, Data: {qr_data}")
+                
+
         
         return frame
-    
-    def get_camera_info(self):
-        """Get current camera properties"""
-        if not self.cap:
-            return None
-        
-        return {
-            'width': int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            'height': int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-            'fps': self.cap.get(cv2.CAP_PROP_FPS)
-        }
-    
-    def capture_and_correct_frame(self):
-        """Capture frame and apply distortion correction"""
+    def capture_frame(self):
+        """Capture a single frame from the camera"""
         if not self.cap:
             return None, False
         
         # Capture frame
         ret, frame = self.cap.read()
+        if not ret:
+            return None, False
+        
+        return frame, True
+    
+    def capture_and_correct_frame(self):
+        """Capture frame and apply distortion correction"""
+
+        frame, ret = self.capture_frame()
         if not ret:
             return None, False
         
@@ -130,21 +129,6 @@ class CameraController:
         
         return corrected_frame, True
     
-    def display_camera_info(self):
-        """Display camera information"""
-        info = self.get_camera_info()
-        print("=" * 60)
-        print("USB Camera - Wide Angle Lens with QR Code Detection")
-        print("=" * 60)
-        print(f"Resolution: {info['width']}x{info['height']}")
-        print(f"Frame Rate: {info['fps']} FPS")
-        print("Distortion Correction: ENABLED")
-        print("QR Code Detection: ENABLED")
-        print("-" * 60)
-        print("Controls:")
-        print("  Press 'q' or 'Q' to exit")
-        print("=" * 60)
-    
     def start_preview(self):
         """Start real-time camera preview with distortion correction"""
         try:
@@ -155,9 +139,8 @@ class CameraController:
             # Setup distortion correction
             self.setup_distortion_correction()
             
-            # Display info
-            self.display_camera_info()
-            
+            print("Starting camera preview, press 'q' to exit...")
+
             # Start preview loop
             self.is_running = True
             self._preview_loop()
@@ -173,6 +156,9 @@ class CameraController:
     def _preview_loop(self):
         """Main preview loop"""
         while self.is_running:
+            # # directly capture frame
+            # frame, ret = self.capture_frame()
+
             # Capture and correct frame
             frame, ret = self.capture_and_correct_frame()
             
