@@ -4,7 +4,6 @@ import sys
 from pyzbar import pyzbar
 
 class CameraController:
-    """USB Camera controller with distortion correction for wide-angle lens"""
     
     def __init__(self, camera_index=1, target_width=1280, target_height=720, target_fps=30):
         """Initialize camera controller with parameters"""
