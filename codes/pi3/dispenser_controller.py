@@ -1,18 +1,158 @@
 import serial
+import serial.tools.list_ports
 import numpy as np
 import threading
 import time
 import struct
 
 class DispenserController:
-    def __init__(self, port):
+    # 分药机设备识别信息
+    DISPENSER_VID_PID_PATTERNS = [
+        r'USB VID:PID=1A86:7523',  # CH340芯片常见的VID:PID
+        r'CH340',                   # 设备描述中包含CH340
+        r'USB-SERIAL CH340'         # 完整的设备描述
+    ]
+    DISPENSER_MANUFACTURER = 'wch.cn'
+
+    def __init__(self, port=None):
         """
         初始化分药机控制器实例, 使用pyserial库打开指定的串口, 并设置分药机参数。
         :param port: 串口名称，例如 'COM6' 或 '/dev/ttyUSB0'
         """
-        # open serial port
+        # 如果没有指定端口，自动搜索分药机
+        if port is None:
+            port = self._find_dispenser_port()
+            if port is None:
+                raise ConnectionError("未找到分药机设备，请检查设备连接")
+
+        # Connect serial port
         self.port = port
         self.ser = None
+        self._connect_serial()
+
+        # 设置分药机相关参数
+        self.is_tray_opened = False
+        self.is_receiver_thread_running = False # 接收串口信息线程是否在运行
+        self.machine_state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停工作; 3.完成工作;
+        self.is_sending_package = False # 是否正在发送数据包
+        self.err_code = 0 # 错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
+        self.pill_remain = -1 # 剩余药片数量
+        self.total_pill = 0 # 一个药片矩阵总药片数量
+        self.ACK = False
+        self.DONE = False
+        self.repeat = 5 # 重发指令次数
+
+        # 自动启动接收线程
+        self.start_dispenser_feedback_handler()
+
+#############################
+# 自动选择串口连接分药机下位机 #
+#############################
+    def _find_dispenser_port(self):
+        """
+        自动搜索分药机串口设备
+        :return: 找到的串口名称，如果未找到返回None
+        """
+        print("[搜索] 正在搜索分药机设备...")
+        
+        # 获取所有可用串口
+        available_ports = serial.tools.list_ports.comports()
+        
+        if not available_ports:
+            print("[警告] 未发现任何串口设备")
+            return None
+        
+        print(f"[信息] 发现 {len(available_ports)} 个串口设备:")
+        for port in available_ports:
+            print(f"  - {port.device}: {port.description}")
+            if hasattr(port, 'manufacturer') and port.manufacturer:
+                print(f"    制造商: {port.manufacturer}")
+            if hasattr(port, 'vid') and hasattr(port, 'pid') and port.vid and port.pid:
+                print(f"    VID:PID: {port.vid:04X}:{port.pid:04X}")
+
+        # 搜索匹配的设备
+        potential_ports = []
+        
+        for port in available_ports:
+            score = self._score_port_match(port)
+            if score > 0:
+                potential_ports.append((port, score))
+                print(f"[匹配] 发现潜在分药机设备: {port.device} (匹配度: {score})")
+        
+        if not potential_ports:
+            print("[错误] 未找到匹配的分药机设备")
+            self._print_search_hints()
+            return None
+        
+        # 按匹配度排序，选择最佳匹配
+        potential_ports.sort(key=lambda x: x[1], reverse=True)
+        best_port = potential_ports[0][0]
+        
+        print(f"[选择] 自动选择设备: {best_port.device}")
+        print(f"  描述: {best_port.description}")
+        if hasattr(best_port, 'manufacturer') and best_port.manufacturer:
+            print(f"  制造商: {best_port.manufacturer}")
+        
+        return best_port.device
+    
+    def _score_port_match(self, port):
+        """
+        为串口设备打分，判断是否为分药机设备
+        :param port: 串口设备信息
+        :return: 匹配分数，分数越高匹配度越高，0表示不匹配
+        """
+        score = 0
+        
+        # 检查描述信息
+        description = port.description.upper() if port.description else ""
+        
+        # CH340芯片检测（高优先级）
+        if 'CH340' in description:
+            score += 50
+            print(f"    [匹配] CH340芯片检测: +50")
+        
+        # USB-SERIAL检测
+        if 'USB-SERIAL' in description:
+            score += 30
+            print(f"    [匹配] USB-SERIAL检测: +30")
+        
+        # 制造商检测
+        if hasattr(port, 'manufacturer') and port.manufacturer:
+            manufacturer = port.manufacturer.lower()
+            if 'wch.cn' in manufacturer or 'wch' in manufacturer:
+                score += 40
+                print(f"    [匹配] 制造商检测: +40")
+
+        # VID:PID检测
+        if hasattr(port, 'vid') and hasattr(port, 'pid') and port.vid and port.pid:
+            # CH340常见的VID:PID是1A86:7523
+            if port.vid == 0x1A86 and port.pid == 0x7523:
+                score += 60
+                print(f"    [匹配] VID:PID检测(1A86:7523): +60")
+        
+        # 端口名称检测（Windows系统）
+        if port.device.startswith('COM') and hasattr(port, 'location') and port.location:
+            # 检查是否为USB设备
+            if 'USB' in port.hwid.upper():
+                score += 10
+                print(f"    [匹配] USB设备检测: +10")
+        
+        return score
+    
+    def _print_search_hints(self):
+        """打印搜索提示信息"""
+        print("\n[提示] 分药机搜索失败，请检查:")
+        print("  1. 分药机是否已连接到计算机")
+        print("  2. 设备驱动是否正确安装")
+        print("  3. 设备是否被其他程序占用")
+        print("  4. USB线缆是否正常")
+        print("\n[期望设备特征]:")
+        print("  - 描述包含: USB-SERIAL CH340")
+        print("  - 制造商: wch.cn")
+        print("  - VID:PID: 1A86:7523")
+
+    def _connect_serial(self):
+        """建立串口连接"""
         try:
             self.ser = serial.Serial(
                 port=self.port, 
@@ -32,21 +172,65 @@ class DispenserController:
             print(f"[错误] 初始化串口时发生未知错误: {e}")
             raise
 
-        # 设置分药机相关参数
-        self.is_tray_opened = False
-        self.is_receiver_thread_running = False # 接收串口信息线程是否在运行
-        self.machine_state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停工作; 3.完成工作;
-        self.is_sending_package = False # 是否正在发送数据包
-        self.err_code = 0 # 错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
-        self.pill_remain = -1 # 剩余药片数量
-        self.total_pill = 0 # 一个药片矩阵总药片数量
-        self.ACK = False
-        self.DONE = False
-        self.repeat = 5 # 重发指令次数
-
-        # 自动启动接收线程
-        self.start_dispenser_feedback_handler()
+    def reconnect(self):
+        """重新连接分药机"""
+        print("[重连] 尝试重新连接分药机...")
         
+        # 关闭现有连接
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+        
+        # 重新搜索设备
+        new_port = self._find_dispenser_port()
+        if new_port is None:
+            raise ConnectionError("重连失败：未找到分药机设备")
+        
+        self.port = new_port
+        self._connect_serial()
+        print(f"[成功] 重连到 {self.port}")
+
+    @staticmethod
+    def list_dispenser_devices():
+        """
+        列出所有可能的分药机设备
+        :return: 可能的分药机设备列表
+        """
+        print("[扫描] 扫描所有可能的分药机设备...")
+        controller = DispenserController.__new__(DispenserController)  # 创建实例但不调用__init__
+        
+        available_ports = serial.tools.list_ports.comports()
+        potential_devices = []
+        
+        for port in available_ports:
+            score = controller._score_port_match(port)
+            if score > 0:
+                potential_devices.append({
+                    'port': port.device,
+                    'description': port.description,
+                    'manufacturer': getattr(port, 'manufacturer', 'Unknown'),
+                    'vid_pid': f"{port.vid:04X}:{port.pid:04X}" if hasattr(port, 'vid') and port.vid else 'Unknown',
+                    'score': score
+                })
+        
+        # 按分数排序
+        potential_devices.sort(key=lambda x: x['score'], reverse=True)
+        
+        if potential_devices:
+            print(f"[结果] 找到 {len(potential_devices)} 个可能的分药机设备:")
+            for i, device in enumerate(potential_devices, 1):
+                print(f"  {i}. {device['port']}")
+                print(f"     描述: {device['description']}")
+                print(f"     制造商: {device['manufacturer']}")
+                print(f"     VID:PID: {device['vid_pid']}")
+                print(f"     匹配度: {device['score']}")
+        else:
+            print("[结果] 未找到可能的分药机设备")
+        
+        return potential_devices
+
+#################
+# 处理分药机反馈 #
+#################
     def start_dispenser_feedback_handler(self):
         """
         Start the serial receiver thread to handle feedback from the dispenser.
