@@ -4,19 +4,24 @@ from pyzbar import pyzbar
 from enum import Enum
 import threading
 import time
+from PySide6.QtCore import QObject, Signal, Slot
 
 class CamMode(Enum):
     IDLE = "idle"
     QR_SCAN = "qr_scan"
     PILLS_COUNT = "pills_count"
     # Add more modes as needed
-    # FACE_DETECTION = "face_detection"
-    # MOTION_DETECTION = "motion_detection"
 
-class CamController:
+class CamController(QObject):
+    # 添加信号用于状态通知
+    camera_initialized = Signal(bool)
+    camera_started = Signal(bool)
+    camera_stopped = Signal()
+    mode_changed = Signal(object)
     
-    def __init__(self, camera_index=1, target_width=1280, target_height=720, target_fps=30):
+    def __init__(self, camera_index=1, target_width=1280, target_height=960, target_fps=30):
         """Initialize camera controller with parameters"""
+        super().__init__()
         self.camera_index = camera_index
         self.target_width = target_width
         self.target_height = target_height
@@ -50,7 +55,16 @@ class CamController:
         # Pills Count results
         self.pills_count_detected = 0
         self.pills_count_callback = None
-        
+        self.background = None
+        self.prev_frame = None
+        self.threshold_stable = 3
+        self.last_stable_time = 0
+
+###########
+# Setting #
+###########
+
+    @Slot()
     def initialize_camera(self):
         """Initialize camera and set properties"""
         print("Initializing camera...")
@@ -68,6 +82,7 @@ class CamController:
         self.cap.set(cv2.CAP_PROP_FPS, self.target_fps)
         
         self.is_cam_initialized = True
+        print("Camera is initialized")
         return True
     
     def setup_distortion_correction(self):
@@ -94,8 +109,29 @@ class CamController:
             (width, height), cv2.CV_16SC2)
         
         print("Distortion correction maps created")
-    
-    def capture_frame(self):
+
+    @Slot(object)
+    def set_mode(self, mode):
+        """Set camera operation mode"""
+        if isinstance(mode, CamMode):
+            with self.thread_lock:
+                self.current_mode = mode
+                print(f"Camera mode set to: {mode.value}")
+                
+                # Clear previous results when switching modes
+                if mode == CamMode.QR_SCAN:
+                    self.qr_codes_detected = []
+                
+                # 发出模式改变信号
+                self.mode_changed.emit(mode)
+        else:
+            print(f"Invalid mode type: {type(mode)}")
+
+########################
+# Capture camera frame #
+########################
+
+    def _capture_frame(self):
         """Capture a single frame from the camera"""
         if not self.cap:
             return None, False
@@ -106,9 +142,9 @@ class CamController:
         
         return frame, True
     
-    def capture_and_correct_frame(self):
+    def _capture_and_correct_frame(self):
         """Capture frame and apply distortion correction"""
-        frame, ret = self.capture_frame()
+        frame, ret = self._capture_frame()
         if not ret:
             return None, False
         
@@ -122,6 +158,7 @@ class CamController:
         
         return corrected_frame, True
     
+    @Slot()
     def start_camera(self):
         """Start the camera in background thread"""
         if self.is_running:
@@ -150,6 +187,8 @@ class CamController:
         except Exception as e:
             print(f"Error starting camera: {e}")
             return False
+        
+    @Slot()     
     def pause_camera(self):
         """Pause the camera without releasing the camera resource"""
         print("Pausing camera...")
@@ -166,6 +205,7 @@ class CamController:
         
         print("Camera paused (resource still held)")
 
+    @Slot()
     def stop_camera(self):
         """Stop the camera and release all resources"""
         print("Stopping camera...")
@@ -185,16 +225,7 @@ class CamController:
         self.is_cam_initialized = False
         print("Camera stopped and resources released")
     
-    def set_mode(self, mode: CamMode):
-        """Set camera operation mode"""
-        with self.thread_lock:
-            self.current_mode = mode
-            print(f"Camera mode set to: {mode.value}")
-            
-            # Clear previous results when switching modes
-            if mode == CamMode.QR_SCAN:
-                self.qr_codes_detected = []
-    
+    @Slot()
     def get_current_frame(self):
         """Get the current frame for display in Qt app"""
         with self.thread_lock:
@@ -208,9 +239,9 @@ class CamController:
             try:
                 # Capture frame
                 if self.correcting_img_distortion:
-                    frame, ret = self.capture_and_correct_frame()
+                    frame, ret = self._capture_and_correct_frame()
                 else:
-                    frame, ret = self.capture_frame()
+                    frame, ret = self._capture_frame()
 
                 if not ret:
                     print("Error: Cannot receive frame from camera")
@@ -225,7 +256,7 @@ class CamController:
                     self.frame_ready = True
                 
                 # Small delay to prevent excessive CPU usage
-                time.sleep(0.03)  # ~30 FPS
+                time.sleep(0.1)  # ~10 FPS
                 
             except Exception as e:
                 print(f"Error in capture loop: {e}")
@@ -247,6 +278,7 @@ class CamController:
 ###########
 # QR_scan #
 ###########
+
     def set_qr_callback(self, callback):
         """Set callback function for QR code detection results"""
         self.qr_callback = callback
@@ -306,15 +338,34 @@ class CamController:
         """Get latest QR code detection results"""
         with self.thread_lock:
             return self.qr_codes_detected.copy()
+        
 ###############
 # pills count #
 ###############
+
     def set_pills_count_callback(self, callback):
         """Set callback function for QR code detection results"""
         self.pills_count_callback = callback
 
+    def get_pills_count_results(self):
+        """Get latest pills count detection results"""
+        with self.thread_lock:
+            return self.pills_count_detected
+    
+    def _mse(self, imageA, imageB):
+        """Calculate Mean Squared Error (MSE) between two images"""
+        err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+        err /= float(imageA.shape[0] * imageA.shape[1])
+        return err
+
     def _process_pills_count(self, frame):
-        """Count pills using improved multi-method approach"""
+        """
+        Count pills using background subtraction and stability detection
+        Based on the provided algorithm with MSE stability checking
+        Arg: Captured frame by Cam
+        Return: processed_frame
+        """
+        current_time = time.time()
         
         # Set ROI region (adjust coordinates based on your camera setup)
         roi_top_left = (20, 20)
@@ -323,121 +374,150 @@ class CamController:
         # Extract ROI region
         roi = frame[roi_top_left[1]:roi_bottom_right[1], roi_top_left[0]:roi_bottom_right[0]]
         
-        # Stabilization processing
-        roi = cv2.bilateralFilter(roi, 9, 75, 75)
-        
-        # Multi-method preprocessing
+        # Convert to grayscale
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         
-        # Method 1: Adaptive threshold
-        blur1 = cv2.GaussianBlur(gray, (5, 5), 0)
-        thresh1 = cv2.adaptiveThreshold(blur1, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                        cv2.THRESH_BINARY_INV, 11, 2)
-        
-        # Method 2: Otsu threshold
-        blur2 = cv2.GaussianBlur(gray, (3, 3), 0)
-        _, thresh2 = cv2.threshold(blur2, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        
-        # Method 3: Canny edge detection with filling
-        edges = cv2.Canny(blur1, 50, 150)
-        kernel = np.ones((3,3), np.uint8)
-        thresh3 = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
-        
-        # Combine multiple method results
-        combined = cv2.bitwise_or(thresh1, thresh2)
-        combined = cv2.bitwise_or(combined, thresh3)
-        
-        # Morphological operations optimization
-        kernel_close = np.ones((4,4), np.uint8)
-        kernel_open = np.ones((2,2), np.uint8)
-        
-        # Closing operation to connect broken contours
-        combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel_close, iterations=2)
-        # Opening operation to remove small noise
-        combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel_open, iterations=1)
-        
-        # Find contours
-        contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        medicine_count = 0
-        valid_contours = []
-        
-        for contour in contours:
-            area = cv2.contourArea(contour)
+        # 1. Image stability check
+        if self.prev_frame is not None:
+            # Calculate MSE
+            mse_score = self._mse(gray, self.prev_frame)
+            print(f"MSE: {mse_score}")
             
-            # Dynamic area threshold (based on image size)
-            min_area = roi.shape[0] * roi.shape[1] * 0.0005  # 0.05% of image area
-            max_area = roi.shape[0] * roi.shape[1] * 0.1     # 10% of image area
-            
-            if area < min_area or area > max_area:
-                continue
-            
-            # Calculate contour features
-            x, y, w, h = cv2.boundingRect(contour)
-            aspect_ratio = w / h if h > 0 else 0
-            
-            # Calculate contour convexity
-            hull = cv2.convexHull(contour)
-            hull_area = cv2.contourArea(hull)
-            if hull_area > 0:
-                solidity = area / hull_area
+            # If difference is small, consider image stable
+            if mse_score < 10:  # Threshold can be adjusted
+                self.pills_count_detected += 1
             else:
-                continue
+                self.pills_count_detected = 0
+        
+        # 2. Check if image is stable
+        if self.pills_count_detected >= self.threshold_stable:
+            # Apply Canny edge detection
+            edges = cv2.Canny(gray, 50, 150)
+            
+            # 3. If no edges in ROI, update background
+            if np.count_nonzero(edges) == 0:
+                self.background = gray.copy()
+                print("No edges detected, updating background...")
+                self.last_stable_time = current_time
                 
-            # Calculate contour circularity
-            perimeter = cv2.arcLength(contour, True)
-            if perimeter > 0:
-                circularity = 4 * np.pi * area / (perimeter * perimeter)
+                # Display status on frame
+                cv2.putText(frame, 'Background Updated', (10, 120), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+            
+            elif self.background is not None:
+                # 4. If edges detected, perform background subtraction
+                subtracted_img = cv2.subtract(self.background, gray)
+                
+                # 5. Noise reduction and thresholding
+                blurred = cv2.GaussianBlur(subtracted_img, (5, 5), 0)
+                
+                # 6. Convert to binary image
+                _, thresh = cv2.threshold(blurred, 20, 255, cv2.THRESH_BINARY)
+                
+                # 7. Erosion and dilation (noise removal)
+                kernel = np.ones((5, 5), np.uint8)
+                erosion = cv2.erode(thresh, kernel, iterations=2)
+                dilation = cv2.dilate(erosion, kernel, iterations=2)
+                
+                # 8. Find contours
+                contours, _ = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                
+                min_area = 100  # Minimum area threshold to filter small noise
+                
+                # 9. Contour feature extraction and counting
+                areas = []
+                normal_contours = 0
+                abnormal_contours = 0
+                abnormal_area_threshold = 1.5
+                area_mode = 0
+                sum_area = 0
+                
+                # Filter contours without convexity defects
+                for cnt in contours:
+                    area = cv2.contourArea(cnt)
+                    perimeter = cv2.arcLength(cnt, True)
+                    
+                    # Skip small contours
+                    if area < min_area:
+                        continue
+                    
+                    # Polygon approximation
+                    epsilon = 0.02 * perimeter
+                    approx = cv2.approxPolyDP(cnt, epsilon, True)
+                    
+                    convex_hull = cv2.isContourConvex(approx)
+                    areas.append(area)
+                    
+                    # Adjust contour coordinates to original frame
+                    x, y, w, h = cv2.boundingRect(cnt)
+                    adjusted_x = x + roi_top_left[0]
+                    adjusted_y = y + roi_top_left[1]
+                    adjusted_contour = cnt + np.array([roi_top_left[0], roi_top_left[1]])
+                    
+                    if convex_hull:  # No convexity defects
+                        sum_area += area
+                        normal_contours += 1
+                        cv2.drawContours(frame, [adjusted_contour], -1, (0, 255, 0), 2)  # Green
+                        if normal_contours > 0:
+                            area_mode = sum_area / normal_contours
+                    else:  # Has convexity defects
+                        if area_mode > 0 and area < area_mode * abnormal_area_threshold:
+                            abnormal_contours += 1
+                            cv2.drawContours(frame, [adjusted_contour], -1, (0, 0, 255), 2)  # Red
+                        else:
+                            # Large area handling
+                            divisor = 2
+                            max_divisor = 10
+                            while (area_mode > 0 and 
+                                   abs((area / divisor) - area_mode) > area_mode * 0.25 and 
+                                   divisor < max_divisor):
+                                divisor += 1
+                            normal_contours += divisor
+                            cv2.drawContours(frame, [adjusted_contour], -1, (0, 255, 255), 2)  # Yellow
+                
+                total_count = normal_contours + abnormal_contours
+                
+                # Update pills count
+                with self.thread_lock:
+                    self.pills_count_detected = total_count
+                
+                # Display counts on frame
+                cv2.putText(frame, f'Normal Count: {normal_contours}', (10, 60), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(frame, f'Abnormal Count: {abnormal_contours}', (10, 90), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, f'Total Pills: {total_count}', (10, 30), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                
+                # Call callback if set
+                if self.pills_count_callback:
+                    self.pills_count_callback({
+                        'total_count': total_count,
+                        'normal_count': normal_contours,
+                        'abnormal_count': abnormal_contours,
+                        'areas': areas,
+                        'area_mode': area_mode,
+                        'timestamp': time.time(),
+                        'method': 'background_subtraction'
+                    })
+                
+                print(f"Pills detected (Method 2) - Normal: {normal_contours}, Abnormal: {abnormal_contours}, Total: {total_count}")
+            
             else:
-                continue
-            
-            # Relaxed medicine recognition conditions (adapt to various shapes)
-            # Including: round pills, oval capsules, square pills, irregular pills, etc.
-            is_medicine = (
-                (0.2 < circularity < 1.2) and           # Reasonable shape
-                (0.3 < aspect_ratio < 3.0) and          # Reasonable aspect ratio
-                (solidity > 0.6) and                    # Reasonable convexity (exclude overly irregular shapes)
-                (w > 10 and h > 10)                     # Minimum size limit
-            )
-            
-            if is_medicine:
-                medicine_count += 1
-                valid_contours.append(contour)
-                
-                # Adjust contour coordinates to original frame
-                adjusted_x = x + roi_top_left[0]
-                adjusted_y = y + roi_top_left[1]
-                
-                # Draw detection box
-                cv2.rectangle(frame, (adjusted_x, adjusted_y), (adjusted_x + w, adjusted_y + h), (0, 255, 0), 2)
-                cv2.putText(frame, f'M{medicine_count}', (adjusted_x, adjusted_y-5), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                # No background yet
+                cv2.putText(frame, 'Waiting for stable background...', (10, 120), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
         
-        # Update pills count
-        with self.thread_lock:
-            self.pills_count_detected = medicine_count
+        else:
+            # Image not stable yet
+            cv2.putText(frame, f'Stabilizing... ({self.pills_count_detected}/{self.threshold_stable})', 
+                       (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 165, 0), 2)
         
-        # Display count on frame
-        cv2.putText(frame, f'Medicine Count: {medicine_count}', (10, 30), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        
-        # Call callback if set
-        if self.pills_count_callback:
-            self.pills_count_callback({
-                'total_count': medicine_count,
-                'valid_contours': len(valid_contours),
-                'timestamp': time.time()
-            })
-        
-        print(f"Pills detected - Total: {medicine_count}")
+        # 10. Update previous frame
+        self.prev_frame = gray.copy()
         
         return frame
 
-    def get_pills_count_results(self):
-        """Get latest pills count detection results"""
-        with self.thread_lock:
-            return self.pills_count_detected
-    
     def _cleanup(self):
         """Clean up resources"""
         print("Cleaning up camera resources...")

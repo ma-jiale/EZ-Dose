@@ -518,7 +518,7 @@ class DispenserController:
         self.machine_state = 2
         return 0
     
-    def reset_dispenser(self):
+    def initialize_dispenser(self):
         """
         机器初始化，清理药盘
         阻塞式
