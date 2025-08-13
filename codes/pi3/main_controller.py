@@ -4,6 +4,11 @@ from patient_prescription_manager import PatientPrescriptionManager
 import numpy as np
 
 class MainController(QObject):
+    prescription_loaded_signal = Signal(object)
+    dispensing_completed_signal = Signal()
+    current_medicine_info_signal = Signal(str, int)
+    dispensing_progress_signal = Signal(int)
+    today_patients_ready_signal = Signal(bool, list)  # (success, patients_data)
     
     def __init__(self):
         super().__init__()
@@ -32,11 +37,13 @@ class MainController(QObject):
             self.current_medicine_index = 0
 
             success, pills_disensing_list = self.rx_manager.generate_pills_dispensing_list(id)
-
+            
             if not success:
                 print(f"[错误] 生成分药矩阵失败")
                 return
             
+            self.prescription_loaded_signal.emit(pills_disensing_list)
+
             # 保存处方信息和分药矩阵
             self.current_pills_dispensing_list = pills_disensing_list
 
@@ -78,7 +85,7 @@ class MainController(QObject):
         except Exception as e:
             print(f"[错误] 启动分药异常: {str(e)}")
 
-    def dispense_next_medicine(self):
+    def dispense_next_medicine(self, turn_motor_speed=0.8, servo_angle=0.1):
         """分发下一种药品"""
         try:
             if self.current_medicine_index >= len(self.current_medicines):
@@ -99,8 +106,20 @@ class MainController(QObject):
             for i, label in enumerate(time_labels):
                 print(f"  {label}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
 
+            # 设置电机速度（如果提供了参数）
+            print(f"[分药] 设置转轮电机速度: {turn_motor_speed}")
+            self.dispenser_controller.set_turnMotor_speed(turn_motor_speed)
+            
+            # 设置舵机角度（如果提供了参数）
+            print(f"[分药] 设置舵机角度: {servo_angle}")
+            self.dispenser_controller.set_servo_angle(servo_angle)
+
             # 发送分药进度信号
             self.total_pill = np.sum(pill_matrix)
+            self.current_medicine_info_signal.emit(
+                medicine_name,
+                self.total_pill
+            )
             
             # 发送分药数据到分药机
             print(f"[分药] 发送分药数据到分药机...")
@@ -128,10 +147,10 @@ class MainController(QObject):
                 return
             
             self.pill_remain = self.dispenser_controller.pill_remain if hasattr(self.dispenser_controller, 'pill_remain') else 0
-            # self.dispensing_progress_signal.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
+            self.dispensing_progress_signal.emit((self.total_pill - self.pill_remain) / self.total_pill * 100)
 
-            # # 发射药品转换信号
-            # if self.dispenser.pill_remain == 0 and self.current_medicine_index < len(self.current_medicines):
+            # # # 发射药品转换信号
+            # if self.dispenser_controller.pill_remain == 0 and self.current_medicine_index < len(self.current_medicines):
             #     current_medicine_name = self.current_medicines[self.current_medicine_index]['medicine_name']
             #     next_medicine_index = self.current_medicine_index + 1
             #     if next_medicine_index < len(self.current_medicines):
@@ -186,7 +205,7 @@ class MainController(QObject):
             self.is_dispensing = False
             self.monitor_timer.stop()
             print("[分药] 所有药品分发完成")
-            # self.dispensing_completed_signal.emit()
+            self.dispensing_completed_signal.emit()
 
             # 开启药盘
             print("[分药] 开启药盘...")
@@ -197,7 +216,18 @@ class MainController(QObject):
             error_msg = f"完成分药异常: {str(e)}"
             print(f"[错误] {error_msg}")
 
-    
+
+    @Slot(int)
+    def get_today_patients(self, days_threshold):
+        """获取今日患者数据（线程安全）"""
+        try:
+            success, patients_data = self.rx_manager.get_patients_for_today(days_threshold)
+            self.today_patients_ready_signal.emit(success, patients_data)
+        except Exception as e:
+            print(f"[Error] Failed to get today patients: {e}")
+            self.today_patients_ready_signal.emit(False, [])
+
+
 
 
 

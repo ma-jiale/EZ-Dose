@@ -550,7 +550,7 @@ class DispenserController:
             return 1
         return 0
     
-    #传送带电机速度设置 speed(float32)
+    #舵机角度设置 speed(float32)
     def set_servo_angle(self, angle): 
         cmd = b'\x08'
         id = b'\x01'    

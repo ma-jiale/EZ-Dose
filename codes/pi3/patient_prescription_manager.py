@@ -232,10 +232,84 @@ class PatientPrescriptionManager:
         except Exception as e:
             print(f"[Error] Failed to update CSV file: {e}")
 
+    def get_patients_for_today(self, n=2):
+        """
+        Get patients whose medicine expiry date is within n days from today
+        
+        Args:
+            n: Number of days threshold (e.g., if n=3, find patients whose medicine expires within 3 days)
+        
+        Returns:
+            Tuple[bool, List[Dict]]: (success flag, list of patient info or error message)
+            Patient info format: {
+                'patient_id': str,
+                'patient_name': str, 
+                'rfid': str,
+                'medicines_expiring': [
+                    {
+                        'medicine_name': str,
+                        'last_dispensed_expiry_date': str,
+                        'days_until_expiry': int
+                    }
+                ]
+            }
+        """
+        try:
+            # Basic validation
+            if self.df is None or self.df.empty:
+                return False, [{'error': 'Database not available', 'error_code': 503}]
+            
+            if not isinstance(n, int) or n < 0:
+                return False, [{'error': 'Invalid threshold days', 'error_code': 400}]
+            
+            today = datetime.now().date()
+            target_patients = []
+            
+            # Group by patient to avoid duplicates
+            patient_groups = self.df.groupby(['id', 'patient_name', 'rfid'])
+            
+            for (patient_id, patient_name, rfid), group in patient_groups:
+                expiring_medicines = []
+                
+                for _, record in group.iterrows():
+                    try:
+                        # Parse expiry date
+                        expiry_date = datetime.strptime(record['last_dispensed_expiry_date'], '%Y-%m-%d').date()
+                        days_until_expiry = (expiry_date - today).days
+                        
+                        # Check if medicine expires within n days
+                        if days_until_expiry <= n:
+                            medicine_info = {
+                                'medicine_name': record['medicine_name'],
+                                'last_dispensed_expiry_date': record['last_dispensed_expiry_date'],
+                                'days_until_expiry': days_until_expiry
+                            }
+                            expiring_medicines.append(medicine_info)
+                            
+                    except (ValueError, TypeError) as date_error:
+                        print(f"[Warning] Invalid date format for patient {patient_id}, medicine {record['medicine_name']}: {date_error}")
+                        continue
+                
+                # If patient has expiring medicines, add to results
+                if expiring_medicines:
+                    patient_info = {
+                        'patient_id': str(patient_id),
+                        'patient_name': patient_name,
+                        'rfid': str(rfid),
+                        'medicines_expiring': expiring_medicines
+                    }
+                    target_patients.append(patient_info)
+            
+            print(f"[Info] Found {len(target_patients)} patients with medicines expiring within {n} days")
+            return True, target_patients
+            
+        except Exception as e:
+            return False, [{'error': f'Query error: {str(e)}', 'error_code': 500}]
+
 def main():
     rx_manager = PatientPrescriptionManager()
     rx_manager.load_local_prescriptions()
-    rx = rx_manager.generate_pills_dispensing_list("1002")
+    rx = rx_manager.generate_pills_dispensing_list("102")
     print(rx)
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ class MainWindow(QMainWindow):
             'dispensing': 4,
             'finish': 5
         }
+        self.connect_signals()
         # Set initial page
         self.go_to_page('start')
 
@@ -42,6 +43,64 @@ class MainWindow(QMainWindow):
     def connect_signals(self):
         self.ui.btn_start_find_patient.clicked.connect(self.manager.show_today_patients)
         self.ui.btn_start_dispensing.clicked.connect(self.manager.start_dispensing)
+        self.ui.btn_continue_dispensing.clicked.connect(self.manager.show_today_patients)
+        self.ui.btn_finish_dispensing.clicked.connect(self.manager.finish_dispensing)
+
+    @Slot(object)
+    def update_prescription_info(self, pills_dispensing_list):
+        """更新处方信息显示"""
+        try:
+            patient_info = pills_dispensing_list.get("patient_info", {})
+            patient_name = patient_info.get('patient_name', 'Unknown')
+            patient_id = patient_info.get('patient_id', 0)
+            
+            # 从patient_id解析楼层和床位号
+            # patient_id的第一位代表楼层，后面的位数代表床位号
+            if patient_id > 0:
+                patient_id_str = str(patient_id)
+                floor = patient_id_str[0]  # 第一位是楼层
+                
+                # 格式化显示信息
+                prescription_info = f"成功获取{floor}楼{patient_id_str}床{patient_name}的处方信息"
+                patient_info_display = f"{patient_name}    {floor}楼{patient_id_str}床"
+            else:
+                prescription_info = f"成功获取{patient_name}的处方信息"
+                patient_info_display = f"{patient_name}"
+            
+            # 更新处方信息显示
+            if hasattr(self.ui, 'txt_load_prescription_info'):
+                self.ui.txt_load_prescription_info.setText(prescription_info)
+            
+            # 更新患者信息显示
+            if hasattr(self.ui, 'txt_patient_info'):
+                self.ui.txt_patient_info.setText(patient_info_display)
+            
+            print(f"[UI] 处方信息已更新: {prescription_info}")
+            print(f"[UI] 患者信息已更新: {patient_info_display}")
+            
+        except Exception as e:
+            print(f"[错误] 更新处方信息异常: {str(e)}")
+            if hasattr(self.ui, 'txt_load_prescription_info'):
+                self.ui.txt_load_prescription_info.setText("获取处方信息失败")
+            if hasattr(self.ui, 'txt_patient_info'):
+                self.ui.txt_patient_info.setText("患者信息获取失败")
+
+    @Slot(str, int)
+    def update_current_medicine_info(self, medicine_name, total_pill):
+        self.ui.txt_current_medicine.setText(medicine_name)
+        self.ui.txt_pills_num_needed.setText(str(total_pill))
+
+    
+    @Slot(int)
+    def update_dispense_progress_bar_value(self, value):
+        """设置分药进度条的值"""
+        self.ui.progressBar_current_medicine.setValue(value)
+        self.ui.txt_current_medicine_percentage.setText(f"{value}%")
+
+    @Slot()
+    def go_to_finish_page(self):
+        self.go_to_page("finish")
+        
 
 
 class TodayPatientDialog(QDialog):  # Now inherits from QDialog
@@ -68,74 +127,37 @@ class TodayPatientDialog(QDialog):  # Now inherits from QDialog
             container_layout = QVBoxLayout(self.ui.patient_container)
             container_layout.addWidget(self.scroll_area)
         
-        self.generate_today_patient_buttons()
     
-    def generate_today_patient_buttons(self):
+    def generate_today_patient_buttons(self, success, today_patients_data):
         """Generate buttons for today's patients who need medication"""
         # Clear existing buttons
         for i in reversed(range(self.scroll_layout.count())):
             child = self.scroll_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
-        # FAKE DEMO DATA - Replace with real data later
-        today_patients = [
-            {
-                'id': 1,
-                'name': '张三',
-                'medication': '阿司匹林',
-                'dosage': '100mg',
-                'time': '08:00',
-                'status': 'pending'
-            },
-            {
-                'id': 2,
-                'name': '李四',
-                'medication': '维生素D',
-                'dosage': '400IU',
-                'time': '12:00',
-                'status': 'pending'
-            },
-            {
-                'id': 3,
-                'name': '王五',
-                'medication': '降压药',
-                'dosage': '5mg',
-                'time': '09:30',
-                'status': 'pending'
-            },
-            {
-                'id': 4,
-                'name': '赵六',
-                'medication': '胰岛素',
-                'dosage': '10单位',
-                'time': '07:00',
-                'status': 'pending'
-            },
-            {
-                'id': 5,
-                'name': '钱七',
-                'medication': '钙片',
-                'dosage': '500mg',
-                'time': '20:00',
-                'status': 'pending'
-            }
-        ]
-        
-        # Uncomment this when you have real data:
-        # today_patients = self.manager.controller.rx_manager.get_patients_for_date(today)
-        
-        if not today_patients:
+    
+        # 获取真实的今日患者数据
+
+    
+        if not success or not today_patients_data:
             # Show "No patients today" message
             no_patient_btn = QPushButton("今天没有需要分药的患者")
             no_patient_btn.setEnabled(False)
             self.scroll_layout.addWidget(no_patient_btn)
             return
-        
+    
         # Create button for each patient
-        for patient in today_patients:
-            patient_btn = QPushButton(f"{patient['name']}")
-            patient_btn.setMinimumHeight(60)
+        for patient_data in today_patients_data:
+            # 创建患者按钮显示文本
+            patient_name = patient_data['patient_name']
+            patient_id = patient_data['patient_id']
+            medicines_count = len(patient_data['medicines_expiring'])
+            
+            # 构建显示文本
+            button_text = f"{patient_name} (ID: {patient_id})\n{medicines_count}种药物需要分配"
+            
+            patient_btn = QPushButton(button_text)
+            patient_btn.setMinimumHeight(80)  # 增加高度以显示更多信息
             patient_btn.setStyleSheet("""
                 QPushButton {
                     text-align: left;
@@ -156,14 +178,11 @@ class TodayPatientDialog(QDialog):  # Now inherits from QDialog
             
             # Connect button to dispense medication for this patient
             patient_btn.clicked.connect(
-                lambda checked, p=patient: self.manager.check_plate(p)
+                lambda checked, patient_id=patient_data['patient_id']: self.manager.check_plate(patient_id)
             )
             
             self.scroll_layout.addWidget(patient_btn)
     
-    def refresh_patient_list(self):
-        """Refresh the patient button list"""
-        self.generate_today_patient_buttons()
 
 class Manager(QObject):
     # 定义主控制信号
@@ -173,6 +192,7 @@ class Manager(QObject):
     open_tray_signal = Signal()
     close_tray_signal = Signal()
     start_dispensing_signal = Signal()
+    get_today_patients_signal = Signal(int)
     #定义相机控制器信号
     init_camera_signal = Signal()
     start_camera_signal = Signal()
@@ -182,7 +202,7 @@ class Manager(QObject):
     
     def __init__(self):
         super().__init__() 
-        self.main_window = None
+        self.main_window = MainWindow(self)
         self.today_patient_dialog = None
 
         # 新建主控制器实例
@@ -230,18 +250,30 @@ class Manager(QObject):
         self.open_tray_signal.connect(self.main_controller.open_tray)
         self.close_tray_signal.connect(self.main_controller.close_tray)
         self.start_dispensing_signal.connect(self.main_controller.start_dispensing)
+        self.get_today_patients_signal.connect(self.main_controller.get_today_patients)
 
+        # 连接信号到主页面的槽
+        self.main_controller.prescription_loaded_signal.connect(self.main_window.update_prescription_info)
+        self.main_controller.dispensing_progress_signal.connect(self.main_window.update_dispense_progress_bar_value)
+        self.main_controller.current_medicine_info_signal.connect(self.main_window.update_current_medicine_info)
+        self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
+
+        self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
 
     def show_main(self):
-        if self.main_window is None:
-            self.main_window = MainWindow(self)
-            self.main_window.connect_signals()
         self.main_window.show()
     
     def show_today_patients(self):
         """Show today's patient dialog"""
         self.today_patient_dialog = TodayPatientDialog(self)
+        self.get_today_patients_signal.emit(2)
         self.today_patient_dialog.exec()  # Use exec() for modal dialog
+
+    @Slot(bool, list)
+    def on_today_patients_ready(self, success, patients_data):
+        """处理今日患者数据返回"""
+        if hasattr(self, 'today_patient_dialog'):
+            self.today_patient_dialog.generate_today_patient_buttons(success, patients_data)
 
 
 ####################
@@ -271,18 +303,18 @@ class Manager(QObject):
         self.close_tray_signal.emit()
         self.start_dispensing_signal.emit()
 
-
         #数药逻辑
         self.set_display_label("img_pillcount_frame") 
         self.start_camera()
         self.set_pills_count_mode()
+
+    @Slot()
+    def finish_dispensing(self):
+        self.main_window.go_to_page("start")
+        self.set_idle_mode()
+        self.pause_camera()
+        self.close_tray_signal.emit()
         
-        
-
-
-
-
-
 #######
 # Cam #
 #######
