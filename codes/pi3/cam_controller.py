@@ -5,6 +5,7 @@ from enum import Enum
 import threading
 import time
 from PySide6.QtCore import QObject, Signal, Slot
+from pill_counter import PillCounter
 
 class CamMode(Enum):
     IDLE = "idle"
@@ -55,10 +56,9 @@ class CamController(QObject):
         # Pills Count results
         self.pills_count_detected = 0
         self.pills_count_callback = None
-        self.background = None
-        self.prev_frame = None
-        self.threshold_stable = 3
-        self.last_stable_time = 0
+        
+        # 初始化 PillCounter 实例
+        self.pill_counter = None
 
 ###########
 # Setting #
@@ -121,6 +121,15 @@ class CamController(QObject):
                 # Clear previous results when switching modes
                 if mode == CamMode.QR_SCAN:
                     self.qr_codes_detected = []
+                elif mode == CamMode.PILLS_COUNT:
+                    # 初始化 pill counter（不使用摄像头，我们会传入帧）
+                    if self.pill_counter is None:
+                        self.pill_counter = PillCounter(camera_id=None)  # 不初始化摄像头
+                    # 重置 pill counter 状态
+                    self.pill_counter.background_captured = False
+                    self.pill_counter.stable_count = 0
+                    self.pill_counter.recent_edge_counts.clear()
+                    self.pills_count_detected = 0
                 
                 # 发出模式改变信号
                 self.mode_changed.emit(mode)
@@ -351,170 +360,58 @@ class CamController(QObject):
         """Get latest pills count detection results"""
         with self.thread_lock:
             return self.pills_count_detected
-    
-    def _mse(self, imageA, imageB):
-        """Calculate Mean Squared Error (MSE) between two images"""
-        err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-        err /= float(imageA.shape[0] * imageA.shape[1])
-        return err
 
     def _process_pills_count(self, frame):
         """
-        Count pills using background subtraction and stability detection
-        Based on the provided algorithm with MSE stability checking
-        Arg: Captured frame by Cam
-        Return: processed_frame
+        Count pills using PillCounter class methods
+        Args:
+            frame: Captured frame by Cam
+        Returns:
+            processed_frame: Frame with pill detection results
         """
-        current_time = time.time()
+        if self.pill_counter is None:
+            # 如果 pill_counter 未初始化，创建一个（不使用摄像头）
+            self.pill_counter = PillCounter(camera_id=None)
         
-        # Set ROI region (adjust coordinates based on your camera setup)
-        roi_top_left = (20, 20)
-        roi_bottom_right = (min(1260, frame.shape[1]), min(700, frame.shape[0]))
+        # 检测边缘以确定场景稳定性
+        edge_count, edges = self.pill_counter.detect_edges(frame)
         
-        # Extract ROI region
-        roi = frame[roi_top_left[1]:roi_bottom_right[1], roi_top_left[0]:roi_bottom_right[0]]
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        
-        # 1. Image stability check
-        if self.prev_frame is not None:
-            # Calculate MSE
-            mse_score = self._mse(gray, self.prev_frame)
-            print(f"MSE: {mse_score}")
-            
-            # If difference is small, consider image stable
-            if mse_score < 10:  # Threshold can be adjusted
-                self.pills_count_detected += 1
-            else:
-                self.pills_count_detected = 0
-        
-        # 2. Check if image is stable
-        if self.pills_count_detected >= self.threshold_stable:
-            # Apply Canny edge detection
-            edges = cv2.Canny(gray, 50, 150)
-            
-            # 3. If no edges in ROI, update background
-            if np.count_nonzero(edges) == 0:
-                self.background = gray.copy()
-                print("No edges detected, updating background...")
-                self.last_stable_time = current_time
-                
-                # Display status on frame
-                cv2.putText(frame, 'Background Updated', (10, 120), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-            
-            elif self.background is not None:
-                # 4. If edges detected, perform background subtraction
-                subtracted_img = cv2.subtract(self.background, gray)
-                
-                # 5. Noise reduction and thresholding
-                blurred = cv2.GaussianBlur(subtracted_img, (5, 5), 0)
-                
-                # 6. Convert to binary image
-                _, thresh = cv2.threshold(blurred, 20, 255, cv2.THRESH_BINARY)
-                
-                # 7. Erosion and dilation (noise removal)
-                kernel = np.ones((5, 5), np.uint8)
-                erosion = cv2.erode(thresh, kernel, iterations=2)
-                dilation = cv2.dilate(erosion, kernel, iterations=2)
-                
-                # 8. Find contours
-                contours, _ = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                
-                min_area = 100  # Minimum area threshold to filter small noise
-                
-                # 9. Contour feature extraction and counting
-                areas = []
-                normal_contours = 0
-                abnormal_contours = 0
-                abnormal_area_threshold = 1.5
-                area_mode = 0
-                sum_area = 0
-                
-                # Filter contours without convexity defects
-                for cnt in contours:
-                    area = cv2.contourArea(cnt)
-                    perimeter = cv2.arcLength(cnt, True)
-                    
-                    # Skip small contours
-                    if area < min_area:
-                        continue
-                    
-                    # Polygon approximation
-                    epsilon = 0.02 * perimeter
-                    approx = cv2.approxPolyDP(cnt, epsilon, True)
-                    
-                    convex_hull = cv2.isContourConvex(approx)
-                    areas.append(area)
-                    
-                    # Adjust contour coordinates to original frame
-                    x, y, w, h = cv2.boundingRect(cnt)
-                    adjusted_x = x + roi_top_left[0]
-                    adjusted_y = y + roi_top_left[1]
-                    adjusted_contour = cnt + np.array([roi_top_left[0], roi_top_left[1]])
-                    
-                    if convex_hull:  # No convexity defects
-                        sum_area += area
-                        normal_contours += 1
-                        cv2.drawContours(frame, [adjusted_contour], -1, (0, 255, 0), 2)  # Green
-                        if normal_contours > 0:
-                            area_mode = sum_area / normal_contours
-                    else:  # Has convexity defects
-                        if area_mode > 0 and area < area_mode * abnormal_area_threshold:
-                            abnormal_contours += 1
-                            cv2.drawContours(frame, [adjusted_contour], -1, (0, 0, 255), 2)  # Red
-                        else:
-                            # Large area handling
-                            divisor = 2
-                            max_divisor = 10
-                            while (area_mode > 0 and 
-                                   abs((area / divisor) - area_mode) > area_mode * 0.25 and 
-                                   divisor < max_divisor):
-                                divisor += 1
-                            normal_contours += divisor
-                            cv2.drawContours(frame, [adjusted_contour], -1, (0, 255, 255), 2)  # Yellow
-                
-                total_count = normal_contours + abnormal_contours
-                
-                # Update pills count
-                with self.thread_lock:
-                    self.pills_count_detected = total_count
-                
-                # Display counts on frame
-                cv2.putText(frame, f'Normal Count: {normal_contours}', (10, 60), 
+        # 如果还没有背景，尝试捕捉
+        if not self.pill_counter.background_captured:
+            if self.pill_counter.is_scene_stable(edge_count):
+                self.pill_counter.capture_background(frame)
+                cv2.putText(frame, 'Background captured!', (10, 30), 
                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                cv2.putText(frame, f'Abnormal Count: {abnormal_contours}', (10, 90), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                cv2.putText(frame, f'Total Pills: {total_count}', (10, 30), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                
-                # Call callback if set
-                if self.pills_count_callback:
-                    self.pills_count_callback({
-                        'total_count': total_count,
-                        'normal_count': normal_contours,
-                        'abnormal_count': abnormal_contours,
-                        'areas': areas,
-                        'area_mode': area_mode,
-                        'timestamp': time.time(),
-                        'method': 'background_subtraction'
-                    })
-                
-                print(f"Pills detected (Method 2) - Normal: {normal_contours}, Abnormal: {abnormal_contours}, Total: {total_count}")
-            
             else:
-                # No background yet
-                cv2.putText(frame, 'Waiting for stable background...', (10, 120), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-        
+                # 显示等待背景的状态
+                h, w = frame.shape[:2]
+                cv2.rectangle(frame, 
+                             (self.pill_counter.crop_margin, self.pill_counter.crop_margin), 
+                             (w-self.pill_counter.crop_margin, h-self.pill_counter.crop_margin), 
+                             (0, 255, 255), 2)
+                cv2.putText(frame, 'Waiting for stable background...', (10, 30), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, f'Edge count: {edge_count}', (10, 70), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                cv2.putText(frame, f'Stable: {self.pill_counter.stable_count}/{self.pill_counter.stable_frames_needed}', 
+                           (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
         else:
-            # Image not stable yet
-            cv2.putText(frame, f'Stabilizing... ({self.pills_count_detected}/{self.threshold_stable})', 
-                       (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 165, 0), 2)
-        
-        # 10. Update previous frame
-        self.prev_frame = gray.copy()
+            # 进行药片计数
+            pill_count, result_frame = self.pill_counter.count_pills(frame)
+            
+            # 更新检测到的药片数量
+            with self.thread_lock:
+                self.pills_count_detected = pill_count
+            
+            # 调用回调函数（如果设置了）
+            if self.pills_count_callback:
+                self.pills_count_callback({
+                    'total_count': pill_count,
+                    'timestamp': time.time(),
+                    'method': 'pill_counter'
+                })
+            
+            return result_frame
         
         return frame
 
