@@ -1,6 +1,6 @@
 import sys
 import cv2
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QScrollArea, QDialog
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QScrollArea, QDialog, QMessageBox
 from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread, Qt
 from PySide6.QtGui import QImage, QPixmap
 
@@ -8,7 +8,36 @@ from main_window_ui import Ui_MainWindow
 from today_patient_ui import Ui_today_patient
 from main_controller import MainController
 from cam_controller import CamController, CamMode
+from startup_screen_ui import Ui_StartupScreen
 
+
+class StartupScreen(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.ui = Ui_StartupScreen()
+        self.ui.setupUi(self)
+        
+        # 设置窗口属性
+        self.setModal(True)
+        self.setWindowFlags(Qt.FramelessWindowHint)  # 无边框窗口
+        self.setFixedSize(400, 300)
+        
+        # 居中显示
+        self.center_on_screen()
+        
+    def center_on_screen(self):
+        """将窗口居中显示在屏幕上"""
+        screen = QApplication.primaryScreen().geometry()
+        size = self.geometry()
+        self.move(
+            (screen.width() - size.width()) // 2,
+            (screen.height() - size.height()) // 2
+        )
+    
+    def update_status(self, message):
+        """更新状态信息"""
+        self.ui.txt_process_info.setText(message)
+        QApplication.processEvents()  # 强制刷新UI
 
 class MainWindow(QMainWindow):
     def __init__(self, manager):
@@ -202,6 +231,12 @@ class Manager(QObject):
     
     def __init__(self):
         super().__init__() 
+        
+        # 创建并显示启动界面
+        self.startup_screen = StartupScreen()
+        self.startup_screen.show()
+        
+        # 主窗口先不显示
         self.main_window = MainWindow(self)
         self.today_patient_dialog = None
 
@@ -210,6 +245,7 @@ class Manager(QObject):
         self.main_controller_thread = QThread()
         self.main_controller.moveToThread(self.main_controller_thread)
         self.main_controller_thread.start()
+        
         # 新建相机控制器实例
         self.cam_controller = CamController()
         self.cam_controller_thread = QThread()
@@ -217,7 +253,6 @@ class Manager(QObject):
         self.cam_controller_thread.start()
         self.setup_camera_callbacks()
         
-
         self.connect_signals()
 
         # 显示定时器
@@ -226,14 +261,20 @@ class Manager(QObject):
         self.display_timer = QTimer()
         self.display_timer.timeout.connect(self.display_current_cam_frame)
 
-
-        # 初始化相机
-        self.init_camera_signal.emit()
-        # 初始化分药机
-        self.init_dispenser_signal.emit()
-        # 加载数据库
-        self.connect_database_signal.emit()
+        # 初始化状态跟踪
+        self.init_states = {
+            'dispenser': False,
+            'database': False, 
+            'camera': False
+        }
         
+        # 开始初始化流程
+        self.start_initialization()
+
+    def start_initialization(self):
+        """开始初始化流程"""
+        self.startup_screen.update_status("正在初始化分药机...")
+        self.init_dispenser_signal.emit()
 
     def connect_signals(self):
         # 连接信号到相机控制器的槽
@@ -259,6 +300,94 @@ class Manager(QObject):
         self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
 
         self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
+        # 连接初始化完成信号（修正信号名称）
+        self.cam_controller.camera_initialized_signal.connect(self.on_camera_initialized)
+        self.main_controller.dispenser_initialized_signal.connect(self.on_dispenser_initialized) 
+        self.main_controller.database_connected_signal.connect(self.on_database_connected)
+
+    @Slot(bool)
+    def on_dispenser_initialized(self, success):
+        """分药机初始化完成回调"""
+        self.init_states['dispenser'] = success
+        
+        if success:
+            print("[Manager] 分药机初始化成功")
+            # 分药机完成后，开始数据库初始化
+            self.startup_screen.update_status("正在加载数据库...")
+            self.connect_database_signal.emit()
+        else:
+            print("[Manager] 分药机初始化失败")
+            self.startup_screen.update_status("分药机初始化失败!")
+            self.handle_initialization_failure()
+
+    @Slot(bool)
+    def on_database_connected(self, success):
+        """数据库连接完成回调"""
+        self.init_states['database'] = success
+        
+        if success:
+            print("[Manager] 数据库连接成功")
+            # 数据库完成后，开始相机初始化
+            self.startup_screen.update_status("正在初始化摄像头...")
+            self.init_camera_signal.emit()
+        else:
+            print("[Manager] 数据库连接失败")
+            self.startup_screen.update_status("数据库连接失败!")
+            self.handle_initialization_failure()
+
+    @Slot(bool)
+    def on_camera_initialized(self, success):
+        """相机初始化完成回调"""
+        self.init_states['camera'] = success
+        
+        if success:
+            print("[Manager] 相机初始化成功")
+            # 所有初始化完成
+            self.on_all_initialization_complete()
+        else:
+            print("[Manager] 相机初始化失败")
+            self.startup_screen.update_status("相机初始化失败!")
+            self.handle_initialization_failure()
+
+    def on_all_initialization_complete(self):
+        """所有初始化完成"""
+        self.startup_screen.update_status("初始化完成!")
+        
+        # 显示完成状态1秒后关闭启动界面
+        QTimer.singleShot(1000, self.close_startup_and_show_main)
+
+    def close_startup_and_show_main(self):
+        """关闭启动界面并显示主界面"""
+        self.startup_screen.accept()
+        self.show_main()
+
+    def handle_initialization_failure(self):
+        """处理初始化失败"""
+        # 显示错误状态3秒后关闭程序或重试
+        QTimer.singleShot(3000, self.on_initialization_failed)
+
+    def on_initialization_failed(self):
+        """初始化失败处理"""
+        # 可以选择重试或退出程序
+        reply = QMessageBox.question(
+            self.startup_screen, 
+            "初始化失败", 
+            "设备初始化失败，是否重试？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.Yes:
+            # 重置状态并重试
+            self.init_states = {
+                'dispenser': False,
+                'database': False,
+                'camera': False
+            }
+            self.start_initialization()
+        else:
+            # 退出程序
+            QApplication.quit()
 
     def show_main(self):
         self.main_window.show()
@@ -495,9 +624,11 @@ class Manager(QObject):
         print(f"Camera display switched to: {label_name}")
 
 
+
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
     manager = Manager()
-    manager.show_main()
     sys.exit(app.exec())

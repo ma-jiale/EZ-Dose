@@ -4,6 +4,9 @@ from patient_prescription_manager import PatientPrescriptionManager
 import numpy as np
 
 class MainController(QObject):
+    dispenser_initialized_signal = Signal(bool)  # 分药机初始化完成信号
+    database_connected_signal = Signal(bool)  # 数据库连接完成信号
+
     prescription_loaded_signal = Signal(object)
     dispensing_completed_signal = Signal()
     current_medicine_info_signal = Signal(str, int)
@@ -22,12 +25,24 @@ class MainController(QObject):
 
     @Slot()
     def initialize_hardware(self):
-        self.dispenser_controller.start_dispenser_feedback_handler()
-        self.dispenser_controller.initialize_dispenser()
+        try:
+            self.dispenser_controller.start_dispenser_feedback_handler()
+            self.dispenser_controller.initialize_dispenser()
+            self.dispenser_initialized_signal.emit(True)
+            print("[Init] 分药机初始化完成")
+        except Exception as e:
+            print(f"[Error] 分药机初始化失败: {e}")
+            self.dispenser_initialized_signal.emit(False)
         
     @Slot()
     def connect_database(self):
-        self.rx_manager.load_local_prescriptions()
+        try:
+            self.rx_manager.load_local_prescriptions()
+            self.database_connected_signal.emit(True)
+            print("[Init] 数据库加载完成")
+        except Exception as e:
+            print(f"[Error] 数据库加载失败: {e}")
+            self.database_connected_signal.emit(False)
 
     @Slot(object)
     def generate_pills_dispensing_list(self, id):

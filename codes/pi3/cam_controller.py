@@ -14,6 +14,7 @@ class CamMode(Enum):
     # Add more modes as needed
 
 class CamController(QObject):
+    camera_initialized_signal = Signal(bool)  # 相机初始化完成信号
     # 添加信号用于状态通知
     camera_initialized = Signal(bool)
     camera_started = Signal(bool)
@@ -63,28 +64,32 @@ class CamController(QObject):
 ###########
 # Setting #
 ###########
-
     @Slot()
     def initialize_camera(self):
-        """Initialize camera and set properties"""
-        print("Initializing camera...")
-        
-        # Open camera
-        self.cap = cv2.VideoCapture(self.camera_index)
-        
-        if not self.cap.isOpened():
-            print(f"Error: Cannot open camera at index {self.camera_index}")
-            return False
-        
-        # Set camera properties
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.target_width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.target_height)
-        self.cap.set(cv2.CAP_PROP_FPS, self.target_fps)
-        
-        self.is_cam_initialized = True
-        print("Camera is initialized")
-        return True
-    
+        """初始化相机"""
+        try:
+            # Open camera
+            self.cap = cv2.VideoCapture(self.camera_index)
+            
+            if not self.cap.isOpened():
+                print(f"Error: Cannot open camera at index {self.camera_index}")
+                return False
+            
+            # Set camera properties
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.target_width)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.target_height)
+            self.cap.set(cv2.CAP_PROP_FPS, self.target_fps)
+            
+            self.is_cam_initialized = True
+            print("Camera is initialized")
+            
+            # 初始化成功后发射信号
+            self.camera_initialized_signal.emit(True)
+            print("[Init] 相机初始化完成")
+        except Exception as e:
+            print(f"[Error] 相机初始化失败: {e}")
+            self.camera_initialized_signal.emit(False)
+
     def setup_distortion_correction(self):
         """Setup distortion correction parameters for wide-angle lens"""
         # Get actual resolution
