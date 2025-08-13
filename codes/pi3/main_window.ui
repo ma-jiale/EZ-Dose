@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>949</width>
+    <height>677</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
+       <number>4</number>
+      </property>
+      <widget class="QWidget" name="start_page">
+       <widget class="QPushButton" name="btn_start_find_patient">
+        <property name="geometry">
+         <rect>
+          <x>430</x>
+          <y>290</y>
+          <width>221</width>
+          <height>101</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>开始分药</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="scan_qrcode_page">
+       <widget class="QLabel" name="img_cam_frame">
+        <property name="geometry">
+         <rect>
+          <x>30</x>
+          <y>20</y>
+          <width>501</width>
+          <height>301</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+       <widget class="QLabel" name="txt_">
+        <property name="geometry">
+         <rect>
+          <x>320</x>
+          <y>480</y>
+          <width>201</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>请将药盒的二维码对准数药机的镜头</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="scan_rfid_page"/>
+      <widget class="QWidget" name="rx_page">
+       <widget class="QPushButton" name="btn_start_dispensing">
+        <property name="geometry">
+         <rect>
+          <x>600</x>
+          <y>320</y>
+          <width>161</width>
+          <height>61</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>开始分药</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="dispensing_page">
+       <widget class="QWidget" name="drug_card" native="true">
+        <property name="geometry">
+         <rect>
+          <x>70</x>
+          <y>310</y>
+          <width>334</width>
+          <height>280</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QWidget
+{
+border-radius: 15px;
+background: #FFF;
+}</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>17</number>
+         </property>
+         <property name="topMargin">
+          <number>17</number>
+         </property>
+         <property name="rightMargin">
+          <number>17</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="img_current_drug">
+           <property name="styleSheet">
+            <string notr="true">QLabel
+{
+border-radius: 15px;
+}</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="pixmap">
+            <pixmap>../pi2.0/imgs/阿莫西林.png</pixmap>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignBottom|Qt::AlignHCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="txt_current_drug">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>63</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QLabel
+{
+color: #363636;
+text-align: center;
+
+/* 二级标题 */
+font-family: &quot;Source Han Sans SC&quot;;
+font-size: 16px;
+font-style: normal;
+font-weight: 400;
+line-height: normal;
+}</string>
+           </property>
+           <property name="text">
+            <string>阿莫西林胶囊</string>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QLabel" name="img_pillcount_frame">
+        <property name="geometry">
+         <rect>
+          <x>530</x>
+          <y>70</y>
+          <width>320</width>
+          <height>240</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+       <widget class="QLabel" name="txt_pillcount_num">
+        <property name="geometry">
+         <rect>
+          <x>640</x>
+          <y>370</y>
+          <width>211</width>
+          <height>211</height>
+         </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel {
+        color:blue;                 /* 文字颜色 */
+        font-size: 64px;              /* 字体大小 */
+        font-weight: bold;            /* 加粗 */
+        border-radius: 8px;           /* 圆角 */
+        padding: 6px;                 /* 内边距 */
+    }
+</string>
+        </property>
+        <property name="text">
+         <string>NaN</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="finish_page"/>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
