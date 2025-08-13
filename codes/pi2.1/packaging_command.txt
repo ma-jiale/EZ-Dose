@@ -1,0 +1,1 @@
+python -m nuitka --standalone --enable-plugin=pyside6 --include-data-dir=imgs=imgs --include-data-files=*.csv=./ --windows-console-mode=disable --output-dir=dist main.py 
