@@ -6,6 +6,9 @@ class PatientPrescriptionManager:
     def __init__(self):
         self.df = None
         self.csv_file_path = "local_prescriptions_data.csv"
+        # 添加当前处理的处方数据
+        self.current_prescription_data = None
+        self.current_dispensing_days = {}  # 存储每个药物的配药天数
 
     def load_local_prescriptions(self):
         try:
@@ -83,127 +86,192 @@ class PatientPrescriptionManager:
         
         Args:
             id: Patient identifier (RFID or patient ID)
-            max_days
-
+            max_days: Maximum days to dispense
+            
         Returns:
             Tuple[bool, Dict]: (success flag, dispensing list dict or error message dict)
-            Dispensing list dict format: {
-                 "patient_info": prescription_data['patient_info'],
-                "medicines": [
-                    {"medicine_name": "medicine name", "pill_matrix": 4x7 matrix, "meal_timing": "timing", "dispensing_days": int},
-                ]
-            }
         """
         try:
             # Get prescription data
             success, prescription_data = self.get_patient_prescription(id)
-
             if not success:
                 return False, prescription_data
+            
+            # 存储当前处方数据
+            self.current_prescription_data = prescription_data
+            self.current_dispensing_days = {}
             
             medicines = prescription_data['medicines']
             patient_name = prescription_data['patient_info']['patient_name']
             print(f"[Debug] Found {len(medicines)} medicines for patient {patient_name}")
             
             # Check meal timing types
-            has_before_meal = any(med.get('meal_timing') in ['before', 'anytime'] for med in medicines)
-            has_after_meal = any(med.get('meal_timing') == 'after' for med in medicines)
+            has_before_meal, has_after_meal = self._check_meal_timing_types(medicines)
             
-            # Create dispensing list
+            # Create dispensing list structure
             pills_dispensing_list = {
                 "patient_info": prescription_data['patient_info'],
                 "medicines_1": [],
                 "medicines_2": []
             }
             
+            # Process each medicine
             for medicine in medicines:
-                medicine_name = medicine['medicine_name']
-                meal_time = medicine.get('meal_timing', 'before')
+                # 计算并存储配药天数
+                dispensing_days = self._calculate_dispensing_days(medicine, max_days)
+                self.current_dispensing_days[medicine['medicine_name']] = dispensing_days
                 
-                # Calculate actual dispensing days considering already dispensed days
-                try:
-                    start_date = datetime.strptime(medicine['start_date'], '%Y-%m-%d')
-                    last_dispensed_date = datetime.strptime(medicine['last_dispensed_expiry_date'], '%Y-%m-%d')
-                    already_dispensed_days = (last_dispensed_date - start_date).days + 1
-                    remaining_days = medicine['duration_days'] - already_dispensed_days
-                    dispensing_days = min(max_days, max(0, remaining_days))
-
-                    # Update last_dispensed_expiry_date to new expiry date after this dispensing
-                    new_expiry_date = last_dispensed_date + timedelta(days=dispensing_days)
-                    # Find the medicine in the list and update it
-                    print(f"new_expiry_date:{new_expiry_date}")
-                    for med in prescription_data['medicines']:
-                        if med['medicine_name'] == medicine_name:
-                            med['last_dispensed_expiry_date'] = new_expiry_date.strftime('%Y-%m-%d')
-                            break
-                    print(f"new_expiry_date : {new_expiry_date}")
-                    # Update the CSV file with new expiry date
-                    self.update_last_dispensed_date_in_csv(
-                        prescription_data['patient_info']['patient_id'], 
-                        medicine_name, 
-                        new_expiry_date.strftime('%Y-%m-%d')
-                    )
-                    
-                except (ValueError, TypeError):
-                    # Add fallback value when date parsing fails
-                    dispensing_days = min(max_days, medicine['duration_days'])
-
-
-                if dispensing_days > 0: 
-                    # Create 4x7 matrix for each medicine
-                    pill_matrix_1 = np.zeros([4, 7], dtype=np.int8)
-                    pill_matrix_2 = np.zeros([4, 7], dtype=np.int8)
-                    
-                    # Fill matrix based on meal timing
-                    for day in range(dispensing_days):
-                        col = day
-                        if has_before_meal and has_after_meal:
-                            # Use 2 columns per day if both meal timings exist
-                            col = day * 2
-                            if meal_time == 'after' or meal_time == 'anytime':
-                                col += 1  # After meal medicines go to odd columns
-                    
-                        # Ensure column doesn't exceed matrix bounds
-                        if col < 7:
-                            pill_matrix_1[0, col] = medicine['evening_dosage']   # Evening (row 0)
-                            pill_matrix_1[1, col] = medicine['noon_dosage']      # Noon (row 1)
-                            pill_matrix_1[2, col] = medicine['morning_dosage']   # Morning (row 2)
-                            pill_matrix_1[3, col] = 0                            # Reserved (row 3)
-                        elif col < 14:  # Fix the boundary check for matrix_2
-                            pill_matrix_2[0, col - 7] = medicine['evening_dosage']   # Evening (row 0)
-                            pill_matrix_2[1, col - 7] = medicine['noon_dosage']      # Noon (row 1)
-                            pill_matrix_2[2, col - 7] = medicine['morning_dosage']   # Morning (row 2)
-                            pill_matrix_2[3, col - 7] = 0                            # Reserved (row 3)
-                    
-                    # Add to medicine list
-                    drug_info_1 = {
-                        "medicine_name": medicine_name,
-                        "pill_matrix": pill_matrix_1,
-                        "meal_timing": meal_time,
-                        "dispensing_days": dispensing_days
-                    }
-                    pills_dispensing_list["medicines_1"].append(drug_info_1)
-
-                    if np.sum(pill_matrix_2) > 0:
-                        drug_info_2 = {
-                            "medicine_name": medicine_name,
-                            "pill_matrix": pill_matrix_2,
-                            "meal_timing": meal_time,
-                            "dispensing_days": dispensing_days
-                        }
-                        pills_dispensing_list['medicines_2'].append(drug_info_2)
-                
-                # Debug info (move outside the if block to always show)
-                daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
-                print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}")
+                self._process_medicine_for_dispensing(
+                    medicine, prescription_data, max_days, 
+                    has_before_meal, has_after_meal, pills_dispensing_list
+                )
             
             return True, pills_dispensing_list
             
         except Exception as e:
             return False, {'error': f'Failed to generate dispensing matrix: {str(e)}', 'error_code': 500}
 
+    def _check_meal_timing_types(self, medicines):
+        """Check if medicines have before/after meal timing"""
+        has_before_meal = any(med.get('meal_timing') in ['before', 'anytime'] for med in medicines)
+        has_after_meal = any(med.get('meal_timing') == 'after' for med in medicines)
+        return has_before_meal, has_after_meal
 
+    def _calculate_dispensing_days(self, medicine, max_days):
+        """Calculate actual dispensing days considering already dispensed days"""
+        try:
+            start_date = datetime.strptime(medicine['start_date'], '%Y-%m-%d')
+            last_dispensed_date = datetime.strptime(medicine['last_dispensed_expiry_date'], '%Y-%m-%d')
+            already_dispensed_days = (last_dispensed_date - start_date).days + 1
+            remaining_days = medicine['duration_days'] - already_dispensed_days
+            dispensing_days = min(max_days, max(0, remaining_days))
+            return dispensing_days
+        except (ValueError, TypeError):
+            return min(max_days, medicine['duration_days'])
 
+    def _create_pill_matrices(self, medicine, dispensing_days, has_before_meal, has_after_meal):
+        """Create 4x7 pill matrices for a medicine"""
+        pill_matrix_1 = np.zeros([4, 7], dtype=np.int8)
+        pill_matrix_2 = np.zeros([4, 7], dtype=np.int8)
+        
+        meal_time = medicine.get('meal_timing', 'before')
+        
+        for day in range(dispensing_days):
+            col = day
+            if has_before_meal and has_after_meal:
+                # Use 2 columns per day if both meal timings exist
+                col = day * 2
+                if meal_time == 'after' or meal_time == 'anytime':
+                    col += 1  # After meal medicines go to odd columns
+            
+            # Fill the appropriate matrix
+            if col < 7:
+                self._fill_matrix_column(pill_matrix_1, col, medicine)
+            elif col < 14:
+                self._fill_matrix_column(pill_matrix_2, col - 7, medicine)
+        
+        return pill_matrix_1, pill_matrix_2
+
+    def _fill_matrix_column(self, matrix, col, medicine):
+        """Fill a single column of the pill matrix"""
+        matrix[0, col] = medicine['evening_dosage']   # Evening (row 0)
+        matrix[1, col] = medicine['noon_dosage']      # Noon (row 1)
+        matrix[2, col] = medicine['morning_dosage']   # Morning (row 2)
+        matrix[3, col] = 0                            # Reserved (row 3)
+
+    def _process_medicine_for_dispensing(self, medicine, prescription_data, max_days, 
+                                       has_before_meal, has_after_meal, pills_dispensing_list):
+        """Process a single medicine for dispensing"""
+        medicine_name = medicine['medicine_name']
+        meal_time = medicine.get('meal_timing', 'before')
+        
+        # Calculate dispensing days
+        dispensing_days = self._calculate_dispensing_days(medicine, max_days)
+        
+        # # Update expiry date
+        # self._update_medicine_expiry_date(medicine, prescription_data, dispensing_days)
+        
+        # Debug info
+        daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
+        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}")
+        
+        if dispensing_days > 0:
+            # Create pill matrices
+            pill_matrix_1, pill_matrix_2 = self._create_pill_matrices(
+                medicine, dispensing_days, has_before_meal, has_after_meal
+            )
+            
+            # Add to medicine list
+            drug_info_1 = {
+                "medicine_name": medicine_name,
+                "pill_matrix": pill_matrix_1,
+                "meal_timing": meal_time,
+                "dispensing_days": dispensing_days
+            }
+            pills_dispensing_list["medicines_1"].append(drug_info_1)
+            
+            if np.sum(pill_matrix_2) > 0:
+                drug_info_2 = {
+                    "medicine_name": medicine_name,
+                    "pill_matrix": pill_matrix_2,
+                    "meal_timing": meal_time,
+                    "dispensing_days": dispensing_days
+                }
+                pills_dispensing_list['medicines_2'].append(drug_info_2)
+        
+    def update_medicine_expiry_date(self, medicine_name: str):
+        """
+        Update medicine expiry date after dispensing
+        
+        Args:
+            medicine_name: Name of the medicine to update
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if not self.current_prescription_data:
+                print(f"[Warning] No current prescription data available for {medicine_name}")
+                return False
+                
+            if medicine_name not in self.current_dispensing_days:
+                print(f"[Warning] No dispensing days found for {medicine_name}")
+                return False
+            
+            # 找到对应的药物
+            medicine = None
+            for med in self.current_prescription_data['medicines']:
+                if med['medicine_name'] == medicine_name:
+                    medicine = med
+                    break
+            
+            if not medicine:
+                print(f"[Warning] Medicine {medicine_name} not found in prescription data")
+                return False
+            
+            # 获取配药天数
+            dispensing_days = self.current_dispensing_days[medicine_name]
+            
+            # 计算新的过期日期
+            last_dispensed_date = datetime.strptime(medicine['last_dispensed_expiry_date'], '%Y-%m-%d')
+            new_expiry_date = last_dispensed_date + timedelta(days=dispensing_days)
+            
+            # 更新处方数据中的过期日期
+            medicine['last_dispensed_expiry_date'] = new_expiry_date.strftime('%Y-%m-%d')
+            
+            # 更新CSV文件
+            self.update_last_dispensed_date_in_csv(
+                self.current_prescription_data['patient_info']['patient_id'], 
+                medicine_name, 
+                new_expiry_date.strftime('%Y-%m-%d')
+            )
+            
+            print(f"Updated expiry date for {medicine_name}: {new_expiry_date.strftime('%Y-%m-%d')}")
+            return True
+            
+        except (ValueError, TypeError) as e:
+            print(f"[Warning] Failed to update expiry date for {medicine_name}: {e}")
+            return False
 
     def update_last_dispensed_date_in_csv(self, patient_id, medicine_name, new_date):
         """

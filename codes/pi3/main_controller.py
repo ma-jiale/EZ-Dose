@@ -22,6 +22,7 @@ class MainController(QObject):
         self.current_medicines = []
         self.current_medicine_index = 0
         self.is_dispensing = False
+        self.max_days = 7
 
     @Slot()
     def initialize_hardware(self):
@@ -51,7 +52,7 @@ class MainController(QObject):
             self.current_medicines = []
             self.current_medicine_index = 0
 
-            success, pills_disensing_list = self.rx_manager.generate_pills_dispensing_list(id)
+            success, pills_disensing_list = self.rx_manager.generate_pills_dispensing_list(id, self.max_days)
             
             if not success:
                 print(f"[错误] 生成分药矩阵失败")
@@ -111,6 +112,9 @@ class MainController(QObject):
             
             current_medicine = self.current_medicines[self.current_medicine_index]
             medicine_name = current_medicine['medicine_name']
+
+            # 在处方库中更新当前药物分药用完日期
+            self.rx_manager.update_medicine_expiry_date(medicine_name)
             
             print(f"[分药] 开始分发第 {self.current_medicine_index + 1}/{len(self.current_medicines)} 种药品: {medicine_name}")
             pill_matrix = current_medicine["pill_matrix"]
@@ -195,7 +199,7 @@ class MainController(QObject):
                     self.dispense_next_medicine()
                     
                 else:
-                    error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser.err_code}"
+                    error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser_controller.err_code}"
                     print(f"[错误] {error_msg}")
 
                     # 目前分药失败后仍继续分发下一种药品
