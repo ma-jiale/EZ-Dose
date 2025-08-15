@@ -11,6 +11,7 @@ from PySide6.QtGui import QFont, QPixmap
 from main_window_ui import Ui_MainWindow
 from medicine_setting_ui import Ui_medicine_setting
 from patient_prescription_manager import PatientPrescriptionManager
+from patient_info_manager import PatientInfoManager
 
 class AddPatientDialog(QDialog):
     """新增患者对话框"""
@@ -681,17 +682,16 @@ class PatientPrescriptionMainWindow(QMainWindow):
         self.rx_manager = PatientPrescriptionManager()
         self.rx_manager.load_local_prescriptions()
         
+        # 初始化患者信息管理器
+        self.patient_manager = PatientInfoManager()
+        
         # 初始化状态变量
         self.current_patient_info = None
         self.medicine_buttons = []
         self.add_medicine_button = None  # 添加药品按钮
-        self.patient_df = None  # 存储患者CSV数据
         
         # 设置药品容器的网格布局
         self.medicine_grid_layout = QGridLayout(self.ui.medicine_container)
-        
-        # 加载患者列表
-        self.load_patient_list()
         
         # 连接信号
         self.connect_signals()
@@ -716,88 +716,6 @@ class PatientPrescriptionMainWindow(QMainWindow):
         # 添加到搜索布局
         self.ui.search_layout.addWidget(self.add_patient_btn)
     
-    def load_patient_list(self):
-        """从patient.csv文件中加载患者列表"""
-        try:
-            patient_file_path = os.path.join(os.path.dirname(__file__), 'patient.csv')
-            
-            if not os.path.exists(patient_file_path):
-                print(f"警告: 患者文件不存在: {patient_file_path}")
-                # 创建空的CSV文件
-                self.create_empty_patient_csv(patient_file_path)
-                self.patient_df = pd.DataFrame(columns=['patientName', 'id'])
-                return
-            
-            # 读取CSV文件
-            self.patient_df = pd.read_csv(patient_file_path, encoding='utf-8')
-            
-            # 确保patientName列是字符串类型
-            if 'patientName' in self.patient_df.columns:
-                self.patient_df['patientName'] = self.patient_df['patientName'].astype(str)
-                
-                # 清理数据 - 去除空白行和无效数据
-                self.patient_df = self.patient_df.dropna(subset=['patientName'])
-                self.patient_df['patientName'] = self.patient_df['patientName'].str.strip()
-                self.patient_df = self.patient_df[self.patient_df['patientName'] != '']
-                self.patient_df = self.patient_df[self.patient_df['patientName'] != 'nan']  # 去除字符串'nan'
-            
-            print(f"成功加载 {len(self.patient_df)} 个患者:")
-            for _, row in self.patient_df.iterrows():
-                print(f"  - {row['patientName']} (ID: {row['id']})")
-            
-        except Exception as e:
-            print(f"加载患者列表失败: {str(e)}")
-            self.patient_df = pd.DataFrame(columns=['patientName', 'id'])
-    
-    def create_empty_patient_csv(self, file_path):
-        """创建空的患者CSV文件"""
-        try:
-            empty_df = pd.DataFrame(columns=['patientName', 'id'])
-            empty_df.to_csv(file_path, index=False, encoding='utf-8')
-            print(f"创建空的患者文件: {file_path}")
-        except Exception as e:
-            print(f"创建患者文件失败: {str(e)}")
-    
-    def save_patient_to_csv(self, patient_data):
-        """保存患者信息到CSV文件"""
-        try:
-            patient_file_path = os.path.join(os.path.dirname(__file__), 'patient.csv')
-            
-            # 创建新患者的DataFrame
-            new_patient = pd.DataFrame([patient_data])
-            
-            # 如果文件存在，追加数据；否则创建新文件
-            if os.path.exists(patient_file_path) and not self.patient_df.empty:
-                # 追加到现有数据
-                updated_df = pd.concat([self.patient_df, new_patient], ignore_index=True)
-            else:
-                # 创建新文件
-                updated_df = new_patient
-            
-            # 保存到文件
-            updated_df.to_csv(patient_file_path, index=False, encoding='utf-8')
-            
-            # 更新内存中的数据
-            self.patient_df = updated_df
-            
-            print(f"成功保存患者: {patient_data['patientName']} (ID: {patient_data['id']})")
-            return True
-            
-        except Exception as e:
-            print(f"保存患者信息失败: {str(e)}")
-            return False
-    
-    def check_patient_exists(self, patient_name, patient_id):
-        """检查患者是否已存在"""
-        if self.patient_df is None or self.patient_df.empty:
-            return False
-        
-        # 检查姓名或ID是否已存在
-        name_exists = (self.patient_df['patientName'] == patient_name).any()
-        id_exists = (self.patient_df['id'].astype(str) == str(patient_id)).any()
-        
-        return name_exists or id_exists
-    
     @Slot()
     def show_add_patient_dialog(self):
         """显示新增患者对话框"""
@@ -806,14 +724,23 @@ class PatientPrescriptionMainWindow(QMainWindow):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             patient_data = dialog.get_patient_data()
             
+            # 使用PatientInfoManager验证和保存患者信息
+            is_valid, error_msg = self.patient_manager.validate_patient_data(patient_data)
+            if not is_valid:
+                QMessageBox.warning(self, "警告", error_msg)
+                return
+            
             # 检查患者是否已存在
-            if self.check_patient_exists(patient_data['patientName'], patient_data['id']):
+            if self.patient_manager.check_patient_exists(patient_data['patientName'], patient_data['id']):
                 QMessageBox.warning(self, "警告", "该患者姓名或ID已存在，请检查后重新输入")
                 return
             
             # 保存患者信息
-            if self.save_patient_to_csv(patient_data):
+            if self.patient_manager.write_local_patient_list(patient_data):
                 QMessageBox.information(self, "成功", f"患者 '{patient_data['patientName']}' 添加成功")
+                
+                # 同步到服务器
+                self.patient_manager.save_patient_list()
                 
                 # 自动搜索刚添加的患者
                 self.ui.search_input.setText(patient_data['patientName'])
@@ -904,8 +831,8 @@ class PatientPrescriptionMainWindow(QMainWindow):
             return
         
         try:
-            # 首先在患者CSV中查找患者
-            patient_csv_info = self.find_patient_in_csv(patient_name)
+            # 使用PatientInfoManager查找患者
+            patient_csv_info = self.patient_manager.find_patient_by_name(patient_name)
             if not patient_csv_info:
                 QMessageBox.information(self, "信息", f"患者 '{patient_name}' 不在患者列表中")
                 self.clear_patient_display()
@@ -928,35 +855,6 @@ class PatientPrescriptionMainWindow(QMainWindow):
             
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索患者时出错: {str(e)}")
-    
-    def find_patient_in_csv(self, patient_name):
-        """在CSV中查找患者"""
-        if self.patient_df is None or self.patient_df.empty:
-            return None
-        
-        try:
-            # 支持精确匹配和模糊匹配
-            # 首先尝试精确匹配
-            exact_match = self.patient_df[self.patient_df['patientName'] == patient_name]
-            if not exact_match.empty:
-                patient_row = exact_match.iloc[0]
-            else:
-                # 如果精确匹配失败，尝试模糊匹配
-                matching_patients = self.patient_df[
-                    self.patient_df['patientName'].str.contains(patient_name, na=False, case=False)
-                ]
-                if matching_patients.empty:
-                    return None
-                patient_row = matching_patients.iloc[0]
-            
-            return {
-                'patient_name': patient_row['patientName'],
-                'patient_id': str(patient_row['id']) if pd.notna(patient_row['id']) else '未知'
-            }
-            
-        except Exception as e:
-            print(f"查找患者时出错: {str(e)}")
-            return None
     
     def get_patient_prescription_data(self, patient_name):
         """从处方管理器中获取患者的处方数据"""
@@ -1146,8 +1044,8 @@ class PatientPrescriptionMainWindow(QMainWindow):
     def refresh_data(self):
         """刷新数据"""
         try:
-            # 重新加载患者列表和处方数据
-            self.load_patient_list()
+            # 使用PatientInfoManager刷新患者列表
+            self.patient_manager.refresh_data()
             self.rx_manager.load_local_prescriptions()
             QMessageBox.information(self, "成功", "数据已刷新")
             
@@ -1163,7 +1061,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
     @Slot()
     def show_about(self):
         """显示关于信息"""
-        patient_count = len(self.patient_df) if self.patient_df is not None else 0
+        patient_count = self.patient_manager.get_patient_count()
         about_text = (f"患者处方管理系统 v1.0\n\n"
                      f"用于管理患者处方信息的应用程序\n"
                      f"当前患者列表中有 {patient_count} 个患者")
