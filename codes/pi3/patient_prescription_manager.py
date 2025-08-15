@@ -2,23 +2,122 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
+import requests
+
 class PatientPrescriptionManager:
-    def __init__(self):
+    def __init__(self, server_url="http://localhost:5000"):
         self.df = None
         self.csv_file_path = "local_prescriptions_data.csv"
         # 添加当前处理的处方数据
         self.current_prescription_data = None
         self.current_dispensing_days = {}  # 存储每个药物的配药天数
+        self.server_url = server_url
 
-    def load_local_prescriptions(self):
+    def load_prescriptions(self):
+        """load prescriptions from server, if can't, read local prescriptions"""
+        try:
+            # Try to fetch from server first
+            success = self.fetch_online_prescriptions()
+            if success:
+                print("[Info] Successfully loaded prescriptions from server")
+                return True
+            else:
+                print("[Warning] Failed to load from server, using local data")
+                self.read_local_prescriptions()
+                return False
+        except Exception as e:
+            print(f"[Error] Exception in load_prescriptions: {e}")
+            self.read_local_prescriptions()
+            return False
+
+    def read_local_prescriptions(self):
         try:
             if os.path.exists(self.csv_file_path):
                 self.df = pd.read_csv(self.csv_file_path, encoding='utf-8')
         except Exception as e:
             print(f"[error] fail to load local prescriptions: {e}")
 
+    def write_local_prescriptions(self):
+        """write prescriptions in memory into local csv"""
+        try:
+            if self.df is not None and not self.df.empty:
+                self.df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
+                print(f"[Info] Successfully wrote {len(self.df)} prescriptions to {self.csv_file_path}")
+                return True
+            else:
+                print("[Warning] No prescription data to write")
+                return False
+        except Exception as e:
+            print(f"[Error] Failed to write local prescriptions: {e}")
+            return False
+
     def fetch_online_prescriptions(self):
-        pass
+        """load prescriptions from server"""
+        try:
+            response = requests.get(f"{self.server_url}/api/prescriptions", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success') and data.get('data'):
+                    # Convert to DataFrame
+                    self.df = pd.DataFrame(data['data'])
+                    # Save to local file as backup
+                    self.write_local_prescriptions()
+                    print(f"[Info] Fetched {len(self.df)} prescriptions from server")
+                    return True
+                else:
+                    print("[Warning] Server returned empty or invalid prescription data")
+                    return False
+            else:
+                print(f"[Warning] Server returned status code: {response.status_code}")
+                return False
+        except requests.exceptions.RequestException as e:
+            print(f"[Error] Network error fetching prescriptions: {e}")
+            return False
+        except Exception as e:
+            print(f"[Error] Error fetching online prescriptions: {e}")
+            return False
+
+    def upload_prescriptions_to_server(self):
+        """Upload local prescriptions to server"""
+        try:
+            if self.df is None or self.df.empty:
+                print("[Warning] No prescription data to upload")
+                return False
+            
+            # Convert DataFrame to list of dictionaries
+            prescriptions_data = self.df.to_dict('records')
+            
+            # Prepare payload for server
+            payload = {
+                "prescriptions": prescriptions_data
+            }
+            
+            # Send to server
+            response = requests.post(
+                f"{self.server_url}/api/prescriptions/upload",
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    print(f"[Info] Successfully uploaded {len(prescriptions_data)} prescriptions to server")
+                    return True
+                else:
+                    print(f"[Error] Server rejected upload: {result.get('message', 'Unknown error')}")
+                    return False
+            else:
+                print(f"[Error] Upload failed with status code: {response.status_code}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            print(f"[Error] Network error uploading prescriptions: {e}")
+            return False
+        except Exception as e:
+            print(f"[Error] Error uploading prescriptions to server: {e}")
+            return False
 
     def get_patient_prescription(self, id):
         """
@@ -338,7 +437,8 @@ class PatientPrescriptionManager:
                         print(f"[Debug] Medicine: {record['medicine_name']}, Expiry: {expiry_date_str}, Days until expiry: {days_until_expiry}")
                         
                         # Check if medicine expires within n days AND is active
-                        is_active = record.get('is_active', 1)
+                        is_active = int(record.get('is_active', 1))
+                        
                         if days_until_expiry <= n and is_active == 1:
                             print(f"[Debug] Medicine {record['medicine_name']} matches criteria")
                             medicine_info = {
@@ -771,40 +871,3 @@ class PatientPrescriptionManager:
             new_df = pd.DataFrame(new_records)
             self.df = pd.concat([self.df, new_df], ignore_index=True)
             print(f"[Info] Fallback: Appended {len(new_records)} record(s) to the end")
-
-def main():
-# 添加新处方
-    prescription_data = {
-        'patient_info': {
-            'patient_name': '王五',
-            'patient_id': '103',
-            'rfid': '777766665555444433332222'
-        },
-        'medicines': [
-            {
-                'medicine_name': '阿莫西林胶囊',
-                'morning_dosage': 2,
-                'noon_dosage': 1,
-                'evening_dosage': 1,
-                'meal_timing': 'after',
-                'start_date': '2025-08-14',
-                'duration_days': 7,
-                'last_dispensed_expiry_date': '2025-08-14',
-                'is_active': 0,
-                'pill_size': 'L'
-            },
-        ]
-    }
-
-    # 使用方法
-    rx_manager = PatientPrescriptionManager()
-    rx_manager.load_local_prescriptions()
-
-    success, result = rx_manager.update_patient_prescription(prescription_data)
-    if success:
-        print(f"成功添加处方: {result['message']}")
-    else:
-        print(f"添加处方失败: {result['error']}")
-
-if __name__ == "__main__":
-    main()
