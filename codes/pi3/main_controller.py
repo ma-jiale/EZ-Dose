@@ -4,20 +4,24 @@ from patient_prescription_manager import PatientPrescriptionManager
 import numpy as np
 
 class MainController(QObject):
-    dispenser_initialized_signal = Signal(bool)  # 分药机初始化完成信号
-    database_connected_signal = Signal(bool)  # 数据库连接完成信号
-
+    # Signal definitions
+    dispenser_initialized_signal = Signal(bool)  # Dispenser initialization complete signal
+    database_connected_signal = Signal(bool)     # Database connection complete signal
     prescription_loaded_signal = Signal(object)
     dispensing_completed_signal = Signal()
     current_medicine_info_signal = Signal(str, int)
     dispensing_progress_signal = Signal(int)
     today_patients_ready_signal = Signal(bool, list)  # (success, patients_data)
     
+    ###############
+    # Initialization
+    ###############
     def __init__(self):
         super().__init__()
         self.dispenser_controller = DispenserController()
         self.rx_manager = PatientPrescriptionManager()
 
+        # Current dispensing state variables
         self.current_pills_dispensing_list = {}
         self.current_medicines = []
         self.current_medicine_index = 0
@@ -26,141 +30,192 @@ class MainController(QObject):
 
     @Slot()
     def initialize_hardware(self):
+        """Initialize dispenser hardware"""
         try:
             self.dispenser_controller.start_dispenser_feedback_handler()
             self.dispenser_controller.initialize_dispenser()
             self.dispenser_initialized_signal.emit(True)
-            print("[Init] 分药机初始化完成")
+            print("[Init] Dispenser initialization completed")
         except Exception as e:
-            print(f"[Error] 分药机初始化失败: {e}")
+            print(f"[Error] Dispenser initialization failed: {e}")
             self.dispenser_initialized_signal.emit(False)
         
     @Slot()
     def connect_database(self):
+        """Connect to database and load prescriptions"""
         try:
             self.rx_manager.load_local_prescriptions()
             self.database_connected_signal.emit(True)
-            print("[Init] 数据库加载完成")
+            print("[Init] Database loading completed")
         except Exception as e:
-            print(f"[Error] 数据库加载失败: {e}")
+            print(f"[Error] Database loading failed: {e}")
             self.database_connected_signal.emit(False)
 
+    ###########################
+    # Prescription Management #
+    ###########################
     @Slot(object)
     def generate_pills_dispensing_list(self, id):
+        """Generate pill dispensing list for a patient"""
         try:
+            # Reset current dispensing state
             self.current_pills_dispensing_list = {}
             self.current_medicines = []
             self.current_medicine_index = 0
 
-            success, pills_disensing_list = self.rx_manager.generate_pills_dispensing_list(id, self.max_days)
+            success, pills_dispensing_list = self.rx_manager.generate_pills_dispensing_list(id, self.max_days)
             
             if not success:
-                print(f"[错误] 生成分药矩阵失败")
+                print(f"[Error] Failed to generate pill dispensing matrix")
                 return
             
-            self.prescription_loaded_signal.emit(pills_disensing_list)
+            self.prescription_loaded_signal.emit(pills_dispensing_list)
 
-            # 保存处方信息和分药矩阵
-            self.current_pills_dispensing_list = pills_disensing_list
-
-            self.current_medicines = pills_disensing_list["medicines_1"]
+            # Save prescription information and dispensing matrix
+            self.current_pills_dispensing_list = pills_dispensing_list
+            self.current_medicines = pills_dispensing_list["medicines_1"]
             self.current_medicine_index = 0
         except Exception as e:
-            print(f"[错误] 加载分药清单异常: {str(e)}")
+            print(f"[Error] Exception loading pill dispensing list: {str(e)}")
 
+    @Slot(int)
+    def get_today_patients(self, days_threshold):
+        """Get today's patient data (thread-safe)"""
+        try:
+            success, patients_data = self.rx_manager.get_patients_for_today(days_threshold)
+            self.today_patients_ready_signal.emit(success, patients_data)
+        except Exception as e:
+            print(f"[Error] Failed to get today patients: {e}")
+            self.today_patients_ready_signal.emit(False, [])
+
+
+    #####################
+    # Dispenser Control #
+    #####################
     @Slot()
     def open_tray(self):
+        """Open the pill tray"""
         self.dispenser_controller.open_tray()
 
     @Slot()
     def close_tray(self):
+        """Close the pill tray"""
         self.dispenser_controller.close_tray()
 
-####################
-# Dispensing logic #
-#####################
+    ####################
+    # Dispensing Logic #
+    ####################
     @Slot()
     def start_dispensing(self):
-        """开始分药流程"""
+        """Start the dispensing process"""
         self.monitor_timer = QTimer()
         self.monitor_timer.timeout.connect(self.monitor_dispensing_status)
         try:
             if not self.current_medicines:
-                print("[错误] 没有药品需要分发")
+                print("[Error] No medicines to dispense")
                 return
             
             if not self.dispenser_controller:
-                print("[错误] 分药机未初始化")
+                print("[Error] Dispenser not initialized")
                 return
             
             self.is_dispensing = True
             self.current_medicine_index = 0
         
-            # 开始分发第一种药品
+            # Start dispensing the first medicine
             self.dispense_next_medicine()
         except Exception as e:
-            print(f"[错误] 启动分药异常: {str(e)}")
+            print(f"[Error] Exception starting dispensing: {str(e)}")
 
-    def dispense_next_medicine(self, turn_motor_speed=0.8, servo_angle=0.1):
-        """分发下一种药品"""
+    def configure_dispenser_for_pill_size(self, pill_size="M"):
+        """Configure motor speed and servo angle based on pill size"""
+        try:
+            # Define settings for different pill sizes
+            pill_settings = {
+                "S": {"turn_motor_speed": 0.3, "servo_angle": 0.8},  # Small pills: slower speed, smaller angle
+                "M": {"turn_motor_speed": 0.8, "servo_angle": 0.5},   # Medium pills: medium speed, medium angle
+                "L": {"turn_motor_speed": 1.4, "servo_angle": 0.2}   # Large pills: faster speed, larger angle
+            }
+            
+            if pill_size not in pill_settings:
+                print(f"[Error] Invalid pill size: {pill_size}. Using default settings for medium pills.")
+                pill_size = "M"
+            
+            settings = pill_settings[pill_size]
+            turn_motor_speed = settings["turn_motor_speed"]
+            servo_angle = settings["servo_angle"]
+            
+            # Set motor speed
+            print(f"[Dispensing] Setting turn motor speed for {pill_size} pills: {turn_motor_speed}")
+            self.dispenser_controller.set_turnMotor_speed(turn_motor_speed)
+            
+            # Set servo angle
+            print(f"[Dispensing] Setting servo angle for {pill_size} pills: {servo_angle}")
+            self.dispenser_controller.set_servo_angle(servo_angle)
+            
+            return True
+            
+        except Exception as e:
+            print(f"[Error] Failed to configure dispenser for pill size {pill_size}: {str(e)}")
+            return False
+
+    def dispense_next_medicine(self):
+        """Dispense the next medicine in the queue"""
         try:
             if self.current_medicine_index >= len(self.current_medicines):
-                # 所有药品分发完成
-                print("[分药] 所有药品已分发完成")
+                # All medicines have been dispensed
+                print("[Dispensing] All medicines dispensed successfully")
                 self.complete_dispensing()
                 return
             
             current_medicine = self.current_medicines[self.current_medicine_index]
             medicine_name = current_medicine['medicine_name']
 
-            # 在处方库中更新当前药物分药用完日期
+            # Update medicine expiry date in prescription database
             self.rx_manager.update_medicine_expiry_date(medicine_name)
             
-            print(f"[分药] 开始分发第 {self.current_medicine_index + 1}/{len(self.current_medicines)} 种药品: {medicine_name}")
+            print(f"[Dispensing] Starting to dispense medicine {self.current_medicine_index + 1}/{len(self.current_medicines)}: {medicine_name}")
             pill_matrix = current_medicine["pill_matrix"]
 
-            # 打印当前分药矩阵信息
-            print(f"[分药] {medicine_name} 分药矩阵:")
-            time_labels = ["早上", "中午", "晚上", "夜间"]
+            # Print current pill matrix information
+            print(f"[Dispensing] {medicine_name} pill matrix:")
+            time_labels = ["Morning", "Noon", "Evening", "Night"]
             for i, label in enumerate(time_labels):
                 print(f"  {label}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
 
-            # 设置电机速度（如果提供了参数）
-            print(f"[分药] 设置转轮电机速度: {turn_motor_speed}")
-            self.dispenser_controller.set_turnMotor_speed(turn_motor_speed)
-            
-            # 设置舵机角度（如果提供了参数）
-            print(f"[分药] 设置舵机角度: {servo_angle}")
-            self.dispenser_controller.set_servo_angle(servo_angle)
+            # Configure dispenser based on pill size
+            if not self.configure_dispenser_for_pill_size(current_medicine["pill_size"]):
+                print(f"[Error] Failed to configure dispenser for {medicine_name}")
+                return
 
-            # 发送分药进度信号
+            # Send dispensing progress signal
             self.total_pill = np.sum(pill_matrix)
             self.current_medicine_info_signal.emit(
                 medicine_name,
                 self.total_pill
             )
             
-            # 发送分药数据到分药机
-            print(f"[分药] 发送分药数据到分药机...")
+            # Send pill matrix data to dispenser
+            print(f"[Dispensing] Sending pill matrix data to dispenser...")
             ack = self.dispenser_controller.send_pill_matrix(pill_matrix)
             
             if not ack:
-                error_msg = f"发送分药数据失败: {medicine_name}"
-                print(f"[错误] {error_msg}")
+                error_msg = f"Failed to send pill matrix data: {medicine_name}"
+                print(f"[Error] {error_msg}")
                 return
             
-            print(f"[分药] 数据发送成功，等待分药完成...")
+            print(f"[Dispensing] Data sent successfully, waiting for dispensing completion...")
             
-            # 启动监控定时器
-            self.monitor_timer.start(1000)  # 每秒检查一次
+            # Start monitoring timer
+            self.monitor_timer.start(1000)  # Check every second
         except Exception as e:
-            error_msg = f"分药异常: {str(e)}"
-            print(f"[错误] {error_msg}")
+            error_msg = f"Dispensing exception: {str(e)}"
+            print(f"[Error] {error_msg}")
 
     def monitor_dispensing_status(self):
-        """监控分药状态"""
+        """Monitor the dispensing status"""
         try:
-            # 如果没有分药机或未处于分药状态，停止监控
+            # If no dispenser or not in dispensing state, stop monitoring
             if not self.dispenser_controller or not self.is_dispensing:
                 self.monitor_timer.stop()
                 return
@@ -179,72 +234,60 @@ class MainController(QObject):
             #         # 最后一个药品分发完成
             #         self.medicine_transition_signal.emit(current_medicine_name, "")
 
-            # 检查分药机状态
-            print(f"[监控] 分药机状态: {self.dispenser_controller.machine_state}, 错误码: {self.dispenser_controller.err_code}, 未分发药片: {self.dispenser_controller.pill_remain}")
+            # Check dispenser status
+            print(f"[Monitor] Dispenser state: {self.dispenser_controller.machine_state}, Error code: {self.dispenser_controller.err_code}, Pills remaining: {self.dispenser_controller.pill_remain}")
             
-            if self.dispenser_controller.machine_state == 3:  # 分药完成
+            if self.dispenser_controller.machine_state == 3:  # Dispensing completed
                 self.monitor_timer.stop()                
                 current_medicine = self.current_medicines[self.current_medicine_index]
                 medicine_name = current_medicine['medicine_name']
                 
                 if self.dispenser_controller.err_code == 0:
-                    print(f"[分药] {medicine_name} 分发完成")
+                    print(f"[Dispensing] {medicine_name} dispensing completed")
                     if hasattr(self.dispenser_controller, 'pill_remain'):
-                        print(f"[分药] 剩余药片: {self.dispenser_controller.pill_remain}")
+                        print(f"[Dispensing] Pills remaining: {self.dispenser_controller.pill_remain}")
 
-
-                    # 准备分发下一种药品
+                    # Prepare to dispense next medicine
                     self.current_medicine_index += 1
-                    # 等待一小段时间再分发下一种药品
+                    # Wait briefly before dispensing next medicine
                     self.dispense_next_medicine()
                     
                 else:
-                    error_msg = f"{medicine_name} 分药错误，错误码: {self.dispenser_controller.err_code}"
-                    print(f"[错误] {error_msg}")
+                    error_msg = f"{medicine_name} dispensing error, error code: {self.dispenser_controller.err_code}"
+                    print(f"[Error] {error_msg}")
 
-                    # 目前分药失败后仍继续分发下一种药品
-                    # 准备分发下一种药品
+                    # Currently continue dispensing next medicine even after failure
+                    # Prepare to dispense next medicine
                     self.current_medicine_index += 1
-                    # 等待一小段时间再分发下一种药品
+                    # Wait briefly before dispensing next medicine
                     self.dispense_next_medicine()
                     
-            elif self.dispenser_controller.machine_state == 2:  # 暂停状态
-                print("[分药] 分药已暂停")
+            elif self.dispenser_controller.machine_state == 2:  # Paused state
+                print("[Dispensing] Dispensing paused")
                 
-            elif self.dispenser_controller.machine_state == 1:  # 分药中
-                print("[分药] 正在分药...")
+            elif self.dispenser_controller.machine_state == 1:  # Dispensing in progress
+                print("[Dispensing] Dispensing in progress...")
                 
         except Exception as e:
-            error_msg = f"监控分药状态异常: {str(e)}"
-            print(f"[错误] {error_msg}")
+            error_msg = f"Exception monitoring dispensing status: {str(e)}"
+            print(f"[Error] {error_msg}")
 
     def complete_dispensing(self):
-        """完成分药流程"""
+        """Complete the dispensing process"""
         try:
             self.is_dispensing = False
             self.monitor_timer.stop()
-            print("[分药] 所有药品分发完成")
+            print("[Dispensing] All medicines dispensed successfully")
             self.dispensing_completed_signal.emit()
 
-            # 开启药盘
-            print("[分药] 开启药盘...")
+            # Open the pill tray
+            print("[Dispensing] Opening pill tray...")
             if self.open_tray():
-                print("[警告] 开启药盘失败")
+                print("[Warning] Failed to open pill tray")
             
         except Exception as e:
-            error_msg = f"完成分药异常: {str(e)}"
-            print(f"[错误] {error_msg}")
-
-
-    @Slot(int)
-    def get_today_patients(self, days_threshold):
-        """获取今日患者数据（线程安全）"""
-        try:
-            success, patients_data = self.rx_manager.get_patients_for_today(days_threshold)
-            self.today_patients_ready_signal.emit(success, patients_data)
-        except Exception as e:
-            print(f"[Error] Failed to get today patients: {e}")
-            self.today_patients_ready_signal.emit(False, [])
+            error_msg = f"Exception completing dispensing: {str(e)}"
+            print(f"[Error] {error_msg}")
 
 
 

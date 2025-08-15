@@ -67,7 +67,9 @@ class PatientPrescriptionManager:
                     'meal_timing': record['meal_timing'],
                     'start_date': record['start_date'],
                     'duration_days': int(record['duration_days']),
-                    'last_dispensed_expiry_date': record['last_dispensed_expiry_date']
+                    'last_dispensed_expiry_date': record['last_dispensed_expiry_date'],
+                    'is_active': int(record['is_active']),
+                    'pill_size': record['pill_size']  # Add pill_size field
                 }
                 medicines.append(medicine)
                 
@@ -184,16 +186,14 @@ class PatientPrescriptionManager:
         """Process a single medicine for dispensing"""
         medicine_name = medicine['medicine_name']
         meal_time = medicine.get('meal_timing', 'before')
+        pill_size = medicine.get('pill_size', 'M')  # Get pill size from medicine data
         
         # Calculate dispensing days
         dispensing_days = self._calculate_dispensing_days(medicine, max_days)
         
-        # # Update expiry date
-        # self._update_medicine_expiry_date(medicine, prescription_data, dispensing_days)
-        
         # Debug info
         daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
-        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}")
+        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}, size: {pill_size}")
         
         if dispensing_days > 0:
             # Create pill matrices
@@ -201,12 +201,13 @@ class PatientPrescriptionManager:
                 medicine, dispensing_days, has_before_meal, has_after_meal
             )
             
-            # Add to medicine list
+            # Add to medicine list with pill_size
             drug_info_1 = {
                 "medicine_name": medicine_name,
                 "pill_matrix": pill_matrix_1,
                 "meal_timing": meal_time,
-                "dispensing_days": dispensing_days
+                "dispensing_days": dispensing_days,
+                "pill_size": pill_size  # Add pill_size to the dispensing list
             }
             pills_dispensing_list["medicines_1"].append(drug_info_1)
             
@@ -215,7 +216,8 @@ class PatientPrescriptionManager:
                     "medicine_name": medicine_name,
                     "pill_matrix": pill_matrix_2,
                     "meal_timing": meal_time,
-                    "dispensing_days": dispensing_days
+                    "dispensing_days": dispensing_days,
+                    "pill_size": pill_size  # Add pill_size to the dispensing list
                 }
                 pills_dispensing_list['medicines_2'].append(drug_info_2)
         
@@ -301,27 +303,7 @@ class PatientPrescriptionManager:
             print(f"[Error] Failed to update CSV file: {e}")
 
     def get_patients_for_today(self, n=2):
-        """
-        Get patients whose medicine expiry date is within n days from today
-        
-        Args:
-            n: Number of days threshold (e.g., if n=3, find patients whose medicine expires within 3 days)
-        
-        Returns:
-            Tuple[bool, List[Dict]]: (success flag, list of patient info or error message)
-            Patient info format: {
-                'patient_id': str,
-                'patient_name': str, 
-                'rfid': str,
-                'medicines_expiring': [
-                    {
-                        'medicine_name': str,
-                        'last_dispensed_expiry_date': str,
-                        'days_until_expiry': int
-                    }
-                ]
-            }
-        """
+        """Get patients whose medicine expiry date is within n days from today"""
         try:
             # Basic validation
             if self.df is None or self.df.empty:
@@ -331,28 +313,43 @@ class PatientPrescriptionManager:
                 return False, [{'error': 'Invalid threshold days', 'error_code': 400}]
             
             today = datetime.now().date()
+            print(f"[Debug] Today's date: {today}")
             target_patients = []
             
+            # Fill NaN values in RFID column to handle empty RFID fields
+            df_copy = self.df.copy()
+            df_copy['rfid'] = df_copy['rfid'].fillna('')
+            
             # Group by patient to avoid duplicates
-            patient_groups = self.df.groupby(['id', 'patient_name', 'rfid'])
+            patient_groups = df_copy.groupby(['id', 'patient_name', 'rfid'])
+            print(f"[Debug] Found {len(patient_groups)} patient groups")
             
             for (patient_id, patient_name, rfid), group in patient_groups:
+                print(f"[Debug] Processing patient: {patient_name} (ID: {patient_id}, RFID: '{rfid}')")
                 expiring_medicines = []
                 
                 for _, record in group.iterrows():
                     try:
                         # Parse expiry date
-                        expiry_date = datetime.strptime(record['last_dispensed_expiry_date'], '%Y-%m-%d').date()
+                        expiry_date_str = record['last_dispensed_expiry_date']
+                        expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
                         days_until_expiry = (expiry_date - today).days
                         
-                        # Check if medicine expires within n days
-                        if days_until_expiry <= n:
+                        print(f"[Debug] Medicine: {record['medicine_name']}, Expiry: {expiry_date_str}, Days until expiry: {days_until_expiry}")
+                        
+                        # Check if medicine expires within n days AND is active
+                        is_active = record.get('is_active', 1)
+                        if days_until_expiry <= n and is_active == 1:
+                            print(f"[Debug] Medicine {record['medicine_name']} matches criteria")
                             medicine_info = {
                                 'medicine_name': record['medicine_name'],
                                 'last_dispensed_expiry_date': record['last_dispensed_expiry_date'],
                                 'days_until_expiry': days_until_expiry
                             }
                             expiring_medicines.append(medicine_info)
+                        else:
+                            reason = f"days_until_expiry={days_until_expiry} > {n}" if days_until_expiry > n else f"is_active={is_active}"
+                            print(f"[Debug] Medicine {record['medicine_name']} does not match criteria ({reason})")
                             
                     except (ValueError, TypeError) as date_error:
                         print(f"[Warning] Invalid date format for patient {patient_id}, medicine {record['medicine_name']}: {date_error}")
@@ -372,6 +369,7 @@ class PatientPrescriptionManager:
             return True, target_patients
             
         except Exception as e:
+            print(f"[Error] Exception in get_patients_for_today: {e}")
             return False, [{'error': f'Query error: {str(e)}', 'error_code': 500}]
 
 ########################
@@ -580,11 +578,14 @@ class PatientPrescriptionManager:
             medicines = prescription_data['medicines']
             patient_id = patient_info['patient_id']
             
-            # Validate input data
-            required_patient_fields = ['patient_name', 'patient_id', 'rfid']
+            # Validate input data - rfid is now optional
+            required_patient_fields = ['patient_name', 'patient_id']
             for field in required_patient_fields:
                 if field not in patient_info or not patient_info[field]:
                     return False, {'error': f'Missing required patient field: {field}', 'error_code': 400}
+            
+            # Set default rfid if not provided
+            rfid = patient_info.get('rfid', '')
             
             if not medicines or not isinstance(medicines, list):
                 return False, {'error': 'Medicines must be a non-empty list', 'error_code': 400}
@@ -611,6 +612,9 @@ class PatientPrescriptionManager:
             patient_info = prescription_data['patient_info']
             medicines = prescription_data['medicines']
             
+            # Set default rfid if not provided
+            rfid = patient_info.get('rfid', '')
+            
             new_records = []
             for medicine in medicines:
                 # Validate medicine data
@@ -622,7 +626,7 @@ class PatientPrescriptionManager:
                 record = {
                     'patient_name': patient_info['patient_name'],
                     'id': patient_info['patient_id'],
-                    'rfid': patient_info['rfid'],
+                    'rfid': rfid,  # Use default empty string if not provided
                     'medicine_name': medicine['medicine_name'],
                     'morning_dosage': int(medicine['morning_dosage']),
                     'noon_dosage': int(medicine['noon_dosage']),
@@ -662,6 +666,9 @@ class PatientPrescriptionManager:
             medicines = prescription_data['medicines']
             patient_id = patient_info['patient_id']
             
+            # Set default rfid if not provided
+            rfid = patient_info.get('rfid', '')
+            
             # Get the last index of this patient's records
             last_patient_index = patient_records.index.max()
             
@@ -693,7 +700,7 @@ class PatientPrescriptionManager:
                     record = {
                         'patient_name': patient_info['patient_name'],
                         'id': patient_info['patient_id'],
-                        'rfid': patient_info['rfid'],
+                        'rfid': rfid,  # Use default empty string if not provided
                         'medicine_name': medicine['medicine_name'],
                         'morning_dosage': int(medicine['morning_dosage']),
                         'noon_dosage': int(medicine['noon_dosage']),
@@ -728,8 +735,11 @@ class PatientPrescriptionManager:
 
     def _update_existing_medicine_record(self, mask, medicine, patient_info):
         """Update an existing medicine record"""
+        # Set default rfid if not provided
+        rfid = patient_info.get('rfid', '')
+        
         self.df.loc[mask, 'patient_name'] = patient_info['patient_name']
-        self.df.loc[mask, 'rfid'] = patient_info['rfid']
+        self.df.loc[mask, 'rfid'] = rfid  # Use default empty string if not provided
         self.df.loc[mask, 'morning_dosage'] = int(medicine['morning_dosage'])
         self.df.loc[mask, 'noon_dosage'] = int(medicine['noon_dosage'])
         self.df.loc[mask, 'evening_dosage'] = int(medicine['evening_dosage'])
