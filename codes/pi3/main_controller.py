@@ -41,10 +41,10 @@ class MainController(QObject):
             self.dispenser_initialized_signal.emit(False)
         
     @Slot()
-    def connect_database(self):
+    def initialize_database(self):
         """Connect to database and load prescriptions"""
         try:
-            self.rx_manager.load_local_prescriptions()
+            self.rx_manager.load_prescriptions()
             self.database_connected_signal.emit(True)
             print("[Init] Database loading completed")
         except Exception as e:
@@ -87,6 +87,7 @@ class MainController(QObject):
         except Exception as e:
             print(f"[Error] Failed to get today patients: {e}")
             self.today_patients_ready_signal.emit(False, [])
+
 
 
     #####################
@@ -275,6 +276,8 @@ class MainController(QObject):
     def complete_dispensing(self):
         """Complete the dispensing process"""
         try:
+            self.rx_manager.upload_prescriptions_to_server()
+            
             self.is_dispensing = False
             self.monitor_timer.stop()
             print("[Dispensing] All medicines dispensed successfully")

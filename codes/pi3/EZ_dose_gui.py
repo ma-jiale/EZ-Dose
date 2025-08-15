@@ -216,7 +216,7 @@ class TodayPatientDialog(QDialog):  # Now inherits from QDialog
 class Manager(QObject):
     # 定义主控制信号
     init_dispenser_signal = Signal()
-    connect_database_signal = Signal()
+    initialize_database_signal = Signal()
     generate_pills_dispensing_list_signal = Signal(object)
     open_tray_signal = Signal()
     close_tray_signal = Signal()
@@ -286,7 +286,7 @@ class Manager(QObject):
 
         # 连接信号到主控制器的槽
         self.init_dispenser_signal.connect(self.main_controller.initialize_hardware)
-        self.connect_database_signal.connect(self.main_controller.connect_database)
+        self.initialize_database_signal.connect(self.main_controller.initialize_database)
         self.generate_pills_dispensing_list_signal.connect(self.main_controller.generate_pills_dispensing_list)
         self.open_tray_signal.connect(self.main_controller.open_tray)
         self.close_tray_signal.connect(self.main_controller.close_tray)
@@ -314,7 +314,7 @@ class Manager(QObject):
             print("[Manager] 分药机初始化成功")
             # 分药机完成后，开始数据库初始化
             self.startup_screen.update_status("正在加载数据库...")
-            self.connect_database_signal.emit()
+            self.initialize_database_signal.emit()
         else:
             print("[Manager] 分药机初始化失败")
             self.startup_screen.update_status("分药机初始化失败!")
