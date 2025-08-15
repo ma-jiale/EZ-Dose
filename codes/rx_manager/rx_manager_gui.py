@@ -400,6 +400,13 @@ class MedicineSettingDialog(QDialog):
                 success, result = self.rx_manager.update_patient_prescription(prescription_data)
                 
                 if success:
+                    # 立即上传到服务器以保持同步
+                    upload_success = self.rx_manager.upload_prescriptions_to_server()
+                    if upload_success:
+                        print("[Info] Successfully synced new medicine to server")
+                    else:
+                        print("[Warning] Failed to sync to server, but saved locally")
+                    
                     QMessageBox.information(self, "成功", f"药品 '{medicine_data['medicine_name']}' 添加成功")
                     
                     # 发出新增药品成功信号
@@ -414,6 +421,13 @@ class MedicineSettingDialog(QDialog):
                 success, result = self.rx_manager.update_patient_prescription(prescription_data)
                 
                 if success:
+                    # 立即上传到服务器以保持同步
+                    upload_success = self.rx_manager.upload_prescriptions_to_server()
+                    if upload_success:
+                        print("[Info] Successfully synced updated medicine to server")
+                    else:
+                        print("[Warning] Failed to sync to server, but saved locally")
+                    
                     QMessageBox.information(self, "成功", f"药品信息已保存：{result['message']}")
                     
                     # 发出信号通知主窗口刷新数据
@@ -423,7 +437,6 @@ class MedicineSettingDialog(QDialog):
                     self.accept()
                 else:
                     QMessageBox.critical(self, "保存失败", f"保存药品信息时出错：{result['error']}")
-                
         except Exception as e:
             QMessageBox.critical(self, "错误", f"保存药品信息时发生异常：{str(e)}")
     
@@ -680,7 +693,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         
         # 初始化数据管理器
         self.rx_manager = PatientPrescriptionManager()
-        self.rx_manager.load_local_prescriptions()
+        self.rx_manager.load_prescriptions()
         
         # 初始化患者信息管理器
         self.patient_manager = PatientInfoManager()
@@ -765,7 +778,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         """刷新当前患者的数据显示"""
         if self.current_patient_info:
             # 重新加载处方数据
-            self.rx_manager.load_local_prescriptions()
+            self.rx_manager.load_prescriptions()
             
             # 重新搜索当前患者
             patient_name = self.current_patient_info['patient_name']
@@ -1046,7 +1059,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         try:
             # 使用PatientInfoManager刷新患者列表
             self.patient_manager.refresh_data()
-            self.rx_manager.load_local_prescriptions()
+            self.rx_manager.load_prescriptions()
             QMessageBox.information(self, "成功", "数据已刷新")
             
             # 如果当前有显示的患者，重新搜索显示
