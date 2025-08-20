@@ -227,8 +227,8 @@ class MedicineSettingDialog(QDialog):
             self.ui.comboBox_size.setCurrentIndex(1)  # M
         
         # 设置默认为启用状态
-        if hasattr(self.ui, 'comboBox'):
-            self.ui.comboBox.setCurrentIndex(0)  # 启用
+        if hasattr(self.ui, 'comboBox_isActive'):
+            self.ui.comboBox_isActive.setCurrentIndex(0)  # 启用
         
         # 设置默认开始日期为今天
         if hasattr(self.ui, 'dateEdit_start_date'):
@@ -303,9 +303,10 @@ class MedicineSettingDialog(QDialog):
                 self.ui.comboBox_size.setCurrentIndex(2)
         
         # 设置是否启用
-        is_active = self.medicine_info.get('is_active', 1)
-        if hasattr(self.ui, 'comboBox'):
-            self.ui.comboBox.setCurrentIndex(0 if is_active else 1)
+        is_active = int(self.medicine_info.get('is_active', 1))
+
+        if hasattr(self.ui, 'comboBox_isActive'):
+            self.ui.comboBox_isActive.setCurrentIndex(0 if is_active else 1)
         
         # 设置开始日期
         start_date = self.medicine_info.get('start_date', '')
@@ -521,8 +522,8 @@ class MedicineSettingDialog(QDialog):
         else:
             data['pill_size'] = self.medicine_info.get('pill_size', 'M') if self.medicine_info else 'M'
         
-        if hasattr(self.ui, 'comboBox'):
-            data['is_active'] = 1 if self.ui.comboBox.currentIndex() == 0 else 0
+        if hasattr(self.ui, 'comboBox_isActive'):
+            data['is_active'] = 1 if self.ui.comboBox_isActive.currentIndex() == 0 else 0
         else:
             data['is_active'] = self.medicine_info.get('is_active', 1) if self.medicine_info else 1
         
@@ -642,7 +643,7 @@ class MedicineButton(QPushButton):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         # 根据药品激活状态设置不同颜色
-        is_active = self.medicine_info.get('is_active', 1)
+        is_active = int( self.medicine_info.get('is_active', 1))
         if is_active:
             self.setStyleSheet("""
                 QPushButton {
@@ -692,10 +693,12 @@ class PatientPrescriptionMainWindow(QMainWindow):
         self.ui.setupUi(self)
         
         # 初始化数据管理器
+        # self.rx_manager = PatientPrescriptionManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
         self.rx_manager = PatientPrescriptionManager()
         self.rx_manager.load_prescriptions()
         
         # 初始化患者信息管理器
+        # self.patient_manager = PatientInfoManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
         self.patient_manager = PatientInfoManager()
         
         # 初始化状态变量

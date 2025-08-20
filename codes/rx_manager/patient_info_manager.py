@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 class PatientInfoManager:
     """患者信息管理器 - 负责患者CSV文件的操作"""
     
-    def __init__(self, csv_file_path: str = None, server_url: str = "http://localhost:5000"):
+    def __init__(self, csv_file_path: str = None, server_url: str = "http://localhost:5000/api"):
         """
         初始化患者信息管理器
         
@@ -153,7 +153,7 @@ class PatientInfoManager:
     def fetch_online_patient_list(self) -> bool:
         """load patient list from server"""
         try:
-            response = requests.get(f"{self.server_url}/api/patients", timeout=10)
+            response = requests.get(f"{self.server_url}/patients", timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
@@ -231,7 +231,7 @@ class PatientInfoManager:
             # 发送POST请求
             headers = {'Content-Type': 'application/json'}
             response = requests.post(
-                f"{self.server_url}/api/patients/upload",
+                f"{self.server_url}/patients/upload",
                 data=json.dumps(upload_data),
                 headers=headers,
                 timeout=30
