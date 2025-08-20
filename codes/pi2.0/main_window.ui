@@ -846,7 +846,7 @@ QProgressBar::chunk {
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="start_page">
        <widget class="QLabel" name="guide_msg_1">
