@@ -6,197 +6,220 @@ import time
 import struct
 
 class DispenserController:
-    # 分药机设备识别信息
+    # Dispenser device identification information
     DISPENSER_VID_PID_PATTERNS = [
-        r'USB VID:PID=1A86:7523',  # CH340芯片常见的VID:PID
-        r'CH340',                   # 设备描述中包含CH340
-        r'USB-SERIAL CH340'         # 完整的设备描述
+        r'USB VID:PID=1A86:7523',  # Common VID:PID for CH340 chip
+        r'CH340',                   # Device description containing CH340
+        r'USB-SERIAL CH340'         # Complete device description
     ]
     DISPENSER_MANUFACTURER = 'wch.cn'
 
     def __init__(self, port=None):
         """
-        初始化分药机控制器实例, 使用pyserial库打开指定的串口, 并设置分药机参数。
-        :param port: 串口名称，例如 'COM6' 或 '/dev/ttyUSB0'
+        Initialize dispenser controller instance without establishing connection.
+        :param port: Serial port name, e.g., 'COM6' or '/dev/ttyUSB0'
         """
-        # 如果没有指定端口，自动搜索分药机
-        if port is None:
-            port = self._find_dispenser_port()
-            if port is None:
-                raise ConnectionError("未找到分药机设备，请检查设备连接")
-
-        # Connect serial port
+        # Store port for later initialization
         self.port = port
         self.ser = None
-        self._connect_serial()
-
-        # 设置分药机相关参数
+        
+        # Set dispenser related parameters
         self.is_tray_opened = False
-        self.is_receiver_thread_running = False # 接收串口信息线程是否在运行
-        self.machine_state = 0 # 机器状态 0：空闲; 1: 正在工作; 2: 暂停工作; 3.完成工作;
-        self.is_sending_package = False # 是否正在发送数据包
-        self.err_code = 0 # 错误信息 0：没有问题；1：超时异常；2：分药计数异常; 
-        self.pill_remain = -1 # 剩余药片数量
-        self.total_pill = 0 # 一个药片矩阵总药片数量
+        self.is_receiver_thread_running = False # Whether serial receive thread is running
+        self.machine_state = 0 # Machine state 0: idle; 1: working; 2: paused; 3: completed;
+        self.is_sending_package = False # Whether sending data package
+        self.err_code = 0 # Error code 0: no problem; 1: timeout exception; 2: pill counting exception; 
+        self.pill_remain = -1 # Remaining pill count
+        self.total_pill = 0 # Total pill count in a pill matrix
         self.ACK = False
         self.DONE = False
-        self.repeat = 5 # 重发指令次数
+        self.repeat = 5 # Command retransmission count
 
-        # 自动启动接收线程
-        self.start_dispenser_feedback_handler()
+    def initialize_dispenser(self):
+        """
+        Initialize dispenser by establishing serial connection and starting feedback handler.
+        This method should be called after creating the DispenserController instance.
+        :return: True if initialization successful, False otherwise
+        """
+        try:
+            print("[Initialize] Starting dispenser initialization...")
+            
+            # If no port specified, automatically search for dispenser
+            if self.port is None:
+                self.port = self._find_dispenser_port()
+                if self.port is None:
+                    print("[Error] Dispenser device not found, please check device connection")
+                    return False
+            
+            # Connect serial port
+            self._connect_serial()
+            
+            # Start feedback handler thread
+            self.start_dispenser_feedback_handler()
+            self.reset_dispenser()
+            
+            print("[Success] Dispenser initialization completed successfully")
+            return True
+            
+        except ConnectionError as e:
+            print(f"[Error] Connection failed during initialization: {e}")
+            return False
+        except Exception as e:
+            print(f"[Error] Unexpected error during initialization: {e}")
+            return False
 
-#############################
-# 自动选择串口连接分药机下位机 #
-#############################
+###############################################################
+# Auto select serial port to connect dispenser lower computer #
+###############################################################
     def _find_dispenser_port(self):
         """
-        自动搜索分药机串口设备
-        :return: 找到的串口名称，如果未找到返回None
+        Automatically search for dispenser serial port device
+        :return: Found serial port name, returns None if not found
         """
-        print("[搜索] 正在搜索分药机设备...")
+        print("[Search] Searching for dispenser device...")
         
-        # 获取所有可用串口
+        # Get all available serial ports
         available_ports = serial.tools.list_ports.comports()
         
         if not available_ports:
-            print("[警告] 未发现任何串口设备")
+            print("[Warning] No serial port devices found")
             return None
         
-        print(f"[信息] 发现 {len(available_ports)} 个串口设备:")
+        print(f"[Info] Found {len(available_ports)} serial port devices:")
         for port in available_ports:
             print(f"  - {port.device}: {port.description}")
             if hasattr(port, 'manufacturer') and port.manufacturer:
-                print(f"    制造商: {port.manufacturer}")
+                print(f"    Manufacturer: {port.manufacturer}")
             if hasattr(port, 'vid') and hasattr(port, 'pid') and port.vid and port.pid:
                 print(f"    VID:PID: {port.vid:04X}:{port.pid:04X}")
 
-        # 搜索匹配的设备
+        # Search for matching devices
         potential_ports = []
         
         for port in available_ports:
             score = self._score_port_match(port)
             if score > 0:
                 potential_ports.append((port, score))
-                print(f"[匹配] 发现潜在分药机设备: {port.device} (匹配度: {score})")
+                print(f"[Match] Found potential dispenser device: {port.device} (match score: {score})")
         
         if not potential_ports:
-            print("[错误] 未找到匹配的分药机设备")
+            print("[Error] No matching dispenser device found")
             self._print_search_hints()
             return None
         
-        # 按匹配度排序，选择最佳匹配
+        # Sort by match score, select best match
         potential_ports.sort(key=lambda x: x[1], reverse=True)
         best_port = potential_ports[0][0]
         
-        print(f"[选择] 自动选择设备: {best_port.device}")
-        print(f"  描述: {best_port.description}")
+        print(f"[Select] Auto-selected device: {best_port.device}")
+        print(f"  Description: {best_port.description}")
         if hasattr(best_port, 'manufacturer') and best_port.manufacturer:
-            print(f"  制造商: {best_port.manufacturer}")
+            print(f"  Manufacturer: {best_port.manufacturer}")
         
         return best_port.device
     
     def _score_port_match(self, port):
         """
-        为串口设备打分，判断是否为分药机设备
-        :param port: 串口设备信息
-        :return: 匹配分数，分数越高匹配度越高，0表示不匹配
+        Score serial port device to determine if it's a dispenser device
+        :param port: Serial port device information
+        :return: Match score, higher score means better match, 0 means no match
         """
         score = 0
         
-        # 检查描述信息
+        # Check description information
         description = port.description.upper() if port.description else ""
         
-        # CH340芯片检测（高优先级）
+        # CH340 chip detection (high priority)
         if 'CH340' in description:
             score += 50
-            print(f"    [匹配] CH340芯片检测: +50")
+            print(f"    [Match] CH340 chip detected: +50")
         
-        # USB-SERIAL检测
+        # USB-SERIAL detection
         if 'USB-SERIAL' in description:
             score += 30
-            print(f"    [匹配] USB-SERIAL检测: +30")
+            print(f"    [Match] USB-SERIAL detected: +30")
         
-        # 制造商检测
+        # Manufacturer detection
         if hasattr(port, 'manufacturer') and port.manufacturer:
             manufacturer = port.manufacturer.lower()
             if 'wch.cn' in manufacturer or 'wch' in manufacturer:
                 score += 40
-                print(f"    [匹配] 制造商检测: +40")
+                print(f"    [Match] Manufacturer detected: +40")
 
-        # VID:PID检测
+        # VID:PID detection
         if hasattr(port, 'vid') and hasattr(port, 'pid') and port.vid and port.pid:
-            # CH340常见的VID:PID是1A86:7523
+            # CH340 common VID:PID is 1A86:7523
             if port.vid == 0x1A86 and port.pid == 0x7523:
                 score += 60
-                print(f"    [匹配] VID:PID检测(1A86:7523): +60")
+                print(f"    [Match] VID:PID detected(1A86:7523): +60")
         
-        # 端口名称检测（Windows系统）
+        # Port name detection (Windows system)
         if port.device.startswith('COM') and hasattr(port, 'location') and port.location:
-            # 检查是否为USB设备
+            # Check if it's USB device
             if 'USB' in port.hwid.upper():
                 score += 10
-                print(f"    [匹配] USB设备检测: +10")
+                print(f"    [Match] USB device detected: +10")
         
         return score
     
     def _print_search_hints(self):
-        """打印搜索提示信息"""
-        print("\n[提示] 分药机搜索失败，请检查:")
-        print("  1. 分药机是否已连接到计算机")
-        print("  2. 设备驱动是否正确安装")
-        print("  3. 设备是否被其他程序占用")
-        print("  4. USB线缆是否正常")
-        print("\n[期望设备特征]:")
-        print("  - 描述包含: USB-SERIAL CH340")
-        print("  - 制造商: wch.cn")
+        """Print search hint information"""
+        print("\n[Hint] Dispenser search failed, please check:")
+        print("  1. Is the dispenser connected to the computer")
+        print("  2. Are device drivers properly installed")
+        print("  3. Is the device being used by other programs")
+        print("  4. Is the USB cable working properly")
+        print("\n[Expected device characteristics]:")
+        print("  - Description contains: USB-SERIAL CH340")
+        print("  - Manufacturer: wch.cn")
         print("  - VID:PID: 1A86:7523")
 
     def _connect_serial(self):
-        """建立串口连接"""
+        """Establish serial connection"""
         try:
             self.ser = serial.Serial(
                 port=self.port, 
                 baudrate=115200,
-                timeout=1.0,  # 设置读取超时
-                write_timeout=1.0  # 设置写入超时
+                timeout=1.0,  # Set read timeout
+                write_timeout=1.0  # Set write timeout
             )
-            # 清空输入缓冲区
+            # Clear input buffer
             self.ser.reset_input_buffer()
             self.ser.reset_output_buffer()
-            print(f"[成功] 串口 {self.port} 连接成功")
+            print(f"[Success] Serial port {self.port} connected successfully")
         except serial.SerialException as e:
-            print(f"[错误] 串口连接失败: {e}")
-            print(f"[提示] 请检查设备是否连接到 {self.port} 或端口是否被占用")
+            print(f"[Error] Serial connection failed: {e}")
+            print(f"[Hint] Please check if device is connected to {self.port} or if port is occupied")
             raise
         except Exception as e:
-            print(f"[错误] 初始化串口时发生未知错误: {e}")
+            print(f"[Error] Unknown error occurred during serial initialization: {e}")
             raise
 
     def reconnect(self):
-        """重新连接分药机"""
-        print("[重连] 尝试重新连接分药机...")
+        """Reconnect to dispenser"""
+        print("[Reconnect] Attempting to reconnect to dispenser...")
         
-        # 关闭现有连接
+        # Close existing connection
         if self.ser and self.ser.is_open:
             self.ser.close()
         
-        # 重新搜索设备
+        # Re-search for device
         new_port = self._find_dispenser_port()
         if new_port is None:
-            raise ConnectionError("重连失败：未找到分药机设备")
+            raise ConnectionError("Reconnection failed: dispenser device not found")
         
         self.port = new_port
         self._connect_serial()
-        print(f"[成功] 重连到 {self.port}")
+        print(f"[Success] Reconnected to {self.port}")
 
     @staticmethod
     def list_dispenser_devices():
         """
-        列出所有可能的分药机设备
-        :return: 可能的分药机设备列表
+        List all possible dispenser devices
+        :return: List of possible dispenser devices
         """
-        print("[扫描] 扫描所有可能的分药机设备...")
-        controller = DispenserController.__new__(DispenserController)  # 创建实例但不调用__init__
+        print("[Scan] Scanning all possible dispenser devices...")
+        controller = DispenserController.__new__(DispenserController)  # Create instance without calling __init__
         
         available_ports = serial.tools.list_ports.comports()
         potential_devices = []
@@ -212,60 +235,60 @@ class DispenserController:
                     'score': score
                 })
         
-        # 按分数排序
+        # Sort by score
         potential_devices.sort(key=lambda x: x['score'], reverse=True)
         
         if potential_devices:
-            print(f"[结果] 找到 {len(potential_devices)} 个可能的分药机设备:")
+            print(f"[Result] Found {len(potential_devices)} possible dispenser devices:")
             for i, device in enumerate(potential_devices, 1):
                 print(f"  {i}. {device['port']}")
-                print(f"     描述: {device['description']}")
-                print(f"     制造商: {device['manufacturer']}")
+                print(f"     Description: {device['description']}")
+                print(f"     Manufacturer: {device['manufacturer']}")
                 print(f"     VID:PID: {device['vid_pid']}")
-                print(f"     匹配度: {device['score']}")
+                print(f"     Match score: {device['score']}")
         else:
-            print("[结果] 未找到可能的分药机设备")
+            print("[Result] No possible dispenser devices found")
         
         return potential_devices
 
 #################
-# 处理分药机反馈 #
+# Handle dispenser feedback #
 #################
     def start_dispenser_feedback_handler(self):
         """
         Start the serial receiver thread to handle feedback from the dispenser.
         """
         if self.is_receiver_thread_running:
-            print("[警告] 串口信息接收线程已经在运行中")
+            print("[Warning] Serial message receiver thread is already running")
             return
             
         self.is_receiver_thread_running = True
         self.receiver_thread = threading.Thread(
             target=self._handle_dispenser_feedback,
-            name="DispenserReceiver"  # 给线程命名便于调试
+            name="DispenserReceiver"  # Name thread for easier debugging
         )
         self.receiver_thread.daemon = True
         self.receiver_thread.start()
-        print("[启动] 串口信息接收线程已启动，现在可以看到所有串口消息")
+        print("[Start] Serial message receiver thread started, now you can see all serial messages")
 
     def _handle_dispenser_feedback(self):
         """
-        接收分药机下位机通过串口传输的消息并对分药机实例属性进行更新
+        Receive messages from dispenser lower computer via serial port and update dispenser instance attributes
         """
         while self.is_receiver_thread_running:
             if self.ser == None:
-                time.sleep(0.01)  # 避免空循环占用CPU
+                time.sleep(0.01)  # Avoid empty loop consuming CPU
                 continue
             try:
                 org = self.ser.readline().decode('utf-8', errors='ignore').strip()
                 if not org:
                     continue
                     
-                print(f"串口接收 >>> {org}")
+                print(f"Serial received >>> {org}")
                 name = None
                 val = None
                 have_received_data = False
-                attr_list = org.split(":")  # 分割字符串，获取属性名和属性值
+                attr_list = org.split(":")  # Split string to get attribute name and value
                 if len(attr_list) >= 1:
                     name = attr_list[0]
                 if len(attr_list) >= 2:
@@ -277,36 +300,36 @@ class DispenserController:
                     if val == 'FINISH':
                         self.machine_state = 3
                         self.err_code = 0
-                        print("[状态更新] 分药完成")
+                        print("[Status Update] Dispensing completed")
                     elif val == 'CNT_ERR':
                         self.machine_state = 3
                         self.err_code = 2
-                        print("[状态更新] 计数错误")
+                        print("[Status Update] Counting error")
                 elif name == "pills out":
                     self.pill_remain = self.total_pill - int(val)
-                    print(f"[药片剩余] 剩余未发药片数量: {self.pill_remain}")
+                    print(f"[Pills Remaining] Remaining undispensed pills: {self.pill_remain}")
                     have_received_data = True
                 elif name == "ACK":
                     self.ACK = True
-                    print("[通信确认] 收到ACK")
+                    print("[Communication Confirmation] ACK received")
                 elif name == "DONE":
                     self.DONE = True
-                    print("[操作完成] 收到DONE")
-                # 只有接收到数据后才需回发ACK
+                    print("[Operation Complete] DONE received")
+                # Only send ACK back after receiving data
                 if have_received_data:
                     self._send_package(b'\x0A', 0)
             except serial.SerialException as e:
-                print(f"[错误] 串口通信异常: {e}")
-                # 可以考虑重连机制
+                print(f"[Error] Serial communication exception: {e}")
+                # Consider reconnection mechanism
                 break
             except UnicodeDecodeError as e:
-                print(f"[错误] 数据解码异常: {e}")
+                print(f"[Error] Data decoding exception: {e}")
                 continue
             except ValueError as e:
-                print(f"[错误] 数据解析异常: {e}")
+                print(f"[Error] Data parsing exception: {e}")
                 continue
             except Exception as e:
-                print(f"[错误] 未知异常: {e}")
+                print(f"[Error] Unknown exception: {e}")
                 continue
 
     def stop_dispenser_feedback_handler(self):
@@ -321,43 +344,43 @@ class DispenserController:
             try:
                 self.receiver_thread.join(timeout=2.0)
                 if self.receiver_thread.is_alive():
-                    print("[警告] 串口信息接收线程无法正常结束，可能存在阻塞")
-                    print("[提示] 建议检查串口读取是否存在死锁")
+                    print("[Warning] Serial message receiver thread cannot terminate normally, possible blocking")
+                    print("[Hint] Suggest checking if serial read has deadlock")
                 else:
-                    print("[成功] 串口信息接收线程已正常结束")
+                    print("[Success] Serial message receiver thread terminated normally")
             except Exception as e:
-                print(f"[错误] 停止接收线程时发生异常: {e}")
+                print(f"[Error] Exception occurred while stopping receiver thread: {e}")
         elif hasattr(self, 'receiver_thread'):
-            print("[信息] 串口接收线程已经停止")
+            print("[Info] Serial receiver thread already stopped")
         else:
-            print("[信息] 串口接收线程尚未创建")
+            print("[Info] Serial receiver thread not yet created")
         # Reset state variables about dispenser's feedback
         self.ACK = False
         self.DONE = False
 
     def __enter__(self):
-        """支持上下文管理器"""
+        """Support context manager"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """自动清理资源"""
+        """Automatically clean up resources"""
         self.stop_dispenser_feedback_handler()
         if self.ser and self.ser.is_open:
             self.ser.close()
-            print("[清理] 串口已关闭")
+            print("[Cleanup] Serial port closed")
 
     def close(self):
-        """手动关闭连接"""
+        """Manually close connection"""
         self.stop_dispenser_feedback_handler()
         if self.ser and self.ser.is_open:
             self.ser.close()
-            print("[清理] 串口已关闭")
+            print("[Cleanup] Serial port closed")
     
     def _wait_ACK(self, timeout=0.2):
         """
-        等待分药机的ACK确认信号。
-        :param timeout: 等待ACK的超时时间（秒）
-        :return: 如果在超时时间内收到ACK，返回True，否则返回False。
+        Wait for ACK confirmation signal from dispenser.
+        :param timeout: Timeout for waiting ACK (seconds)
+        :return: Returns True if ACK received within timeout, otherwise False.
         """
         t0 = time.time()
         while(time.time() - t0 < timeout and not self.ACK):
@@ -366,9 +389,9 @@ class DispenserController:
     
     def _wait_DONE(self, timeout):
         """
-        等待分药机的DONE信号，表示操作完成。
-        :param timeout: 等待DONE的超时时间（秒）
-        :return: 如果在超时时间内收到DONE，返回True，否则返回False。
+        Wait for DONE signal from dispenser, indicating operation completion.
+        :param timeout: Timeout for waiting DONE (seconds)
+        :return: Returns True if DONE received within timeout, otherwise False.
         """
         t0 = time.time()
         while(time.time() - t0 < timeout and not self.DONE):
@@ -377,100 +400,100 @@ class DispenserController:
     
     def _send_package(self, data, repeat=5):
         """
-        发送数据包到分药机，并等待ACK确认。
-        :param data: 要发送的数据包，必须是字节类型。
-        :param repeat: 重发次数，如果发送失败则重发。
-        :return: 如果成功收到ACK，返回True，否则返回False。
+        Send data package to dispenser and wait for ACK confirmation.
+        :param data: Data package to send, must be bytes type.
+        :param repeat: Retransmission count if sending fails.
+        :return: Returns True if ACK received successfully, otherwise False.
         """
-        # 检查串口状态
+        # Check serial port status
         if self.ser is None:
-            print("[错误] 串口未连接，无法发送数据")
+            print("[Error] Serial port not connected, cannot send data")
             return False
-        # 检查发送状态
+        # Check sending status
         if self.is_sending_package:
-            print("[警告] 上一个发送尚未完成")
+            print("[Warning] Previous send not yet completed")
             return False
-        # 参数验证
+        # Parameter validation
         if not isinstance(data, (bytes, bytearray)):
-            print("[错误] 数据必须是字节类型")
+            print("[Error] Data must be bytes type")
             return False
         # Make sure repeat times is not negative
         if repeat < 0:
-            print("[错误] 重发次数不能为负数")
+            print("[Error] Retransmission count cannot be negative")
             return False
         self.is_sending_package = True
         
         try:
-            # 计算CRC校验和
-            crc = sum(data) & 0xFFFF  # 使用位运算确保在16位范围内
-            # 构建数据包
+            # Calculate CRC checksum
+            crc = sum(data) & 0xFFFF  # Use bitwise operation to ensure within 16-bit range
+            # Build data package
             package = b'\xaa\xbb' + data + crc.to_bytes(2, 'little')
-            # 检查是否是ACK命令（0x0A）
+            # Check if it's ACK command (0x0A)
             is_ack_command = len(data) >= 1 and data[0] == 0x0A
             if is_ack_command:
-                # ACK命令直接发送，无需等待回复
+                # ACK command sent directly, no need to wait for reply
                 try:
                     self.ser.write(package)
-                    print(f"[发送ACK给分药机] {package.hex()}")
-                    return True  # ACK命令发送成功即返回
+                    print(f"[Send ACK to dispenser] {package.hex()}")
+                    return True  # ACK command returns success immediately after sending
                 except Exception as e:
-                    print(f"[错误] ACK发送失败: {e}")
+                    print(f"[Error] ACK send failed: {e}")
                     return False
                 
-            # 非ACK命令的正常处理流程
+            # Normal processing flow for non-ACK commands
             # Make sure ACK state is initialized
             self.ACK = False
-            # 首次发送
+            # First send
             try:
                 self.ser.write(package)
-                print(f"[发送] {package.hex()}")
+                print(f"[Send] {package.hex()}")
             except Exception as e:
-                print(f"[错误] 发送数据失败: {e}")
+                print(f"[Error] Data send failed: {e}")
                 return False
             
-            # 等待首次ACK
+            # Wait for first ACK
             if self._wait_ACK(0.2):
-                print("[成功] 收到确认")
+                print("[Success] Confirmation received")
                 return True
             
-            # 重发机制
+            # Retransmission mechanism
             for attempt in range(repeat):
-                print(f"[重发 {attempt + 1}/{repeat}] 未收到确认，重新发送")
+                print(f"[Retransmit {attempt + 1}/{repeat}] No confirmation received, resending")
                 try:
                     self.ser.write(package)
-                    print(f"[重发] {package.hex()}")
+                    print(f"[Retransmit] {package.hex()}")
                 except Exception as e:
-                    print(f"[错误] 重发数据失败: {e}")
+                    print(f"[Error] Retransmit data failed: {e}")
                     continue
                 
                 if self._wait_ACK(0.2):
-                    print("[成功] 重发后收到确认")
+                    print("[Success] Confirmation received after retransmission")
                     return True
-            # 所有重发都失败
-            print(f"[失败] 经过 {repeat} 次重发仍未收到确认")
+            # All retransmissions failed
+            print(f"[Failure] No confirmation received after {repeat} retransmissions")
             return False  
         except Exception as e:
-            print(f"[错误] 发送过程中发生异常: {e}")
+            print(f"[Error] Exception occurred during sending: {e}")
             return False
         finally:
-            # 确保在任何情况下都重置发送状态
+            # Ensure sending status is reset under any circumstances
             self.is_sending_package = False
             
 ##################
-# 分药相关控制命令 #
+# Pill dispensing control commands #
 ##################
     def send_pill_matrix(self, pill_matrix):
         """
-        发送分药命令和药片矩阵到分药机
+        Send dispensing command and pill matrix to dispenser
         """
         assert isinstance(pill_matrix, np.ndarray), "pill_matrix must be a numpy array"
-        self.total_pill = np.sum(pill_matrix) # 更新剩余药片数量
-        self.pill_remain = self.total_pill # 初始化剩余药片数量
+        self.total_pill = np.sum(pill_matrix) # Update remaining pill count
+        self.pill_remain = self.total_pill # Initialize remaining pill count
         cmd = b'\x05'
         data = pill_matrix.tobytes()
         ack = self._send_package(cmd + data, self.repeat)
         if(ack):
-            self.machine_state = 1 # 分药机正在工作    
+            self.machine_state = 1 # Dispenser is working    
             return True
         else:
             print("[error] Send pill matrix fail, Dispenser doesn't respond")
@@ -478,11 +501,11 @@ class DispenserController:
     
     def open_tray(self):
         """
-        发送打开舱门命令到分药机
-        阻塞式
+        Send open tray command to dispenser
+        Blocking operation
         err_code:
-            0: 正常
-            1：超时未响应
+            0: normal
+            1: timeout no response
         """
         cmd = b'\x03'
         if(not self._send_package(cmd, self.repeat)):
@@ -492,11 +515,11 @@ class DispenserController:
         
     def close_tray(self):
         """
-        发送关闭舱门命令到分药机
-        阻塞式
+        Send close tray command to dispenser
+        Blocking operation
         err_code:
-            0: 正常
-            1：超时未响应
+            0: normal
+            1: timeout no response
         """
         cmd = b'\x04'
         if(not self._send_package(cmd, self.repeat)):
@@ -506,11 +529,11 @@ class DispenserController:
     
     def pause_dispenser(self):
         """
-        发送暂停命令到分药机
-        阻塞式
+        Send pause command to dispenser
+        Blocking operation
         err_code:
-            0: 正常
-            1：超时未响应
+            0: normal
+            1: timeout no response
         """
         cmd = b'\x01'
         if(not self._send_package(cmd, self.repeat)):
@@ -518,20 +541,20 @@ class DispenserController:
         self.machine_state = 2
         return 0
     
-    def initialize_dispenser(self):
+    def reset_dispenser(self):
         """
-        机器初始化，清理药盘
-        阻塞式
+        Machine initialization, clean pill tray
+        Blocking operation
         err_code:
-            0: 正常
-            1：超时未响应
+            0: normal
+            1: timeout no response
         """
         cmd = b'\x00'
         if(not self._send_package(cmd, self.repeat)):
             return 1
         DONE = self._wait_DONE(10)
-        time.sleep(6)  # 额外等待6秒确保物理操作完成
-        print("[操作] 分药机已重置")
+        time.sleep(6)  # Additional 6 second wait to ensure physical operation completion
+        print("[Operation] Dispenser has been reset")
         if(DONE):
             self.DONE = False
             self.machine_state = 0
@@ -539,10 +562,10 @@ class DispenserController:
         return 1
     
 #################
-# 设置分药机参数 #
+# Set dispenser parameters #
 #################
 
-    #转盘电机速度设置 speed(float32)
+    # Turntable motor speed setting speed(float32)
     def set_turnMotor_speed(self, speed): 
         cmd = b'\x08'
         id = b'\x00'
@@ -550,7 +573,7 @@ class DispenserController:
             return 1
         return 0
     
-    #舵机角度设置 speed(float32)
+    # Servo angle setting speed(float32)
     def set_servo_angle(self, angle): 
         cmd = b'\x08'
         id = b'\x01'    
@@ -558,7 +581,7 @@ class DispenserController:
             return 1
         return 0
     
-    #上光耦阈值设置 thresh(float32)
+    # Upper optocoupler threshold setting thresh(float32)
     def set_upperOptocoupler_thresh(self, thresh): 
         cmd = b'\x06'
         id = b'\x00'
@@ -566,7 +589,7 @@ class DispenserController:
             return 1
         return 0
     
-    #下光耦阈值设置 thresh(float32)
+    # Lower optocoupler threshold setting thresh(float32)
     def set_lowerOptocoupler_thresh(self, thresh): 
         cmd = b'\x06'
         id = b'\x01'
@@ -574,7 +597,7 @@ class DispenserController:
             return 1
         return 0
     
-    #上光耦脉冲不应期设置 noresp(uint32)
+    # Upper optocoupler pulse refractory period setting noresp(uint32)
     def set_upperOptocoupler_noresp(self, noresp): 
         cmd = b'\x07'
         id = b'\x00'
@@ -582,7 +605,7 @@ class DispenserController:
             return 1
         return 0
     
-    #下光耦脉冲不应期设置 noresp(uint32)
+    # Lower optocoupler pulse refractory period setting noresp(uint32)
     def set_lowerOptocoupler_noresp(self, noresp): 
         cmd = b'\x07'
         id = b'\x01'
@@ -590,7 +613,7 @@ class DispenserController:
             return 1
         return 0
     
-    #转盘电机刹车延时设置 delay_stop(uint32) ms
+    # Turntable motor brake delay setting delay_stop(uint32) ms
     def set_turnMotor_delay_stop(self, delay_stop): 
         cmd = b'\x09'
         id = b'\x00'
@@ -598,14 +621,14 @@ class DispenserController:
             return 1
         return 0
 
-    #清零速度设置 clean_speed(float32)
+    # Clean speed setting clean_speed(float32)
     def set_clean_speed(self, speed): 
         cmd = b'\x0B'
         if(not self._send_package(cmd + struct.pack('<f',speed), self.repeat)):
             return 1
         return 0
     
-    #清零时间设置 clean_delay(uint32) ms
+    # Clean time setting clean_delay(uint32) ms
     def set_clean_delay(self, delay): 
         cmd = b'\x0C'
         if(not self._send_package(cmd + delay.to_bytes(4, 'little'), self.repeat)):
