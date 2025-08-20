@@ -168,4 +168,4 @@ cython_debug/
 #.idea/
 *.zip
 
-settings.json
+.vscode/
