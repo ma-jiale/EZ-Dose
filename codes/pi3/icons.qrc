@@ -1,15 +1,10 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
-    <file>icons/black_check_mark.png</file>
-    <file>icons/green_arrow.png</file>
-    <file>icons/green_cheak_mark.png</file>
-    <file>icons/green_check_mark.png</file>
-    <file>icons/green_plate.png</file>
-    <file>icons/icon.ico</file>
-    <file>icons/icon.png</file>
-    <file>icons/loading.png</file>
-    <file>icons/red_error_mark.png</file>
-    <file>icons/refresh.png</file>
-    <file>icons/stop_dispensing.png</file>
+    <file>icons/capsule.png</file>
+    <file>icons/logo_in_startPage.png</file>
+    <file>icons/icon_help.png</file>
+    <file>icons/icon_machine.png</file>
+    <file>icons/icon_refresh.png</file>
+    <file>icons/icon_setting.png</file>
 </qresource>
 </RCC>

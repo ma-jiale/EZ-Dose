@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>images/profile_photo.png</file>
+    <file>images/img_put_in_tray_guide.png</file>
+    <file>images/img_scanQR_guide.png</file>
+    <file>images/img_medicine_placeholder.png</file>
+</qresource>
+</RCC>
