@@ -19,6 +19,7 @@ class MainController(QObject):
     def __init__(self):
         super().__init__()
         self.dispenser_controller = DispenserController()
+        # self.rx_manager = PatientPrescriptionManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
         self.rx_manager = PatientPrescriptionManager()
 
         # Current dispensing state variables
@@ -134,8 +135,8 @@ class MainController(QObject):
             # Define settings for different pill sizes
             pill_settings = {
                 "S": {"turn_motor_speed": 0.3, "servo_angle": 0.8},  # Small pills: slower speed, smaller angle
-                "M": {"turn_motor_speed": 0.8, "servo_angle": 0.5},   # Medium pills: medium speed, medium angle
-                "L": {"turn_motor_speed": 1.4, "servo_angle": 0.2}   # Large pills: faster speed, larger angle
+                "M": {"turn_motor_speed": 0.5, "servo_angle": 0.5},   # Medium pills: medium speed, medium angle
+                "L": {"turn_motor_speed": 0.8, "servo_angle": 0.2}   # Large pills: faster speed, larger angle
             }
             
             if pill_size not in pill_settings:

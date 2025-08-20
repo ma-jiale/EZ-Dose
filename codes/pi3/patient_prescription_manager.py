@@ -170,7 +170,9 @@ class PatientPrescriptionManager:
                     'is_active': int(record['is_active']),
                     'pill_size': record['pill_size']  # Add pill_size field
                 }
-                medicines.append(medicine)
+                # put active medicine into medicine list
+                if medicine['is_active']:
+                    medicines.append(medicine)
                 
             patient_prescription = {
                 'patient_info': patient_info,

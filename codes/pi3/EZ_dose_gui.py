@@ -20,7 +20,7 @@ class StartupScreen(QDialog):
         # 设置窗口属性
         self.setModal(True)
         self.setWindowFlags(Qt.FramelessWindowHint)  # 无边框窗口
-        self.setFixedSize(400, 300)
+        self.setFixedSize(480, 480)
         
         # 居中显示
         self.center_on_screen()
@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_start_dispensing.clicked.connect(self.manager.start_dispensing)
         self.ui.btn_continue_dispensing.clicked.connect(self.manager.show_today_patients)
         self.ui.btn_finish_dispensing.clicked.connect(self.manager.finish_dispensing)
+        self.ui.btn_refresh_database.clicked.connect(self.manager.refresh_database)
 
     @Slot(object)
     def update_prescription_info(self, pills_dispensing_list):
@@ -85,7 +86,7 @@ class MainWindow(QMainWindow):
             
             # 从patient_id解析楼层和床位号
             # patient_id的第一位代表楼层，后面的位数代表床位号
-            if patient_id > 0:
+            if patient_id:
                 patient_id_str = str(patient_id)
                 floor = patient_id_str[0]  # 第一位是楼层
                 
@@ -222,6 +223,7 @@ class Manager(QObject):
     close_tray_signal = Signal()
     start_dispensing_signal = Signal()
     get_today_patients_signal = Signal(int)
+    refresh_database_signal = Signal()
     #定义相机控制器信号
     init_camera_signal = Signal()
     start_camera_signal = Signal()
@@ -230,7 +232,10 @@ class Manager(QObject):
     set_mode_signal = Signal(object)  # 用于传递 CamMode
     
     def __init__(self):
-        super().__init__() 
+        super().__init__()
+
+        # the variable to track selected patient
+        self.selected_patient_id = None
         
         # 创建并显示启动界面
         self.startup_screen = StartupScreen()
@@ -292,6 +297,7 @@ class Manager(QObject):
         self.close_tray_signal.connect(self.main_controller.close_tray)
         self.start_dispensing_signal.connect(self.main_controller.start_dispensing)
         self.get_today_patients_signal.connect(self.main_controller.get_today_patients)
+        self.refresh_database_signal.connect(self.main_controller.initialize_database)
 
         # 连接信号到主页面的槽
         self.main_controller.prescription_loaded_signal.connect(self.main_window.update_prescription_info)
@@ -410,7 +416,7 @@ class Manager(QObject):
 ####################
 
     @Slot()
-    def check_plate(self, patient):
+    def check_plate(self, patient_id):
         self.today_patient_dialog.accept()
         self.set_display_label("img_cam_frame")
         self.start_camera()
@@ -429,7 +435,6 @@ class Manager(QObject):
         # 分药逻辑
         self.main_window.go_to_page("dispensing")
         print("开始分药")
-        self.close_tray_signal.emit()
         self.start_dispensing_signal.emit()
 
         #数药逻辑
@@ -443,6 +448,14 @@ class Manager(QObject):
         self.set_idle_mode()
         self.pause_camera()
         self.close_tray_signal.emit()
+
+############
+# database #
+############
+
+    @Slot()
+    def refresh_database(self):
+        self.refresh_database_signal.emit()
         
 #######
 # Cam #
@@ -629,6 +642,5 @@ class Manager(QObject):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
     manager = Manager()
     sys.exit(app.exec())
