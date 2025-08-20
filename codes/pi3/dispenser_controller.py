@@ -271,6 +271,10 @@ class DispenserController:
         self.receiver_thread.start()
         print("[Start] Serial message receiver thread started, now you can see all serial messages")
 
+    def set_reset_callback(self, callback):
+        """Set callback function to be called when reset is detected"""
+        self.reset_callback = callback
+        
     def _handle_dispenser_feedback(self):
         """
         Receive messages from dispenser lower computer via serial port and update dispenser instance attributes
@@ -295,7 +299,13 @@ class DispenserController:
                     val = attr_list[1]
 
                 if name == "machine init":
-                    pass
+                    print("[Status Update] Physical reset detected")
+                    self.machine_state = 0  # Reset to idle state
+                    self.pill_remain = -1
+                    self.total_pill = 0
+                    # Call reset callback if set
+                    if self.reset_callback:
+                        self.reset_callback()
                 elif name == "machine_state":
                     if val == 'FINISH':
                         self.machine_state = 3

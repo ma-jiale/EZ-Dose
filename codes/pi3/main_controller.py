@@ -12,7 +12,7 @@ class MainController(QObject):
     current_medicine_info_signal = Signal(str, int)
     dispensing_progress_signal = Signal(int)
     today_patients_ready_signal = Signal(bool, list)  # (success, patients_data)
-    
+    dispenser_reset_signal = Signal()  # Signal for physical reset
     ###############
     # Initialization
     ###############
@@ -28,6 +28,9 @@ class MainController(QObject):
         self.current_medicine_index = 0
         self.is_dispensing = False
         self.max_days = 7
+
+        # Set up reset callback
+        self.dispenser_controller.set_reset_callback(self.on_dispenser_reset)
 
     @Slot()
     def initialize_hardware(self):
@@ -292,6 +295,29 @@ class MainController(QObject):
         except Exception as e:
             error_msg = f"Exception completing dispensing: {str(e)}"
             print(f"[Error] {error_msg}")
+
+#########################
+# Handle physical reset #
+#########################
+    def on_dispenser_reset(self):
+        # Emit reset signal to GUI
+        self.dispenser_reset_signal.emit()
+
+    @Slot()
+    def stop_dispensing(self):
+        """Handle physical reset from dispenser"""
+        print("[Reset] Physical reset detected, stopping dispensing process")
+        # Reset dispensing state
+        self.is_dispensing = False
+        if hasattr(self, 'monitor_timer'):
+            self.monitor_timer.stop()
+        
+        # Clear current dispensing data
+        self.current_pills_dispensing_list = {}
+        self.current_medicines = []
+        self.current_medicine_index = 0
+        
+
 
 
 

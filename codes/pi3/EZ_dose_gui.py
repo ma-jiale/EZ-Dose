@@ -53,19 +53,33 @@ class MainWindow(QMainWindow):
             'scan_rfid': 2,
             'rx': 3,
             'dispensing': 4,
-            'finish': 5
+            'finish': 5,
+            'setting': 6
         }
+        
+        # Define dispensing-related pages
+        self.DISPENSING_PAGES = {'start', 'scan_qrcode', 'scan_rfid', 'rx', 'dispensing'}
+        
+        # Track the last dispensing page visited
+        self.last_dispensing_page = 'start'  # Default to start page
+        
         self.connect_signals()
         # Set initial page
         self.go_to_page('start')
 
-
-
     def go_to_page(self, page_name):
         """Navigate to specified page by name"""
         if page_name in self.PAGES:
+            # Remember the last dispensing page before switching
+            if page_name in self.DISPENSING_PAGES:
+                self.last_dispensing_page = page_name
+            
             self.ui.stackedWidget.setCurrentIndex(self.PAGES[page_name])
             print(f"Navigated to {page_name} page")
+            
+            # Update last dispensing page if it's a dispensing-related page
+            if page_name in self.DISPENSING_PAGES:
+                print(f"Last dispensing page updated to: {page_name}")
         else:
             print(f"Warning: Page '{page_name}' not found")
     
@@ -75,6 +89,19 @@ class MainWindow(QMainWindow):
         self.ui.btn_continue_dispensing.clicked.connect(self.manager.show_today_patients)
         self.ui.btn_finish_dispensing.clicked.connect(self.manager.finish_dispensing)
         self.ui.btn_refresh_database.clicked.connect(self.manager.refresh_database)
+        
+        self.ui.btn_setting_page.clicked.connect(self.go_to_setting_page)
+        self.ui.btn_dispense_page.clicked.connect(self.go_to_last_dispensing_page)
+
+    def go_to_setting_page(self):
+        """Navigate to setting page"""
+        self.go_to_page('setting')
+        print("Navigated to setting page")
+
+    def go_to_last_dispensing_page(self):
+        """Navigate to the last remembered dispensing page"""
+        self.go_to_page(self.last_dispensing_page)
+        print(f"Navigated back to last dispensing page: {self.last_dispensing_page}")
 
     @Slot(object)
     def update_prescription_info(self, pills_dispensing_list):
@@ -224,6 +251,7 @@ class Manager(QObject):
     start_dispensing_signal = Signal()
     get_today_patients_signal = Signal(int)
     refresh_database_signal = Signal()
+    stop_dispensing_signal = Signal()
     #定义相机控制器信号
     init_camera_signal = Signal()
     start_camera_signal = Signal()
@@ -296,6 +324,7 @@ class Manager(QObject):
         self.start_dispensing_signal.connect(self.main_controller.start_dispensing)
         self.get_today_patients_signal.connect(self.main_controller.get_today_patients)
         self.refresh_database_signal.connect(self.main_controller.initialize_database)
+        self.stop_dispensing_signal.connect(self.main_controller.stop_dispensing)
 
         # 连接信号到主页面的槽
         self.main_controller.prescription_loaded_signal.connect(self.main_window.update_prescription_info)
@@ -303,8 +332,9 @@ class Manager(QObject):
         self.main_controller.current_medicine_info_signal.connect(self.main_window.update_current_medicine_info)
         self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
         self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
+        self.main_controller.dispenser_reset_signal.connect(self.handle_dispenser_reset)
 
-        # 连接初始化完成信号（修正信号名称）
+        # 连接初始化完成信号
         self.cam_controller.camera_initialized_signal.connect(self.on_camera_initialized)
         self.main_controller.dispenser_initialized_signal.connect(self.on_dispenser_initialized) 
         self.main_controller.database_connected_signal.connect(self.on_database_connected)
@@ -460,6 +490,31 @@ class Manager(QObject):
         self.set_idle_mode()
         self.pause_camera()
         self.close_tray_signal.emit()
+
+    @Slot()
+    def handle_dispenser_reset(self):
+        """Handle dispenser physical reset"""
+        self.stop_dispensing_signal.emit()
+        # Show warning message
+        if self.main_window:
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle("分药机重置")
+            msg_box.setText("检测到分药机被重置\n分药过程已停止")
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.exec()
+        
+        # Reset camera and UI state
+        self.set_idle_mode()
+        self.pause_camera()
+        
+        # Reset patient selection
+        self.selected_patient_id = None
+        self.is_showing_mismatch_message = False
+        
+        # Go back to start page
+        self.main_window.go_to_page("start")
+        print("[Manager] Returned to start page due to dispenser reset")
 
 ############
 # database #
