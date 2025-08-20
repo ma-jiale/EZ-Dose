@@ -230,12 +230,16 @@ class Manager(QObject):
     stop_camera_signal = Signal()
     pause_camera_signal = Signal()
     set_mode_signal = Signal(object)  # 用于传递 CamMode
+
+    qr_mismatch_signal = Signal()
     
     def __init__(self):
         super().__init__()
 
         # the variable to track selected patient
         self.selected_patient_id = None
+        # the flag to prevent multiple message boxes
+        self.is_showing_mismatch_message = False
         
         # 创建并显示启动界面
         self.startup_screen = StartupScreen()
@@ -260,8 +264,7 @@ class Manager(QObject):
         
         self.connect_signals()
 
-        # 显示定时器
-        # 添加当前显示label的变量
+        # add timer for periodically update the camera feed display in the GUI.
         self.current_display_label = "img_cam_frame"
         self.display_timer = QTimer()
         self.display_timer.timeout.connect(self.display_current_cam_frame)
@@ -272,16 +275,11 @@ class Manager(QObject):
             'database': False, 
             'camera': False
         }
-        
         # 开始初始化流程
         self.start_initialization()
 
-    def start_initialization(self):
-        """开始初始化流程"""
-        self.startup_screen.update_status("正在初始化分药机...")
-        self.init_dispenser_signal.emit()
-
     def connect_signals(self):
+        self.qr_mismatch_signal.connect(self.show_qr_mismatch_message)
         # 连接信号到相机控制器的槽
         self.init_camera_signal.connect(self.cam_controller.initialize_camera)
         self.start_camera_signal.connect(self.cam_controller.start_camera)
@@ -304,12 +302,20 @@ class Manager(QObject):
         self.main_controller.dispensing_progress_signal.connect(self.main_window.update_dispense_progress_bar_value)
         self.main_controller.current_medicine_info_signal.connect(self.main_window.update_current_medicine_info)
         self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
-
         self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
+
         # 连接初始化完成信号（修正信号名称）
         self.cam_controller.camera_initialized_signal.connect(self.on_camera_initialized)
         self.main_controller.dispenser_initialized_signal.connect(self.on_dispenser_initialized) 
         self.main_controller.database_connected_signal.connect(self.on_database_connected)
+
+##############
+# initialize #
+##############
+    def start_initialization(self):
+        """开始初始化流程"""
+        self.startup_screen.update_status("正在初始化分药机...")
+        self.init_dispenser_signal.emit()
 
     @Slot(bool)
     def on_dispenser_initialized(self, success):
@@ -395,6 +401,10 @@ class Manager(QObject):
             # 退出程序
             QApplication.quit()
 
+#############
+# show page #
+#############
+
     def show_main(self):
         self.main_window.show()
     
@@ -404,19 +414,21 @@ class Manager(QObject):
         self.get_today_patients_signal.emit(2)
         self.today_patient_dialog.exec()  # Use exec() for modal dialog
 
+####################
+# Dispensing logic #
+####################
     @Slot(bool, list)
     def on_today_patients_ready(self, success, patients_data):
         """处理今日患者数据返回"""
         if hasattr(self, 'today_patient_dialog'):
             self.today_patient_dialog.generate_today_patient_buttons(success, patients_data)
 
-
-####################
-# Dispensing logic #
-####################
-
     @Slot()
     def check_plate(self, patient_id):
+        # Store the selected patient ID for QR code validation
+        self.selected_patient_id = patient_id
+        print(f"Selected patient ID: {patient_id}")
+        
         self.today_patient_dialog.accept()
         self.set_display_label("img_cam_frame")
         self.start_camera()
@@ -426,7 +438,7 @@ class Manager(QObject):
     @Slot()
     def show_prescriptions(self, id):
         self.main_window.go_to_page("rx")
-        # 请求生成配药列表
+        # 请求生成分药矩阵
         self.generate_pills_dispensing_list_signal.emit(id)
         self.open_tray_signal.emit()
 
@@ -452,7 +464,6 @@ class Manager(QObject):
 ############
 # database #
 ############
-
     @Slot()
     def refresh_database(self):
         self.refresh_database_signal.emit()
@@ -462,7 +473,7 @@ class Manager(QObject):
 #######
     def setup_camera_callbacks(self):
         """Set up callbacks for camera events"""
-        self.cam_controller.set_qr_callback(self.qc_scan_done_callbcak)
+        self.cam_controller.set_qr_callback(self.qr_scan_done_callbcak)
         self.cam_controller.set_pills_count_callback(self.pills_count_done_callback)
 
     def start_camera(self):
@@ -507,14 +518,10 @@ class Manager(QObject):
         self.set_mode_signal.emit(CamMode.IDLE)
         print("Camera idle mode activated")
 
-    def qc_scan_done_callbcak(self, qr_results):
+    def qr_scan_done_callbcak(self, qr_results):
         """Handle QR scan completion"""
         print("QR scan completed")
         if qr_results and self.main_window:
-            # Set camera to idle mode
-            self.set_idle_mode()
-            self.pause_camera()
-            
             # Extract QR data from results
             qr_data_list = []
             for qr in qr_results:
@@ -526,8 +533,27 @@ class Manager(QObject):
                 qr_id = qr_data_list[0]  
                 print(f"All QR codes are identical: {qr_id}")
                 
-                # Call show_prescriptions with the QR code as ID
-                self.show_prescriptions(qr_id)
+                # Check if QR code matches selected patient ID
+                if self.selected_patient_id is not None:
+                    # Convert both to string for comparison to handle different data types
+                    if str(qr_id) == str(self.selected_patient_id):
+                        # QR code matches patient ID - proceed with dispensing
+                        print(f"QR code matches patient ID: {self.selected_patient_id}")
+                        self.set_idle_mode()
+                        self.pause_camera()
+                        self.show_prescriptions(qr_id)
+                    else:
+                        # QR code doesn't match patient ID - show error and continue scanning
+                        print(f"QR code mismatch: scanned {qr_id}, expected {self.selected_patient_id}")
+                        self.qr_mismatch_signal.emit()
+                        # Keep camera in QR scan mode and continue scanning
+                        # Don't pause camera, just continue scanning
+                else:
+                    # No patient selected (shouldn't happen in normal flow)
+                    print("No patient ID selected")
+                    self.set_idle_mode()
+                    self.pause_camera()
+                    self.show_prescriptions(qr_id)
             else:
                 # QR codes are different
                 qr_display_list = []
@@ -535,12 +561,34 @@ class Manager(QObject):
                     qr_display_list.append(f"Type: {qr['type']}, Data: {qr['data']}")
                 
                 qr_data_str = "\n".join(qr_display_list)
-                
-                # Display error message in UI
-                if hasattr(self.main_window.ui, 'qrdata'):
-                    self.main_window.ui.qrdata.setText(f"Multiple different QR codes detected:\n{qr_data_str}")
-                
                 print(f"Multiple different QR codes detected: {qr_data_str}")
+                # Keep scanning for consistent QR codes
+
+    def show_qr_mismatch_message(self):
+        """Show message when QR code doesn't match patient ID"""
+        # Prevent multiple message boxes
+        if self.is_showing_mismatch_message:
+            return
+            
+        if self.main_window:
+            self.is_showing_mismatch_message = True
+            
+            # Temporarily pause QR scanning to prevent multiple detections
+            self.set_idle_mode()
+            
+            # Show message box
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle("药盒验证失败")
+            msg_box.setText("当前药盒并不属于该患者，请检查后重新扫描")
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.exec()
+            
+            # Reset flag and resume QR scanning after user closes the message
+            self.is_showing_mismatch_message = False
+            self.set_qr_scan_mode()  # Resume QR scanning
+            
+            print("QR code mismatch message displayed")
 
     def pills_count_done_callback(self, pills_count_result):
         """Handle pills count results"""
@@ -588,7 +636,6 @@ class Manager(QObject):
             print(f"Failed to save image: {e}")
 
     # 选择label显示摄像头画面
-
     def _display_cam_frame(self, label_name="img_cam_frame"):
         """Get frame from camera and display it in specified Qt label
         
