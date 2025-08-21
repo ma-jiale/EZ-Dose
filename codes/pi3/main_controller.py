@@ -13,21 +13,33 @@ class MainController(QObject):
     dispensing_progress_signal = Signal(int)
     today_patients_ready_signal = Signal(bool, list)  # (success, patients_data)
     dispenser_reset_signal = Signal()  # Signal for physical reset
-    ###############
-    # Initialization
-    ###############
+    plate_transition_signal = Signal(int) # Signal when need to switch plates (plate_number)
+    dispensing_error_signal = Signal(str, int)
+
+##################
+# Initialization #
+##################
     def __init__(self):
         super().__init__()
         self.dispenser_controller = DispenserController()
         # self.rx_manager = PatientPrescriptionManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
         self.rx_manager = PatientPrescriptionManager()
 
+
+        # Maximum number of days for which pills will be dispensed in advance
+        # Controls how many days' worth of medication to prepare for each patient
+        self.max_days = 7
+        
+        # Threshold in days before medicine expiry to trigger dispensing 
+        # Medicines expiring within this many days will be flagged for dispensing
+        self.expiry_days_threshold = 2
+
         # Current dispensing state variables
         self.current_pills_dispensing_list = {}
         self.current_medicines = []
         self.current_medicine_index = 0
+        self.current_plate_number = 1  # Track current plate (1 or 2)
         self.is_dispensing = False
-        self.max_days = 7
 
         # Set up reset callback
         self.dispenser_controller.set_reset_callback(self.on_dispenser_reset)
@@ -55,9 +67,9 @@ class MainController(QObject):
             print(f"[Error] Database loading failed: {e}")
             self.database_connected_signal.emit(False)
 
-    ###########################
-    # Prescription Management #
-    ###########################
+###########################
+# Prescription Management #
+###########################
     @Slot(object)
     def generate_pills_dispensing_list(self, id):
         """Generate pill dispensing list for a patient"""
@@ -66,6 +78,7 @@ class MainController(QObject):
             self.current_pills_dispensing_list = {}
             self.current_medicines = []
             self.current_medicine_index = 0
+            self.current_plate_number = 1  # Start with plate 1
 
             success, pills_dispensing_list = self.rx_manager.generate_pills_dispensing_list(id, self.max_days)
             
@@ -77,26 +90,24 @@ class MainController(QObject):
 
             # Save prescription information and dispensing matrix
             self.current_pills_dispensing_list = pills_dispensing_list
-            self.current_medicines = pills_dispensing_list["medicines_1"]
+            self.current_medicines = pills_dispensing_list.get("medicines_1", [])
             self.current_medicine_index = 0
         except Exception as e:
             print(f"[Error] Exception loading pill dispensing list: {str(e)}")
 
-    @Slot(int)
-    def get_today_patients(self, days_threshold):
+    @Slot()
+    def get_today_patients(self):
         """Get today's patient data (thread-safe)"""
         try:
-            success, patients_data = self.rx_manager.get_patients_for_today(days_threshold)
+            success, patients_data = self.rx_manager.get_patients_for_today(self.expiry_days_threshold)
             self.today_patients_ready_signal.emit(success, patients_data)
         except Exception as e:
             print(f"[Error] Failed to get today patients: {e}")
             self.today_patients_ready_signal.emit(False, [])
 
-
-
-    #####################
-    # Dispenser Control #
-    #####################
+###########################
+# Basic Dispenser Control #
+###########################
     @Slot()
     def open_tray(self):
         """Open the pill tray"""
@@ -107,14 +118,18 @@ class MainController(QObject):
         """Close the pill tray"""
         self.dispenser_controller.close_tray()
 
-    ####################
-    # Dispensing Logic #
-    ####################
+    @Slot()
+    def pause_dispenser(self):
+        self.dispenser_controller.pause_dispenser()
+
+####################
+# Dispensing Logic #
+####################
     @Slot()
     def start_dispensing(self):
         """Start the dispensing process"""
         self.monitor_timer = QTimer()
-        self.monitor_timer.timeout.connect(self.monitor_dispensing_status)
+        self.monitor_timer.timeout.connect(self._monitor_dispensing_status)
         try:
             if not self.current_medicines:
                 print("[Error] No medicines to dispense")
@@ -132,7 +147,29 @@ class MainController(QObject):
         except Exception as e:
             print(f"[Error] Exception starting dispensing: {str(e)}")
 
-    def configure_dispenser_for_pill_size(self, pill_size="M"):
+    @Slot()
+    def start_second_plate_dispensing(self):
+        """Start dispensing second plate after plate change"""
+        try:
+            print("[Dispensing] Starting second plate dispensing")
+            
+            # Switch to second plate medicines
+            self.current_medicines = self.current_pills_dispensing_list.get("medicines_2", [])
+            self.current_medicine_index = 0
+            
+            if not self.current_medicines:
+                print("[Error] No medicines in second plate")
+                self.complete_dispensing()
+                return
+            
+            # Close tray and start dispensing
+            print(f"[Dispensing] Second plate has {len(self.current_medicines)} medicines")
+            self.dispense_next_medicine()
+            
+        except Exception as e:
+            print(f"[Error] Exception starting second plate dispensing: {str(e)}")
+
+    def _configure_dispenser_for_pill_size(self, pill_size="M"):
         """Configure motor speed and servo angle based on pill size"""
         try:
             # Define settings for different pill sizes
@@ -167,11 +204,27 @@ class MainController(QObject):
     def dispense_next_medicine(self):
         """Dispense the next medicine in the queue"""
         try:
+            # Check if current plate is finished
             if self.current_medicine_index >= len(self.current_medicines):
-                # All medicines have been dispensed
-                print("[Dispensing] All medicines dispensed successfully")
-                self.complete_dispensing()
-                return
+                if self.current_plate_number == 1:
+                    # First plate finished, check if there's a second plate
+                    second_plate_medicines = self.current_pills_dispensing_list.get("medicines_2", [])
+                    if second_plate_medicines:
+                        # Need to switch to second plate
+                        print("[Dispensing] First plate completed, requesting plate change")
+                        self.current_plate_number = 2
+                        self.plate_transition_signal.emit(2)  # Signal GUI to scan for plate 2
+                        return
+                    else:
+                        # No second plate, dispensing complete
+                        print("[Dispensing] All medicines dispensed successfully (single plate)")
+                        self.complete_dispensing()
+                        return
+                else:
+                    # Second plate also finished
+                    print("[Dispensing] All medicines dispensed successfully (both plates)")
+                    self.complete_dispensing()
+                    return
             
             current_medicine = self.current_medicines[self.current_medicine_index]
             medicine_name = current_medicine['medicine_name']
@@ -179,9 +232,10 @@ class MainController(QObject):
             # Update medicine expiry date in prescription database
             self.rx_manager.update_medicine_expiry_date(medicine_name)
             
-            print(f"[Dispensing] Starting to dispense medicine {self.current_medicine_index + 1}/{len(self.current_medicines)}: {medicine_name}")
+            plate_info = f"Plate {self.current_plate_number}"
+            print(f"[Dispensing] {plate_info} - Starting to dispense medicine {self.current_medicine_index + 1}/{len(self.current_medicines)}: {medicine_name}")
+            
             pill_matrix = current_medicine["pill_matrix"]
-
             # Print current pill matrix information
             print(f"[Dispensing] {medicine_name} pill matrix:")
             time_labels = ["Morning", "Noon", "Evening", "Night"]
@@ -189,7 +243,7 @@ class MainController(QObject):
                 print(f"  {label}: {' '.join(f'{x:2}' for x in pill_matrix[i])}")
 
             # Configure dispenser based on pill size
-            if not self.configure_dispenser_for_pill_size(current_medicine["pill_size"]):
+            if not self._configure_dispenser_for_pill_size(current_medicine["pill_size"]):
                 print(f"[Error] Failed to configure dispenser for {medicine_name}")
                 return
 
@@ -217,7 +271,7 @@ class MainController(QObject):
             error_msg = f"Dispensing exception: {str(e)}"
             print(f"[Error] {error_msg}")
 
-    def monitor_dispensing_status(self):
+    def _monitor_dispensing_status(self):
         """Monitor the dispensing status"""
         try:
             # If no dispenser or not in dispensing state, stop monitoring
@@ -261,11 +315,15 @@ class MainController(QObject):
                     error_msg = f"{medicine_name} dispensing error, error code: {self.dispenser_controller.err_code}"
                     print(f"[Error] {error_msg}")
 
-                    # Currently continue dispensing next medicine even after failure
-                    # Prepare to dispense next medicine
-                    self.current_medicine_index += 1
-                    # Wait briefly before dispensing next medicine
-                    self.dispense_next_medicine()
+                    # Open tray for manual correction when dispensing error occurs
+                    print("[Error] Opening tray for manual correction...")
+                    self.open_tray()
+                    
+                    # Emit signal to show error message to user
+                    self.dispensing_error_signal.emit(medicine_name, self.dispenser_controller.err_code)
+                    
+                    # Don't automatically continue - wait for user confirmation
+                    # The dispensing will continue when user confirms manual correction is done
                     
             elif self.dispenser_controller.machine_state == 2:  # Paused state
                 print("[Dispensing] Dispensing paused")
@@ -277,16 +335,32 @@ class MainController(QObject):
             error_msg = f"Exception monitoring dispensing status: {str(e)}"
             print(f"[Error] {error_msg}")
 
+    @Slot()
+    def continue_after_manual_correction(self):
+        """Continue dispensing after manual correction is completed"""
+        try:
+            print("[Dispensing] Manual correction completed, closing tray and continuing...")
+            self.close_tray()
+            
+            # Move to next medicine
+            self.current_medicine_index += 1
+            # Continue with next medicine
+            self.dispense_next_medicine()
+            
+        except Exception as e:
+            print(f"[Error] Exception continuing after manual correction: {str(e)}")
+
     def complete_dispensing(self):
         """Complete the dispensing process"""
         try:
             self.rx_manager.upload_prescriptions_to_server()
-            
             self.is_dispensing = False
             self.monitor_timer.stop()
             print("[Dispensing] All medicines dispensed successfully")
             self.dispensing_completed_signal.emit()
-
+            
+            # Pause the turnmotor of dispenser
+            self.pause_dispenser()
             # Open the pill tray
             print("[Dispensing] Opening pill tray...")
             if self.open_tray():
@@ -301,7 +375,8 @@ class MainController(QObject):
 #########################
     def on_dispenser_reset(self):
         # Emit reset signal to GUI
-        self.dispenser_reset_signal.emit()
+        if self.is_dispensing:
+            self.dispenser_reset_signal.emit()
 
     @Slot()
     def stop_dispensing(self):

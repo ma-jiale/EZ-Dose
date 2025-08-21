@@ -67,6 +67,9 @@ class MainWindow(QMainWindow):
         # Set initial page
         self.go_to_page('start')
 
+        # Initialize spinbox values from manager
+        self.initialize_settings_ui()
+
     def go_to_page(self, page_name):
         """Navigate to specified page by name"""
         if page_name in self.PAGES:
@@ -92,6 +95,49 @@ class MainWindow(QMainWindow):
         
         self.ui.btn_setting_page.clicked.connect(self.go_to_setting_page)
         self.ui.btn_dispense_page.clicked.connect(self.go_to_last_dispensing_page)
+
+        self.ui.btn_save_settings.clicked.connect(self.save_settings)
+
+    def initialize_settings_ui(self):
+        """Initialize the settings UI with current values from manager"""
+        # Set spinbox values to current manager parameters
+        if hasattr(self.ui, 'spinBox_max_days'):
+            self.ui.spinBox_max_days.setValue(self.manager.get_max_days())
+        
+        if hasattr(self.ui, 'spinBox_expiry_threshold'):
+            self.ui.spinBox_expiry_threshold.setValue(self.manager.get_expiry_days_threshold())
+
+    def save_settings(self):
+        """Save the settings from spinboxes to manager"""
+        try:
+            # Get values from spinboxes
+            if hasattr(self.ui, 'spinBox_max_days'):
+                max_days = self.ui.spinBox_max_days.value()
+                self.manager.set_max_days(max_days)
+                print(f"[Settings] Max days updated to: {max_days}")
+            
+            if hasattr(self.ui, 'spinBox_expiry_threshold'):
+                expiry_threshold = self.ui.spinBox_expiry_threshold.value()
+                self.manager.set_expiry_days_threshold(expiry_threshold)
+                print(f"[Settings] Expiry threshold updated to: {expiry_threshold}")
+            
+            # Show confirmation message
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("设置保存")
+            msg_box.setText("设置已成功保存")
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.exec()
+            
+        except Exception as e:
+            print(f"[Error] Failed to save settings: {e}")
+            # Show error message
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle("保存失败")
+            msg_box.setText(f"设置保存失败: {str(e)}")
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.exec()
 
     def go_to_setting_page(self):
         """Navigate to setting page"""
@@ -249,7 +295,8 @@ class Manager(QObject):
     open_tray_signal = Signal()
     close_tray_signal = Signal()
     start_dispensing_signal = Signal()
-    get_today_patients_signal = Signal(int)
+    start_second_plate_dispensing_signal = Signal()
+    get_today_patients_signal = Signal()
     refresh_database_signal = Signal()
     stop_dispensing_signal = Signal()
     #定义相机控制器信号
@@ -260,15 +307,24 @@ class Manager(QObject):
     set_mode_signal = Signal(object)  # 用于传递 CamMode
 
     qr_mismatch_signal = Signal()
+    continue_after_manual_correction_signal = Signal()
     
     def __init__(self):
         super().__init__()
 
+        
         # the variable to track selected patient
         self.selected_patient_id = None
         # the flag to prevent multiple message boxes
         self.is_showing_mismatch_message = False
-        
+        self.expected_plate_number = 1
+
+        # 新建主控制器实例
+        self.main_controller = MainController()
+        self.main_controller_thread = QThread()
+        self.main_controller.moveToThread(self.main_controller_thread)
+        self.main_controller_thread.start()
+
         # 创建并显示启动界面
         self.startup_screen = StartupScreen()
         self.startup_screen.show()
@@ -277,11 +333,7 @@ class Manager(QObject):
         self.main_window = MainWindow(self)
         self.today_patient_dialog = None
 
-        # 新建主控制器实例
-        self.main_controller = MainController()
-        self.main_controller_thread = QThread()
-        self.main_controller.moveToThread(self.main_controller_thread)
-        self.main_controller_thread.start()
+
         
         # 新建相机控制器实例
         self.cam_controller = CamController()
@@ -325,14 +377,19 @@ class Manager(QObject):
         self.get_today_patients_signal.connect(self.main_controller.get_today_patients)
         self.refresh_database_signal.connect(self.main_controller.initialize_database)
         self.stop_dispensing_signal.connect(self.main_controller.stop_dispensing)
+        self.start_second_plate_dispensing_signal.connect(self.main_controller.start_second_plate_dispensing)
+        self.continue_after_manual_correction_signal.connect(self.main_controller.continue_after_manual_correction)
 
         # 连接信号到主页面的槽
         self.main_controller.prescription_loaded_signal.connect(self.main_window.update_prescription_info)
         self.main_controller.dispensing_progress_signal.connect(self.main_window.update_dispense_progress_bar_value)
         self.main_controller.current_medicine_info_signal.connect(self.main_window.update_current_medicine_info)
         self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
+
         self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
         self.main_controller.dispenser_reset_signal.connect(self.handle_dispenser_reset)
+        self.main_controller.plate_transition_signal.connect(self.handle_plate_transition)
+        self.main_controller.dispensing_error_signal.connect(self.handle_dispensing_error)
 
         # 连接初始化完成信号
         self.cam_controller.camera_initialized_signal.connect(self.on_camera_initialized)
@@ -430,9 +487,30 @@ class Manager(QObject):
         else:
             # 退出程序
             QApplication.quit()
+############
+# Settings #
+############
+    def get_max_days(self):
+        """Get current max_days value from main_controller"""
+        return self.main_controller.max_days if self.main_controller else 7
 
+    def set_max_days(self, value):
+        """Set max_days value in main_controller"""
+        if self.main_controller:
+            self.main_controller.max_days = value
+            print(f"[Manager] Max days set to: {value}")
+
+    def get_expiry_days_threshold(self):
+        """Get current expiry_days_threshold value from main_controller"""
+        return self.main_controller.expiry_days_threshold if self.main_controller else 2
+
+    def set_expiry_days_threshold(self, value):
+        """Set expiry_days_threshold value in main_controller"""
+        if self.main_controller:
+            self.main_controller.expiry_days_threshold = value
+            print(f"[Manager] Expiry days threshold set to: {value}")
 #############
-# show page #
+# Show page #
 #############
 
     def show_main(self):
@@ -441,7 +519,7 @@ class Manager(QObject):
     def show_today_patients(self):
         """Show today's patient dialog"""
         self.today_patient_dialog = TodayPatientDialog(self)
-        self.get_today_patients_signal.emit(2)
+        self.get_today_patients_signal.emit()
         self.today_patient_dialog.exec()  # Use exec() for modal dialog
 
 ####################
@@ -467,9 +545,10 @@ class Manager(QObject):
 
     @Slot()
     def show_prescriptions(self, id):
-        self.main_window.go_to_page("rx")
         # 请求生成分药矩阵
-        self.generate_pills_dispensing_list_signal.emit(id)
+        if self.expected_plate_number == 1:
+            self.generate_pills_dispensing_list_signal.emit(id)
+        self.main_window.go_to_page("rx")
         self.open_tray_signal.emit()
 
     @Slot()
@@ -477,8 +556,11 @@ class Manager(QObject):
         # 分药逻辑
         self.main_window.go_to_page("dispensing")
         print("开始分药")
-        self.start_dispensing_signal.emit()
-
+        if self.expected_plate_number == 1:
+            self.start_dispensing_signal.emit()
+        else:
+            self.expected_plate_number == 1
+            self.start_second_plate_dispensing_signal.emit()
         #数药逻辑
         self.set_display_label("img_pillcount_frame") 
         self.start_camera()
@@ -515,6 +597,39 @@ class Manager(QObject):
         # Go back to start page
         self.main_window.go_to_page("start")
         print("[Manager] Returned to start page due to dispenser reset")
+
+    @Slot(int)
+    def handle_plate_transition(self, plate_number):
+        """Handle transition between plates"""
+        print(f"[Manager] Plate transition requested: switching to plate {plate_number}")
+        
+        # Store expected plate number for QR validation
+        self.expected_plate_number = plate_number
+        
+        # Go to QR scan page for plate verification
+        self.set_display_label("img_cam_frame")
+        self.start_camera()
+        self.set_qr_scan_mode()
+        self.main_window.ui.txt_guide_in_scan_qrcode.setText("第一盘药盒已经分完，请扫描第二盘药盒二维码")
+        self.main_window.go_to_page("scan_qrcode")
+        
+        print(f"[Manager] Ready to scan QR code for plate {plate_number}")
+
+    @Slot(str, int)
+    def handle_dispensing_error(self, medicine_name, error_code):
+        """Handle dispensing error by showing message and waiting for user confirmation"""
+        if self.main_window:
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle("分药错误")
+            msg_box.setText(f"药物 {medicine_name} 分药出错\n错误代码: {error_code}\n\n药盒已自动打开，请手动调整分药排列\n完成后点击确定继续")
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            
+            # When user clicks OK, continue with next medicine
+            result = msg_box.exec()
+            if result == QMessageBox.Ok:
+                self.continue_after_manual_correction_signal.emit()
+    
 
 ############
 # database #

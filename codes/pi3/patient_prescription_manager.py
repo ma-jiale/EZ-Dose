@@ -220,13 +220,14 @@ class PatientPrescriptionManager:
             
             # Process each medicine
             for medicine in medicines:
+
                 # 计算并存储配药天数
                 dispensing_days = self._calculate_dispensing_days(medicine, max_days)
                 self.current_dispensing_days[medicine['medicine_name']] = dispensing_days
                 
                 self._process_medicine_for_dispensing(
-                    medicine, prescription_data, max_days, 
-                    has_before_meal, has_after_meal, pills_dispensing_list
+                    medicine, max_days, has_before_meal, 
+                    has_after_meal, pills_dispensing_list
                 )
             
             return True, pills_dispensing_list
@@ -282,7 +283,7 @@ class PatientPrescriptionManager:
         matrix[2, col] = medicine['morning_dosage']   # Morning (row 2)
         matrix[3, col] = 0                            # Reserved (row 3)
 
-    def _process_medicine_for_dispensing(self, medicine, prescription_data, max_days, 
+    def _process_medicine_for_dispensing(self, medicine, max_days, 
                                        has_before_meal, has_after_meal, pills_dispensing_list):
         """Process a single medicine for dispensing"""
         medicine_name = medicine['medicine_name']
@@ -321,7 +322,8 @@ class PatientPrescriptionManager:
                     "pill_size": pill_size  # Add pill_size to the dispensing list
                 }
                 pills_dispensing_list['medicines_2'].append(drug_info_2)
-        
+
+
     def update_medicine_expiry_date(self, medicine_name: str):
         """
         Update medicine expiry date after dispensing
