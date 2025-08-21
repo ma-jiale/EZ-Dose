@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # File paths
-PRESCRIPTIONS_FILE = 'local_prescriptions_data.csv'
+PRESCRIPTIONS_FILE = 'prescriptions_data.csv'
 PATIENTS_FILE = 'patient.csv'
 
 def read_csv_safe(filename):
@@ -53,7 +53,7 @@ def home():
     })
 
 @app.route('/api/patients', methods=['GET'])
-def get_patients():
+def get_patients_for_dispensing():
     """Get all patients"""
     patients = read_csv_safe(PATIENTS_FILE)
     return jsonify({
@@ -63,7 +63,7 @@ def get_patients():
     })
 
 @app.route('/api/prescriptions', methods=['GET'])
-def get_prescriptions():
+def get_prescriptions_for_dispensing():
     """Get all prescriptions"""
     prescriptions = read_csv_safe(PRESCRIPTIONS_FILE)
     return jsonify({
@@ -73,7 +73,7 @@ def get_prescriptions():
     })
 
 @app.route('/api/patients/upload', methods=['POST'])
-def upload_patients():
+def upload_patients_dispensing():
     """Upload multiple patients (replaces existing data)"""
     try:
         data = request.get_json()
@@ -115,7 +115,7 @@ def upload_patients():
         }), 500
 
 @app.route('/api/prescriptions/upload', methods=['POST'])
-def upload_prescriptions():
+def upload_prescriptions_for_dispensing():
     """Upload multiple prescriptions (replaces existing data)"""
     try:
         data = request.get_json()
