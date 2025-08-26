@@ -109,7 +109,7 @@ class AddPatientDialog(QDialog):
         """获取输入的患者数据"""
         return {
             'patientName': self.name_input.text().strip(),
-            'id': self.id_input.text().strip()
+            'patientId': self.id_input.text().strip()
         }
     
     def validate_input(self):
@@ -120,13 +120,13 @@ class AddPatientDialog(QDialog):
             QMessageBox.warning(self, "警告", "请输入患者姓名")
             return False
         
-        if not patient_data['id']:
+        if not patient_data['patientId']:
             QMessageBox.warning(self, "警告", "请输入患者ID")
             return False
         
         # 验证ID是否为数字
         try:
-            int(patient_data['id'])
+            int(patient_data['patientId'])
         except ValueError:
             QMessageBox.warning(self, "警告", "患者ID必须是数字")
             return False
@@ -450,7 +450,7 @@ class MedicineSettingDialog(QDialog):
         if self.rx_manager.df is not None and not self.rx_manager.df.empty:
             patient_id = self.current_patient_info['patient_id']
             existing_mask = (
-                (self.rx_manager.df['id'].astype(str) == str(patient_id)) & 
+                (self.rx_manager.df['patientId'].astype(str) == str(patient_id)) & 
                 (self.rx_manager.df['medicine_name'] == medicine_name)
             )
             return not self.rx_manager.df[existing_mask].empty
@@ -747,7 +747,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
                 return
             
             # 检查患者是否已存在
-            if self.patient_manager.check_patient_exists(patient_data['patientName'], patient_data['id']):
+            if self.patient_manager.check_patient_exists(patient_data['patientName'], patient_data['patientId']):
                 QMessageBox.warning(self, "警告", "该患者姓名或ID已存在，请检查后重新输入")
                 return
             
@@ -891,14 +891,14 @@ class PatientPrescriptionMainWindow(QMainWindow):
                 return None
             
             # 获取第一个匹配的患者ID的所有记录
-            patient_id = matching_patients.iloc[0]['id']
-            patient_medicines = self.rx_manager.df[self.rx_manager.df['id'] == patient_id]
+            patient_id = matching_patients.iloc[0]['patientId']
+            patient_medicines = self.rx_manager.df[self.rx_manager.df['patientId'] == patient_id]
             
             # 获取患者基本信息
             first_record = patient_medicines.iloc[0]
             
             patient_info = {
-                'patient_id': str(first_record['id']),
+                'patient_id': str(first_record['patientId']),
                 'patient_name': first_record['patient_name'],
                 'medicines': []
             }
