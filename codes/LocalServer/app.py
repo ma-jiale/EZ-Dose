@@ -8,7 +8,7 @@ CORS(app)  # Enable CORS for all routes
 
 # File paths
 PRESCRIPTIONS_FILE = 'prescriptions_data.csv'
-PATIENTS_FILE = 'patient.csv'
+PATIENTS_FILE = 'patients.csv'
 
 def read_csv_safe(filename):
     """Safely read CSV file and return data or empty list if file doesn't exist"""
@@ -73,7 +73,7 @@ def get_prescriptions_for_dispensing():
     })
 
 @app.route('/api/patients/upload', methods=['POST'])
-def upload_patients_dispensing():
+def upload_patients_for_dispensing():
     """Upload multiple patients (replaces existing data)"""
     try:
         data = request.get_json()
@@ -88,14 +88,14 @@ def upload_patients_dispensing():
         
         # Validate each patient
         for i, patient in enumerate(patients):
-            if not isinstance(patient, dict) or 'patientName' not in patient or 'id' not in patient:
+            if not isinstance(patient, dict) or 'patientName' not in patient or 'patientId' not in patient:
                 return jsonify({
                     "success": False,
-                    "message": f"Invalid patient data at index {i}. Required: patientName, id"
+                    "message": f"Invalid patient data at index {i}. Required: patientName, patientId"
                 }), 400
         
         # Write to CSV (replaces existing file)
-        fieldnames = ['patientName', 'id']
+        fieldnames = ['patientName', 'patientId']
         if write_csv_safe(PATIENTS_FILE, patients, fieldnames):
             return jsonify({
                 "success": True,
@@ -129,7 +129,7 @@ def upload_prescriptions_for_dispensing():
         prescriptions = data['prescriptions']
         
         # Validate each prescription
-        required_fields = ['patient_name', 'id', 'medicine_name', 'morning_dosage', 
+        required_fields = ['patient_name', 'patientId', 'medicine_name', 'morning_dosage', 
                           'noon_dosage', 'evening_dosage', 'meal_timing', 'start_date', 
                           'duration_days', 'pill_size']
         
@@ -154,7 +154,7 @@ def upload_prescriptions_for_dispensing():
             prescription.setdefault('is_active', 1)
         
         # Write to CSV (replaces existing file)
-        fieldnames = ['patient_name', 'id', 'rfid', 'medicine_name', 'morning_dosage',
+        fieldnames = ['patient_name', 'patientId', 'rfid', 'medicine_name', 'morning_dosage',
                      'noon_dosage', 'evening_dosage', 'meal_timing', 'start_date',
                      'duration_days', 'last_dispensed_expiry_date', 'is_active', 'pill_size']
         
