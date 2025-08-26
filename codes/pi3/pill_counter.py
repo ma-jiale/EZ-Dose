@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import time
 from collections import deque
 import statistics
 
@@ -18,6 +17,7 @@ class PillCounter:
             
         self.background = None
         self.background_captured = False
+
         self.edge_threshold = 1000  # 边缘检测阈值
         self.recent_edge_counts = deque(maxlen=10)  # 存储最近的边缘数量
         self.stable_frames_needed = 15  # 需要稳定的帧数
@@ -31,7 +31,7 @@ class PillCounter:
         
         # 轮廓过滤参数
         self.min_contour_area = 50
-        self.max_contour_area = 10000  # 防止检测到过大的区域
+        self.max_contour_area = 100000  # 防止检测到过大的区域
         self.convexity_threshold = 0.90  # 提高凸包度阈值，更严格
         
         # 形状分析参数
@@ -211,12 +211,14 @@ class PillCounter:
         # 更精确的估算
         if ratio < 0.7:
             return 0  # 太小，可能是噪声
-        elif ratio <= 1.3:
+        elif ratio <= 1.2:
             return 1  # 单个药片
-        elif ratio <= 2.2:
+        elif ratio <= 2.4:
             return 2  # 两个药片
-        elif ratio <= 3.2:
+        elif ratio <= 3.6:
             return 3  # 三个药片
+        elif ratio <= 4.8:
+            return 4  # 三个药片
         else:
             return max(1, round(ratio))  # 更多药片
     
@@ -234,7 +236,7 @@ class PillCounter:
         if features['aspect_ratio'] > 2.5:
             # 根据长宽比估算数量
             estimated = max(1, round(features['aspect_ratio'] / 2.5))
-            return min(estimated, 4)  # 最多估算4个
+            return min(estimated, 6)  # 最多估算4个
         
         return 1
     
@@ -275,14 +277,15 @@ class PillCounter:
         if not self.background_captured:
             return 0, frame
         
-        # 裁切画面
+        # # 裁切画面
         cropped_frame = self.crop_frame(frame)
         
         # 预处理图像（包含腐蚀分离）
         binary = self.preprocess_image(frame)
-        
+        # cv2.imshow("第一次腐蚀操作", binary)
         # 额外的轮廓分离处理
         processed_binary = self.separate_contours(binary)
+        # cv2.imshow("第二次腐蚀操作", binary)
         
         # 查找轮廓
         contours, _ = cv2.findContours(processed_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -344,11 +347,11 @@ class PillCounter:
         # 处理多药片轮廓
         for contour in multiple_pill_contours:
             # 结合面积和几何特征估算
-            area_estimate = self.detect_multiple_pills_by_area(contour, reference_area)
-            geometry_estimate = self.detect_multiple_pills_by_geometry(contour)
+            estimated_pills = area_estimate = self.detect_multiple_pills_by_area(contour, reference_area)
+            # geometry_estimate = self.detect_multiple_pills_by_geometry(contour)
             
-            # 取较大值作为最终估算（更保守）
-            estimated_pills = max(area_estimate, geometry_estimate)
+            # # 取较大值作为最终估算（更保守）
+            # estimated_pills = max(area_estimate, geometry_estimate)
             total_pills += estimated_pills
         
         # 绘制结果（在原始frame上，考虑裁切偏移）
