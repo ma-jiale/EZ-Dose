@@ -56,7 +56,7 @@ class DispenserController:
             
             # Start feedback handler thread
             self.start_dispenser_feedback_handler()
-            self.reset_dispenser()
+            # self.reset_dispenser()
             
             print("[Success] Dispenser initialization completed successfully")
             return True
