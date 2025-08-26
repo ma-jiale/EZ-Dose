@@ -16,7 +16,7 @@ class PatientInfoManager:
             server_url: 服务器URL
         """
         if csv_file_path is None:
-            self.csv_file_path = os.path.join(os.path.dirname(__file__), 'patient.csv')
+            self.csv_file_path = os.path.join(os.path.dirname(__file__), 'patients.csv')
         else:
             self.csv_file_path = csv_file_path
         
@@ -32,7 +32,7 @@ class PatientInfoManager:
             bool: 创建是否成功
         """
         try:
-            empty_df = pd.DataFrame(columns=['patientName', 'id'])
+            empty_df = pd.DataFrame(columns=['patientName', 'patientId'])
             empty_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
             print(f"创建空的患者文件: {self.csv_file_path}")
             return True
@@ -83,7 +83,7 @@ class PatientInfoManager:
                 print(f"警告: 患者文件不存在: {self.csv_file_path}")
                 # 创建空的CSV文件
                 self.create_empty_patient_csv()
-                self.patient_df = pd.DataFrame(columns=['patientName', 'id'])
+                self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
                 return True
             
             # 读取CSV文件
@@ -101,13 +101,13 @@ class PatientInfoManager:
             
             print(f"成功加载 {len(self.patient_df)} 个患者:")
             for _, row in self.patient_df.iterrows():
-                print(f"  - {row['patientName']} (ID: {row['id']})")
+                print(f"  - {row['patientName']} (patientId: {row['patientId']})")
             
             return True
             
         except Exception as e:
             print(f"加载患者列表失败: {str(e)}")
-            self.patient_df = pd.DataFrame(columns=['patientName', 'id'])
+            self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
             return False
     
     def write_local_patient_list(self, patient_data: Dict[str, str]) -> bool:
@@ -115,14 +115,14 @@ class PatientInfoManager:
         保存患者信息到CSV文件
         
         Args:
-            patient_data: 患者数据字典，包含 'patientName' 和 'id' 字段
+            patient_data: 患者数据字典，包含 'patientName' 和 'patientId' 字段
         
         Returns:
             bool: 保存是否成功
         """
         try:
             # 验证必要字段
-            if 'patientName' not in patient_data or 'id' not in patient_data:
+            if 'patientName' not in patient_data or 'patientId' not in patient_data:
                 print("错误: 患者数据缺少必要字段")
                 return False
             
@@ -143,7 +143,7 @@ class PatientInfoManager:
             # 更新内存中的数据
             self.patient_df = updated_df
             
-            print(f"成功保存患者: {patient_data['patientName']} (ID: {patient_data['id']})")
+            print(f"成功保存患者: {patient_data['patientName']} (patientId: {patient_data['patientId']})")
             return True
             
         except Exception as e:
@@ -182,7 +182,7 @@ class PatientInfoManager:
                         return True
                     else:
                         # 服务器返回空列表
-                        self.patient_df = pd.DataFrame(columns=['patientName', 'id'])
+                        self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
                         print("服务器返回空的患者列表")
                         return True
                 else:
@@ -212,10 +212,10 @@ class PatientInfoManager:
                 # 确保数据格式正确
                 for patient in patients_data:
                     # 确保ID是字符串或数字
-                    if pd.isna(patient.get('id')):
-                        patient['id'] = ''
+                    if pd.isna(patient.get('patientId')):
+                        patient['patientId'] = ''
                     else:
-                        patient['id'] = str(patient['id'])
+                        patient['patientId'] = str(patient['patientId'])
                     
                     # 确保patientName存在且不为空
                     if pd.isna(patient.get('patientName')):
@@ -284,7 +284,7 @@ class PatientInfoManager:
                 name_exists = (self.patient_df['patientName'] == patient_name).any()
             
             if patient_id:
-                id_exists = (self.patient_df['id'].astype(str) == str(patient_id)).any()
+                id_exists = (self.patient_df['patientId'].astype(str) == str(patient_id)).any()
             
             return name_exists or id_exists
             
@@ -330,7 +330,7 @@ class PatientInfoManager:
             
             return {
                 'patient_name': patient_row['patientName'],
-                'patient_id': str(patient_row['id']) if pd.notna(patient_row['id']) else '未知'
+                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else '未知'
             }
             
         except Exception as e:
@@ -351,7 +351,7 @@ class PatientInfoManager:
             return None
         
         try:
-            matching_patients = self.patient_df[self.patient_df['id'].astype(str) == str(patient_id)]
+            matching_patients = self.patient_df[self.patient_df['patientId'].astype(str) == str(patient_id)]
             
             if matching_patients.empty:
                 return None
@@ -359,7 +359,7 @@ class PatientInfoManager:
             patient_row = matching_patients.iloc[0]
             return {
                 'patient_name': patient_row['patientName'],
-                'patient_id': str(patient_row['id']) if pd.notna(patient_row['id']) else '未知'
+                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else '未知'
             }
             
         except Exception as e:
@@ -381,7 +381,7 @@ class PatientInfoManager:
             for _, row in self.patient_df.iterrows():
                 patients.append({
                     'patient_name': row['patientName'],
-                    'patient_id': str(row['id']) if pd.notna(row['id']) else '未知'
+                    'patient_id': str(row['patientId']) if pd.notna(row['patientId']) else '未知'
                 })
             return patients
             
@@ -405,7 +405,7 @@ class PatientInfoManager:
         
         try:
             # 查找患者
-            mask = self.patient_df['id'].astype(str) == str(old_patient_id)
+            mask = self.patient_df['patientId'].astype(str) == str(old_patient_id)
             if not mask.any():
                 print(f"未找到ID为 {old_patient_id} 的患者")
                 return False
@@ -440,7 +440,7 @@ class PatientInfoManager:
         
         try:
             # 查找患者
-            mask = self.patient_df['id'].astype(str) == str(patient_id)
+            mask = self.patient_df['patientId'].astype(str) == str(patient_id)
             if not mask.any():
                 print(f"未找到ID为 {patient_id} 的患者")
                 return False
@@ -485,11 +485,11 @@ class PatientInfoManager:
         if 'patientName' not in patient_data:
             return False, "缺少患者姓名"
         
-        if 'id' not in patient_data:
+        if 'patientId' not in patient_data:
             return False, "缺少患者ID"
         
         patient_name = patient_data['patientName'].strip() if patient_data['patientName'] else ''
-        patient_id = str(patient_data['id']).strip() if patient_data['id'] else ''
+        patient_id = str(patient_data['patientId']).strip() if patient_data['patientId'] else ''
         
         if not patient_name:
             return False, "患者姓名不能为空"

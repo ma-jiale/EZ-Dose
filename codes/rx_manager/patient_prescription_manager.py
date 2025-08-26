@@ -5,7 +5,7 @@ import numpy as np
 import requests
 
 class PatientPrescriptionManager:
-    def __init__(self, server_url="http://localhost:5000/api"):
+    def __init__(self, server_url="http://localhost:5000"):
         self.df = None
         self.csv_file_path = "local_prescriptions_data.csv"
         # 添加当前处理的处方数据
@@ -54,7 +54,7 @@ class PatientPrescriptionManager:
     def fetch_online_prescriptions(self):
         """load prescriptions from server"""
         try:
-            response = requests.get(f"{self.server_url}/prescriptions", timeout=10)
+            response = requests.get(f"{self.server_url}/api/prescriptions", timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success') and data.get('data'):
@@ -94,7 +94,7 @@ class PatientPrescriptionManager:
             
             # Send to server
             response = requests.post(
-                f"{self.server_url}/prescriptions/upload",
+                f"{self.server_url}/api/prescriptions/upload",
                 json=payload,
                 headers={'Content-Type': 'application/json'},
                 timeout=30
@@ -119,11 +119,11 @@ class PatientPrescriptionManager:
             print(f"[Error] Error uploading prescriptions to server: {e}")
             return False
 
-    def get_patient_prescription(self, id):
+    def get_patient_prescription(self, patientId):
         """
         Get patient prescription information by patient ID
         Args:
-            id: Patient identifier (RFID or patient ID)
+            patientId: Patient identifier (RFID or patient ID)
         Returns:
             Tuple[bool, Dict]
             Dict: Patient info and prescription details or error msg
@@ -133,15 +133,15 @@ class PatientPrescriptionManager:
             if self.df is None or self.df.empty:
                 return False, {'error': 'Database not available', 'error_code': 503}
             
-            if not id or not str(id).strip():
+            if not patientId or not str(patientId).strip():
                 return False, {'error': 'Patient ID required', 'error_code': 400}
             
-            identifier = str(id).strip()
+            identifier = str(patientId).strip()
             
             # Find patient records by RFID or ID
             records = self.df[
                 (self.df['rfid'].astype(str).str.strip() == identifier) |
-                (self.df['id'].astype(str).str.strip() == identifier)
+                (self.df['patientId'].astype(str).str.strip() == identifier)
             ]
             
             if records.empty:
@@ -151,7 +151,7 @@ class PatientPrescriptionManager:
             first_record = records.iloc[0]
             patient_info = {
                 'patient_name': first_record['patient_name'],
-                'patient_id': first_record['id'],
+                'patient_id': first_record['patientId'],
                 'rfid': first_record['rfid'],
             }
             
@@ -170,7 +170,9 @@ class PatientPrescriptionManager:
                     'is_active': int(record['is_active']),
                     'pill_size': record['pill_size']  # Add pill_size field
                 }
-                medicines.append(medicine)
+                # put active medicine into medicine list
+                if medicine['is_active']:
+                    medicines.append(medicine)
                 
             patient_prescription = {
                 'patient_info': patient_info,
@@ -181,12 +183,12 @@ class PatientPrescriptionManager:
         except Exception as e:
             return False, {'error': f'Query error: {str(e)}', 'error_code': 500}
 
-    def generate_pills_dispensing_list(self, id, max_days=7):
+    def generate_pills_dispensing_list(self, patientId, max_days=7):
         """
         Generate pills dispensing list with 4x7 matrix for each medicine
         
         Args:
-            id: Patient identifier (RFID or patient ID)
+            patientId: Patient identifier (RFID or patient ID)
             max_days: Maximum days to dispense
             
         Returns:
@@ -194,7 +196,7 @@ class PatientPrescriptionManager:
         """
         try:
             # Get prescription data
-            success, prescription_data = self.get_patient_prescription(id)
+            success, prescription_data = self.get_patient_prescription(patientId)
             if not success:
                 return False, prescription_data
             
@@ -218,13 +220,14 @@ class PatientPrescriptionManager:
             
             # Process each medicine
             for medicine in medicines:
+
                 # 计算并存储配药天数
                 dispensing_days = self._calculate_dispensing_days(medicine, max_days)
                 self.current_dispensing_days[medicine['medicine_name']] = dispensing_days
                 
                 self._process_medicine_for_dispensing(
-                    medicine, prescription_data, max_days, 
-                    has_before_meal, has_after_meal, pills_dispensing_list
+                    medicine, max_days, has_before_meal, 
+                    has_after_meal, pills_dispensing_list
                 )
             
             return True, pills_dispensing_list
@@ -280,7 +283,7 @@ class PatientPrescriptionManager:
         matrix[2, col] = medicine['morning_dosage']   # Morning (row 2)
         matrix[3, col] = 0                            # Reserved (row 3)
 
-    def _process_medicine_for_dispensing(self, medicine, prescription_data, max_days, 
+    def _process_medicine_for_dispensing(self, medicine, max_days, 
                                        has_before_meal, has_after_meal, pills_dispensing_list):
         """Process a single medicine for dispensing"""
         medicine_name = medicine['medicine_name']
@@ -319,7 +322,8 @@ class PatientPrescriptionManager:
                     "pill_size": pill_size  # Add pill_size to the dispensing list
                 }
                 pills_dispensing_list['medicines_2'].append(drug_info_2)
-        
+
+
     def update_medicine_expiry_date(self, medicine_name: str):
         """
         Update medicine expiry date after dispensing
@@ -387,7 +391,7 @@ class PatientPrescriptionManager:
             if self.df is not None:
                 # Find the specific record to update
                 mask = (
-                    (self.df['id'].astype(str) == str(patient_id)) & 
+                    (self.df['patientId'].astype(str) == str(patient_id)) & 
                     (self.df['medicine_name'] == medicine_name)
                 )
                 
@@ -420,7 +424,7 @@ class PatientPrescriptionManager:
             df_copy['rfid'] = df_copy['rfid'].fillna('')
             
             # Group by patient to avoid duplicates
-            patient_groups = df_copy.groupby(['id', 'patient_name', 'rfid'])
+            patient_groups = df_copy.groupby(['patientId', 'patient_name', 'rfid'])
             print(f"[Debug] Found {len(patient_groups)} patient groups")
             
             for (patient_id, patient_name, rfid), group in patient_groups:
@@ -542,7 +546,7 @@ class PatientPrescriptionManager:
                 # Create record for CSV according to actual structure
                 record = {
                     'patient_name': patient_info['patient_name'],
-                    'id': patient_info['patient_id'],
+                    'patientId': patient_info['patient_id'],
                     'rfid': patient_info['rfid'],
                     'medicine_name': medicine['medicine_name'],
                     'morning_dosage': int(medicine['morning_dosage']),
@@ -561,7 +565,7 @@ class PatientPrescriptionManager:
             patient_id = patient_info['patient_id']
             for record in new_records:
                 existing_mask = (
-                    (self.df['id'].astype(str) == str(patient_id)) & 
+                    (self.df['patientId'].astype(str) == str(patient_id)) & 
                     (self.df['medicine_name'] == record['medicine_name'])
                 )
                 if not self.df[existing_mask].empty:
@@ -695,7 +699,7 @@ class PatientPrescriptionManager:
                 self.df = pd.DataFrame()
             
             # Check if patient exists
-            patient_records = self.df[self.df['id'].astype(str) == str(patient_id)]
+            patient_records = self.df[self.df['patientId'].astype(str) == str(patient_id)]
             patient_exists = not patient_records.empty
             
             if patient_exists:
@@ -725,7 +729,7 @@ class PatientPrescriptionManager:
                 # Create record for CSV
                 record = {
                     'patient_name': patient_info['patient_name'],
-                    'id': patient_info['patient_id'],
+                    'patientId': patient_info['patient_id'],
                     'rfid': rfid,  # Use default empty string if not provided
                     'medicine_name': medicine['medicine_name'],
                     'morning_dosage': int(medicine['morning_dosage']),
@@ -786,7 +790,7 @@ class PatientPrescriptionManager:
                 
                 # Check if this medicine already exists for this patient
                 existing_medicine_mask = (
-                    (self.df['id'].astype(str) == str(patient_id)) & 
+                    (self.df['patientId'].astype(str) == str(patient_id)) & 
                     (self.df['medicine_name'] == medicine_name)
                 )
                 
@@ -799,7 +803,7 @@ class PatientPrescriptionManager:
                     # Prepare new medicine record to be inserted
                     record = {
                         'patient_name': patient_info['patient_name'],
-                        'id': patient_info['patient_id'],
+                        'patientId': patient_info['patient_id'],
                         'rfid': rfid,  # Use default empty string if not provided
                         'medicine_name': medicine['medicine_name'],
                         'morning_dosage': int(medicine['morning_dosage']),
