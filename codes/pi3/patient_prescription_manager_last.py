@@ -185,7 +185,7 @@ class PatientPrescriptionManager:
 
     def generate_pills_dispensing_list(self, patientId, max_days=7):
         """
-        Generate pills dispensing list with new dispensing pattern logic
+        Generate pills dispensing list with 4x7 matrix for each medicine
         
         Args:
             patientId: Patient identifier (RFID or patient ID)
@@ -218,89 +218,22 @@ class PatientPrescriptionManager:
                 "medicines_2": []
             }
             
-            # Process each medicine based on meal timing logic
+            # Process each medicine
             for medicine in medicines:
+
                 # 计算并存储配药天数
                 dispensing_days = self._calculate_dispensing_days(medicine, max_days)
                 self.current_dispensing_days[medicine['medicine_name']] = dispensing_days
                 
-                if dispensing_days > 0:
-                    if has_before_meal and has_after_meal:
-                        # Both meal timings exist - use 6-row logic
-                        self._process_medicine_dual_timing(medicine, dispensing_days, pills_dispensing_list)
-                    else:
-                        # Only one meal timing - use 3-row logic
-                        self._process_medicine_single_timing(medicine, dispensing_days, pills_dispensing_list)
+                self._process_medicine_for_dispensing(
+                    medicine, max_days, has_before_meal, 
+                    has_after_meal, pills_dispensing_list
+                )
             
             return True, pills_dispensing_list
             
         except Exception as e:
             return False, {'error': f'Failed to generate dispensing matrix: {str(e)}', 'error_code': 500}
-
-    def _process_medicine_single_timing(self, medicine, dispensing_days, pills_dispensing_list):
-        """Process medicine when only one meal timing exists (4x7 matrix)"""
-        medicine_name = medicine['medicine_name']
-        meal_time = medicine.get('meal_timing', 'before')
-        pill_size = medicine.get('pill_size', 'M')
-        
-        # Debug info
-        daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
-        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}, size: {pill_size} (Single timing)")
-        
-        # Create 4x7 matrix
-        pill_matrix = np.zeros([4, 7], dtype=np.int8)
-        
-        for day in range(min(dispensing_days, 7)):
-            pill_matrix[0, day] = medicine['morning_dosage']   # Morning (row 0)
-            pill_matrix[1, day] = medicine['noon_dosage']      # Noon (row 1)
-            pill_matrix[2, day] = medicine['evening_dosage']   # Evening (row 2)
-            # pill_matrix[3, day] = 0  # 4th row remains 0 (already initialized to 0)
-        
-        # Add to medicine list
-        drug_info = {
-            "medicine_name": medicine_name,
-            "pill_matrix": pill_matrix,
-            "meal_timing": meal_time,
-            "dispensing_days": dispensing_days,
-            "pill_size": pill_size
-        }
-        pills_dispensing_list["medicines_1"].append(drug_info)
-
-    def _process_medicine_dual_timing(self, medicine, dispensing_days, pills_dispensing_list):
-        """Process medicine when both meal timings exist (4x7 matrix)"""
-        medicine_name = medicine['medicine_name']
-        meal_time = medicine.get('meal_timing', 'before')
-        pill_size = medicine.get('pill_size', 'M')
-        
-        # Debug info
-        daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
-        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}, size: {pill_size} (Dual timing)")
-        
-        # Create 4x7 matrix for this medicine
-        pill_matrix = np.zeros([4, 7], dtype=np.int8)
-        
-        for day in range(min(dispensing_days, 7)):
-            pill_matrix[0, day] = medicine['morning_dosage']   # Morning
-            pill_matrix[1, day] = medicine['noon_dosage']      # Noon
-            pill_matrix[2, day] = medicine['evening_dosage']   # Evening
-            # pill_matrix[3, day] = 0  # 4th row remains 0 (already initialized to 0)
-        
-        # Create drug info
-        drug_info = {
-            "medicine_name": medicine_name,
-            "pill_matrix": pill_matrix,
-            "meal_timing": meal_time,
-            "dispensing_days": dispensing_days,
-            "pill_size": pill_size
-        }
-        
-        # Place medicine on appropriate plate based on meal timing
-        if meal_time == 'before' or meal_time == 'anytime':
-            pills_dispensing_list["medicines_1"].append(drug_info)
-            print(f"  - {medicine_name}: Placed on medicines_1 (before meal)")
-        elif meal_time == 'after':
-            pills_dispensing_list["medicines_2"].append(drug_info)
-            print(f"  - {medicine_name}: Placed on medicines_2 (after meal)")
 
     def _check_meal_timing_types(self, medicines):
         """Check if medicines have before/after meal timing"""
@@ -319,6 +252,77 @@ class PatientPrescriptionManager:
             return dispensing_days
         except (ValueError, TypeError):
             return min(max_days, medicine['duration_days'])
+
+    def _create_pill_matrices(self, medicine, dispensing_days, has_before_meal, has_after_meal):
+        """Create 4x7 pill matrices for a medicine"""
+        pill_matrix_1 = np.zeros([4, 7], dtype=np.int8)
+        pill_matrix_2 = np.zeros([4, 7], dtype=np.int8)
+        
+        meal_time = medicine.get('meal_timing', 'before')
+        
+        for day in range(dispensing_days):
+            col = day
+            if has_before_meal and has_after_meal:
+                # Use 2 columns per day if both meal timings exist
+                col = day * 2
+                if meal_time == 'after' or meal_time == 'anytime':
+                    col += 1  # After meal medicines go to odd columns
+            
+            # Fill the appropriate matrix
+            if col < 7:
+                self._fill_matrix_column(pill_matrix_1, col, medicine)
+            elif col < 14:
+                self._fill_matrix_column(pill_matrix_2, col - 7, medicine)
+        
+        return pill_matrix_1, pill_matrix_2
+
+    def _fill_matrix_column(self, matrix, col, medicine):
+        """Fill a single column of the pill matrix"""
+        matrix[0, col] = medicine['evening_dosage']   # Evening (row 0)
+        matrix[1, col] = medicine['noon_dosage']      # Noon (row 1)
+        matrix[2, col] = medicine['morning_dosage']   # Morning (row 2)
+        matrix[3, col] = 0                            # Reserved (row 3)
+
+    def _process_medicine_for_dispensing(self, medicine, max_days, 
+                                       has_before_meal, has_after_meal, pills_dispensing_list):
+        """Process a single medicine for dispensing"""
+        medicine_name = medicine['medicine_name']
+        meal_time = medicine.get('meal_timing', 'before')
+        pill_size = medicine.get('pill_size', 'M')  # Get pill size from medicine data
+        
+        # Calculate dispensing days
+        dispensing_days = self._calculate_dispensing_days(medicine, max_days)
+        
+        # Debug info
+        daily_total = medicine['morning_dosage'] + medicine['noon_dosage'] + medicine['evening_dosage']
+        print(f"  - {medicine_name}: {dispensing_days} days, {daily_total} pills/day, timing: {meal_time}, size: {pill_size}")
+        
+        if dispensing_days > 0:
+            # Create pill matrices
+            pill_matrix_1, pill_matrix_2 = self._create_pill_matrices(
+                medicine, dispensing_days, has_before_meal, has_after_meal
+            )
+            
+            # Add to medicine list with pill_size
+            drug_info_1 = {
+                "medicine_name": medicine_name,
+                "pill_matrix": pill_matrix_1,
+                "meal_timing": meal_time,
+                "dispensing_days": dispensing_days,
+                "pill_size": pill_size  # Add pill_size to the dispensing list
+            }
+            pills_dispensing_list["medicines_1"].append(drug_info_1)
+            
+            if np.sum(pill_matrix_2) > 0:
+                drug_info_2 = {
+                    "medicine_name": medicine_name,
+                    "pill_matrix": pill_matrix_2,
+                    "meal_timing": meal_time,
+                    "dispensing_days": dispensing_days,
+                    "pill_size": pill_size  # Add pill_size to the dispensing list
+                }
+                pills_dispensing_list['medicines_2'].append(drug_info_2)
+
 
     def update_medicine_expiry_date(self, medicine_name: str):
         """
@@ -871,89 +875,3 @@ class PatientPrescriptionManager:
             new_df = pd.DataFrame(new_records)
             self.df = pd.concat([self.df, new_df], ignore_index=True)
             print(f"[Info] Fallback: Appended {len(new_records)} record(s) to the end")
-
-
-
-import numpy as np
-from patient_prescription_manager import PatientPrescriptionManager
-
-def print_matrix(matrix, medicine_name, matrix_type=""):
-    """Helper function to print pill matrix in a readable format"""
-    print(f"\n{medicine_name} {matrix_type}:")
-    print("Days:  ", end="")
-    for day in range(7):
-        print(f"Day{day+1:2d} ", end="")
-    print()
-    
-    # Extract meal timing from matrix_type for better labels
-    if "before" in matrix_type.lower():
-        row_labels = ["Morn before:", "Noon before:", "Even before:", "Row4      :"]
-    elif "after" in matrix_type.lower():
-        row_labels = ["Morn after: ", "Noon after: ", "Even after: ", "Row4      :"]
-    else:
-        row_labels = ["Morn ", "Noon ", "Even ", "Row4 "]
-    
-    for i in range(4):
-        print(f"{row_labels[i]} ", end="")
-        for j in range(7):
-            print(f"{matrix[i,j]:4d} ", end="")
-        print()
-
-
-
-def test_with_real_csv_data():
-    """Test with real CSV data"""
-    print("\n" + "="*60)
-    print("TEST 4: Real CSV Data Test")
-    print("="*60)
-    
-    manager = PatientPrescriptionManager()
-    
-    # Load prescriptions from CSV
-    manager.read_local_prescriptions()
-    
-    if manager.df is None or manager.df.empty:
-        print("No CSV data found. Please ensure local_prescriptions_data.csv exists.")
-        return
-    
-    # Test with patient ID 101
-    patient_id = "101"
-    print(f"Testing with patient ID: {patient_id}")
-    
-    success, result = manager.generate_pills_dispensing_list(patient_id, max_days=7)
-    
-    if success:
-        print(f"\nPatient: {result['patient_info']['patient_name']}")
-        print(f"medicines_1 count: {len(result['medicines_1'])}")
-        print(f"medicines_2 count: {len(result['medicines_2'])}")
-        
-        print("\n--- MEDICINES_1 (First plate) ---")
-        for med in result['medicines_1']:
-            print_matrix(med['pill_matrix'], med['medicine_name'], 
-                        f"({med['meal_timing']}, {med['pill_size']}, {med['dispensing_days']} days)")
-        
-        if result['medicines_2']:
-            print("\n--- MEDICINES_2 (Second plate) ---")
-            for med in result['medicines_2']:
-                print_matrix(med['pill_matrix'], med['medicine_name'], 
-                            f"({med['meal_timing']}, {med['pill_size']}, {med['dispensing_days']} days)")
-        else:
-            print("\n--- MEDICINES_2 (Second plate) ---")
-            print("No medicines require a second plate.")
-    else:
-        print(f"Error: {result}")
-
-def main():
-    """Main test function"""
-    print("Testing New Dispensing Pattern Logic")
-    print("====================================")
-    
-    # Test 4: Real CSV data
-    test_with_real_csv_data()
-    
-    print("\n" + "="*60)
-    print("All tests completed!")
-    print("="*60)
-
-if __name__ == "__main__":
-    main()
