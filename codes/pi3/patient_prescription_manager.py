@@ -54,7 +54,7 @@ class PatientPrescriptionManager:
     def fetch_online_prescriptions(self):
         """load prescriptions from server"""
         try:
-            response = requests.get(f"{self.server_url}/api/prescriptions", timeout=10)
+            response = requests.get(f"{self.server_url}/prescriptions", timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success') and data.get('data'):
@@ -94,7 +94,7 @@ class PatientPrescriptionManager:
             
             # Send to server
             response = requests.post(
-                f"{self.server_url}/api/prescriptions/upload",
+                f"{self.server_url}/prescriptions/upload",
                 json=payload,
                 headers={'Content-Type': 'application/json'},
                 timeout=30

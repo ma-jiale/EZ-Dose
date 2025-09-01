@@ -1,5 +1,7 @@
 import sys
 import cv2
+import json
+import os
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QVBoxLayout, QScrollArea, QDialog, QMessageBox
 from PySide6.QtCore import QObject, Signal, Slot, QTimer, QThread, Qt
 from PySide6.QtGui import QImage, QPixmap
@@ -12,6 +14,9 @@ from startup_screen_ui import Ui_StartupScreen
 
 
 class StartupScreen(QDialog):
+    """
+    Startup Screen class
+    """
     def __init__(self):
         super().__init__()
         self.ui = Ui_StartupScreen()
@@ -44,6 +49,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
         self.manager = manager
         
         # Define page indices as constants
@@ -63,11 +69,15 @@ class MainWindow(QMainWindow):
         # Track the last dispensing page visited
         self.last_dispensing_page = 'start'  # Default to start page
         
+        # Configuration file path
+        self.config_file = os.path.join(os.path.dirname(__file__), 'config.json')
+        
         self.connect_signals()
         # Set initial page
         self.go_to_page('start')
 
-        # Initialize spinbox values from manager
+        # Load settings from file and initialize UI
+        self.load_settings()
         self.initialize_settings_ui()
 
     def go_to_page(self, page_name):
@@ -87,16 +97,85 @@ class MainWindow(QMainWindow):
             print(f"Warning: Page '{page_name}' not found")
     
     def connect_signals(self):
+        # 连接信号到主控制器的槽
         self.ui.btn_start_find_patient.clicked.connect(self.manager.show_today_patients)
         self.ui.btn_start_dispensing.clicked.connect(self.manager.start_dispensing)
         self.ui.btn_continue_dispensing.clicked.connect(self.manager.show_today_patients)
         self.ui.btn_finish_dispensing.clicked.connect(self.manager.finish_dispensing)
         self.ui.btn_refresh_database.clicked.connect(self.manager.refresh_database)
         
+        
         self.ui.btn_setting_page.clicked.connect(self.go_to_setting_page)
         self.ui.btn_dispense_page.clicked.connect(self.go_to_last_dispensing_page)
-
         self.ui.btn_save_settings.clicked.connect(self.save_settings)
+        self.ui.btn_zero_motor_position.clicked.connect(self.on_clicked_btn_zero_motor_position)
+
+    def load_settings(self):
+        """Load settings from config.json file"""
+        default_settings = {
+            "max_days": 7,
+            "expiry_days_threshold": 2,
+            "server_url": "https://ixd.sjtu.edu.cn/flask/packer"
+        }
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    
+                # Apply loaded settings to manager
+                max_days = settings.get('max_days', default_settings['max_days'])
+                expiry_threshold = settings.get('expiry_days_threshold', default_settings['expiry_days_threshold'])
+                server_url = settings.get('server_url', default_settings['server_url'])
+                
+                self.manager.set_max_days(max_days)
+                self.manager.set_expiry_days_threshold(expiry_threshold)
+                self.manager.set_server_url(server_url)
+                
+                print(f"[Settings] Loaded from config.json - Max days: {max_days}, Expiry threshold: {expiry_threshold}, Server URL: {server_url}")
+            else:
+                # Create config file with default settings
+                self.save_settings_to_file(default_settings)
+                
+                # Apply default settings to manager
+                self.manager.set_max_days(default_settings['max_days'])
+                self.manager.set_expiry_days_threshold(default_settings['expiry_days_threshold'])
+                self.manager.set_server_url(default_settings['server_url'])
+                
+                print("[Settings] Created config.json with default settings")
+                
+        except Exception as e:
+            print(f"[Error] Failed to load settings: {e}")
+            # Apply default settings if loading fails
+            self.manager.set_max_days(default_settings['max_days'])
+            self.manager.set_expiry_days_threshold(default_settings['expiry_days_threshold'])
+            self.manager.set_server_url(default_settings['server_url'])
+
+    def save_settings_to_file(self, settings=None):
+        """Save settings to config.json file"""
+        try:
+            if settings is None:
+                # Get current values from UI controls
+                settings = {
+                    "max_days": self.ui.spinBox_max_days.value() if hasattr(self.ui, 'spinBox_max_days') else 7,
+                    "expiry_days_threshold": self.ui.spinBox_expiry_threshold.value() if hasattr(self.ui, 'spinBox_expiry_threshold') else 2,
+                    "server_url": self.ui.server_url_lineEdit.text() if hasattr(self.ui, 'server_url_lineEdit') else "https://ixd.sjtu.edu.cn/flask/packer"
+                }
+            
+            # Ensure directory exists
+            config_dir = os.path.dirname(self.config_file)
+            if not os.path.exists(config_dir):
+                os.makedirs(config_dir)
+            
+            # Save to JSON file with pretty formatting
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=4, ensure_ascii=False)
+            
+            print(f"[Settings] Saved to config.json: {settings}")
+            return True
+            
+        except Exception as e:
+            print(f"[Error] Failed to save settings to file: {e}")
+            return False
 
     def initialize_settings_ui(self):
         """Initialize the settings UI with current values from manager"""
@@ -106,11 +185,19 @@ class MainWindow(QMainWindow):
         
         if hasattr(self.ui, 'spinBox_expiry_threshold'):
             self.ui.spinBox_expiry_threshold.setValue(self.manager.get_expiry_days_threshold())
+        
+        # Set server URL line edit to current manager parameter
+        if hasattr(self.ui, 'server_url_lineEdit'):
+            self.ui.server_url_lineEdit.setText(self.manager.get_server_url())
 
     def save_settings(self):
-        """Save the settings from spinboxes to manager"""
+        """Save the settings from UI controls to manager and config file"""
         try:
-            # Get values from spinboxes
+            # Get values from UI controls
+            max_days = 7
+            expiry_threshold = 2
+            server_url = "http://127.0.0.1:5000"
+            
             if hasattr(self.ui, 'spinBox_max_days'):
                 max_days = self.ui.spinBox_max_days.value()
                 self.manager.set_max_days(max_days)
@@ -121,13 +208,39 @@ class MainWindow(QMainWindow):
                 self.manager.set_expiry_days_threshold(expiry_threshold)
                 print(f"[Settings] Expiry threshold updated to: {expiry_threshold}")
             
-            # Show confirmation message
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("设置保存")
-            msg_box.setText("设置已成功保存")
-            msg_box.setIcon(QMessageBox.Information)
-            msg_box.setStandardButtons(QMessageBox.Ok)
-            msg_box.exec()
+            if hasattr(self.ui, 'server_url_lineEdit'):
+                server_url = self.ui.server_url_lineEdit.text().strip()
+                if not server_url:
+                    # 如果用户留空，使用默认URL
+                    server_url = "http://127.0.0.1:5000"
+                    self.ui.server_url_lineEdit.setText(server_url)
+                
+                self.manager.set_server_url(server_url)
+                print(f"[Settings] Server URL updated to: {server_url}")
+            
+            # Save to config file
+            settings = {
+                "max_days": max_days,
+                "expiry_days_threshold": expiry_threshold,
+                "server_url": server_url
+            }
+            
+            if self.save_settings_to_file(settings):
+                # Show confirmation message
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("设置保存")
+                msg_box.setText("设置已成功保存")
+                msg_box.setIcon(QMessageBox.Information)
+                msg_box.setStandardButtons(QMessageBox.Ok)
+                msg_box.exec()
+            else:
+                # Show error message for file save failure
+                msg_box = QMessageBox(self)
+                msg_box.setWindowTitle("保存警告")
+                msg_box.setText("设置已应用但保存到文件失败\n重启软件后设置将恢复为默认值")
+                msg_box.setIcon(QMessageBox.Warning)
+                msg_box.setStandardButtons(QMessageBox.Ok)
+                msg_box.exec()
             
         except Exception as e:
             print(f"[Error] Failed to save settings: {e}")
@@ -144,10 +257,98 @@ class MainWindow(QMainWindow):
         self.go_to_page('setting')
         print("Navigated to setting page")
 
+    def on_clicked_btn_zero_motor_position(self):
+        self.manager.zero_dispensing_motor_position_signal.emit()
+
     def go_to_last_dispensing_page(self):
         """Navigate to the last remembered dispensing page"""
         self.go_to_page(self.last_dispensing_page)
         print(f"Navigated back to last dispensing page: {self.last_dispensing_page}")
+
+    def format_prescription_detail(self, pills_dispensing_list):
+        """格式化处方详情为表格格式"""
+        try:
+            # 获取两个药品列表
+            medicines_1 = pills_dispensing_list.get("medicines_1", [])
+            medicines_2 = pills_dispensing_list.get("medicines_2", [])
+            
+            # 计算需要的药盘数量
+            plate_count = 0
+            if medicines_1:
+                plate_count += 1
+            if medicines_2:
+                plate_count += 1
+            
+            if plate_count == 0:
+                return "暂无处方信息"
+            
+            # 构建显示内容，使用HTML格式确保正确换行
+            detail_lines = []
+            detail_lines.append(f"<b>一共需要{plate_count}个空药盘</b>")
+            detail_lines.append("")  # 空行
+            detail_lines.append("<b>药品名称&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;早上&nbsp;中午&nbsp;晚上&nbsp;服药时间</b>")
+            detail_lines.append("")  # 空行分隔
+            
+            # 显示第一个药盘
+            if medicines_1:
+                detail_lines.append("<b>第一个药盘：</b>")
+                for medicine in medicines_1:
+                    line = self._format_medicine_line_html(medicine)
+                    detail_lines.append(line)
+                detail_lines.append("")  # 空行分隔
+            
+            # 显示第二个药盘
+            if medicines_2:
+                detail_lines.append("<b>第二个药盘：</b>")
+                for medicine in medicines_2:
+                    line = self._format_medicine_line_html(medicine)
+                    detail_lines.append(line)
+            
+            # 使用<br>标签连接各行，确保HTML格式正确换行
+            return "<br>".join(detail_lines)
+            
+        except Exception as e:
+            print(f"[错误] 格式化处方详情异常: {str(e)}")
+            return "处方详情格式化失败"
+
+    def _format_medicine_line_html(self, medicine):
+        """格式化单个药品的显示行(HTML格式)"""
+        medicine_name = medicine.get('medicine_name', '未知药品')
+        pill_matrix = medicine.get('pill_matrix', None)
+        meal_timing = medicine.get('meal_timing', 'anytime')
+        
+        if pill_matrix is not None:
+            # 从pill_matrix第一列（第0天）获取用药剂量
+            morning = int(pill_matrix[0, 0]) if pill_matrix.shape[1] > 0 else 0
+            noon = int(pill_matrix[1, 0]) if pill_matrix.shape[1] > 0 else 0
+            evening = int(pill_matrix[2, 0]) if pill_matrix.shape[1] > 0 else 0
+        else:
+            morning = noon = evening = 0
+        
+        # 根据meal_timing确定服药说明
+        timing_map = {
+            'before': '饭前服用',
+            'after': '饭后服用', 
+            'anytime': '按医嘱服用'
+        }
+        instructions = timing_map.get(meal_timing, '按医嘱服用')
+        
+        # 格式化剂量显示
+        morning_str = f"{morning}片" if morning > 0 else "-"
+        noon_str = f"{noon}片" if noon > 0 else "-"
+        evening_str = f"{evening}片" if evening > 0 else "-"
+        
+        # 截断过长的药品名称
+        display_name = medicine_name
+        if len(medicine_name) > 8:
+            display_name = medicine_name[:8] + "..."
+        
+        # 使用HTML格式，用&nbsp;确保对齐
+        # 计算药品名称需要的空格数来对齐
+        name_padding = max(0, 12 - len(display_name))
+        name_with_padding = display_name + "&nbsp;" * name_padding
+        
+        return f"{name_with_padding}&nbsp;&nbsp;{morning_str}&nbsp;&nbsp;&nbsp;{noon_str}&nbsp;&nbsp;&nbsp;{evening_str}&nbsp;&nbsp;&nbsp;{instructions}"
 
     @Slot(object)
     def update_prescription_info(self, pills_dispensing_list):
@@ -178,6 +379,15 @@ class MainWindow(QMainWindow):
             if hasattr(self.ui, 'txt_patient_info'):
                 self.ui.txt_patient_info.setText(patient_info_display)
             
+            # 构建处方详情表格格式显示
+            if hasattr(self.ui, 'txt_rx_detail'):
+                prescription_detail = self.format_prescription_detail(pills_dispensing_list)
+                # 设置为富文本模式以支持HTML格式，并设置较大字体
+                self.ui.txt_rx_detail.setTextFormat(Qt.RichText)
+                # 包装整个内容并设置字体大小
+                formatted_content = f'<div style="font-size: 16px; font-family: "Microsoft YaHei", sans-serif;">{prescription_detail}</div>'
+                self.ui.txt_rx_detail.setText(formatted_content)
+            
             print(f"[UI] 处方信息已更新: {prescription_info}")
             print(f"[UI] 患者信息已更新: {patient_info_display}")
             
@@ -187,6 +397,8 @@ class MainWindow(QMainWindow):
                 self.ui.txt_load_prescription_info.setText("获取处方信息失败")
             if hasattr(self.ui, 'txt_patient_info'):
                 self.ui.txt_patient_info.setText("患者信息获取失败")
+            if hasattr(self.ui, 'txt_rx_detail'):
+                self.ui.txt_rx_detail.setText("处方详情获取失败")
 
     @Slot(str, int)
     def update_current_medicine_info(self, medicine_name, total_pill):
@@ -204,8 +416,6 @@ class MainWindow(QMainWindow):
     def go_to_finish_page(self):
         self.go_to_page("finish")
         
-
-
 class TodayPatientDialog(QDialog):  # Now inherits from QDialog
     def __init__(self, manager):
         super().__init__()  # QDialog initialization
@@ -286,9 +496,8 @@ class TodayPatientDialog(QDialog):  # Now inherits from QDialog
             
             self.scroll_layout.addWidget(patient_btn)
     
-
 class Manager(QObject):
-    # 定义主控制信号
+    # 定义控制主控制器的信号
     init_dispenser_signal = Signal()
     initialize_database_signal = Signal()
     generate_pills_dispensing_list_signal = Signal(object)
@@ -299,28 +508,29 @@ class Manager(QObject):
     get_today_patients_signal = Signal()
     refresh_database_signal = Signal()
     stop_dispensing_signal = Signal()
-    #定义相机控制器信号
+    zero_dispensing_motor_position_signal  =Signal()
+
+    # 定义控制相机控制器的信号
     init_camera_signal = Signal()
     start_camera_signal = Signal()
     stop_camera_signal = Signal()
     pause_camera_signal = Signal()
     set_mode_signal = Signal(object)  # 用于传递 CamMode
-
     qr_mismatch_signal = Signal()
     continue_after_manual_correction_signal = Signal()
     
     def __init__(self):
         super().__init__()
-
-        
         # the variable to track selected patient
         self.selected_patient_id = None
         # the flag to prevent multiple message boxes
         self.is_showing_mismatch_message = False
         self.expected_plate_number = 1
 
+        # 先加载配置文件获取服务器URL
+        server_url = self.load_server_url_from_config()
         # 新建主控制器实例
-        self.main_controller = MainController()
+        self.main_controller = MainController(server_url)
         self.main_controller_thread = QThread()
         self.main_controller.moveToThread(self.main_controller_thread)
         self.main_controller_thread.start()
@@ -379,19 +589,19 @@ class Manager(QObject):
         self.stop_dispensing_signal.connect(self.main_controller.stop_dispensing)
         self.start_second_plate_dispensing_signal.connect(self.main_controller.start_second_plate_dispensing)
         self.continue_after_manual_correction_signal.connect(self.main_controller.continue_after_manual_correction)
+        self.zero_dispensing_motor_position_signal.connect(self.main_controller.zero_dispensing_motor_position)
 
-        # 连接信号到主页面的槽
+        # 连接信号到MainWindow的槽
         self.main_controller.prescription_loaded_signal.connect(self.main_window.update_prescription_info)
         self.main_controller.dispensing_progress_signal.connect(self.main_window.update_dispense_progress_bar_value)
         self.main_controller.current_medicine_info_signal.connect(self.main_window.update_current_medicine_info)
         self.main_controller.dispensing_completed_signal.connect(self.main_window.go_to_finish_page)
 
+        # 连接信号到Manager的槽
         self.main_controller.today_patients_ready_signal.connect(self.on_today_patients_ready)
         self.main_controller.dispenser_reset_signal.connect(self.handle_dispenser_reset)
         self.main_controller.plate_transition_signal.connect(self.handle_plate_transition)
         self.main_controller.dispensing_error_signal.connect(self.handle_dispensing_error)
-
-        # 连接初始化完成信号
         self.cam_controller.camera_initialized_signal.connect(self.on_camera_initialized)
         self.main_controller.dispenser_initialized_signal.connect(self.on_dispenser_initialized) 
         self.main_controller.database_connected_signal.connect(self.on_database_connected)
@@ -403,6 +613,25 @@ class Manager(QObject):
         """开始初始化流程"""
         self.startup_screen.update_status("正在初始化分药机...")
         self.init_dispenser_signal.emit()
+
+    def load_server_url_from_config(self):
+        """从配置文件加载服务器URL"""
+        config_file = os.path.join(os.path.dirname(__file__), 'config.json')
+        default_url = "http://127.0.0.1:5000"
+        
+        try:
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                    server_url = settings.get('server_url', default_url)
+                    print(f"[Config] Loaded server URL from config: {server_url}")
+                    return server_url
+            else:
+                print(f"[Config] Config file not found, using default URL: {default_url}")
+                return default_url
+        except Exception as e:
+            print(f"[Error] Failed to load server URL from config: {e}, using default URL: {default_url}")
+            return default_url
 
     @Slot(bool)
     def on_dispenser_initialized(self, success):
@@ -509,6 +738,16 @@ class Manager(QObject):
         if self.main_controller:
             self.main_controller.expiry_days_threshold = value
             print(f"[Manager] Expiry days threshold set to: {value}")
+
+    def get_server_url(self):
+        """Get current server_url value from main_controller"""
+        return self.main_controller.server_url if self.main_controller else "https://ixd.sjtu.edu.cn/flask/packer"
+
+    def set_server_url(self, value):
+        """Set server_url value in main_controller"""
+        if self.main_controller:
+            self.main_controller.server_url = value
+            print(f"[Manager] Server URL set to: {value}")
 #############
 # Show page #
 #############
@@ -559,7 +798,7 @@ class Manager(QObject):
         if self.expected_plate_number == 1:
             self.start_dispensing_signal.emit()
         else:
-            self.expected_plate_number == 1
+            self.expected_plate_number = 1
             self.start_second_plate_dispensing_signal.emit()
         #数药逻辑
         self.set_display_label("img_pillcount_frame") 
@@ -853,11 +1092,10 @@ class Manager(QObject):
         self.current_display_label = label_name
         print(f"Camera display switched to: {label_name}")
 
-
-
-
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # 设置应用程序属性
+    app.setApplicationName("EZ Dose")
+    app.setApplicationVersion("3.0")
     manager = Manager()
     sys.exit(app.exec())

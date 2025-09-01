@@ -56,7 +56,6 @@ class DispenserController:
             
             # Start feedback handler thread
             self.start_dispenser_feedback_handler()
-            # self.reset_dispenser()
             
             print("[Success] Dispenser initialization completed successfully")
             return True
@@ -571,9 +570,9 @@ class DispenserController:
             return 0
         return 1
     
-#################
+############################
 # Set dispenser parameters #
-#################
+############################
 
     # Turntable motor speed setting speed(float32)
     def set_turnMotor_speed(self, speed): 

@@ -19,11 +19,16 @@ class MainController(QObject):
 ##################
 # Initialization #
 ##################
-    def __init__(self):
+    def __init__(self, server_url=None):
         super().__init__()
+
         self.dispenser_controller = DispenserController()
-        # self.rx_manager = PatientPrescriptionManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
-        self.rx_manager = PatientPrescriptionManager()
+        
+        # 使用传入的URL，如果没有传入则使用默认值
+        if server_url is None:
+            server_url = "http://127.0.0.1:5000"
+        self.rx_manager = PatientPrescriptionManager(server_url=server_url)
+        self.server_url = server_url  # 保存当前URL
 
 
         # Maximum number of days for which pills will be dispensed in advance
@@ -49,9 +54,14 @@ class MainController(QObject):
         """Initialize dispenser hardware"""
         try:
             self.dispenser_controller.start_dispenser_feedback_handler()
-            self.dispenser_controller.initialize_dispenser()
-            self.dispenser_initialized_signal.emit(True)
-            print("[Init] Dispenser initialization completed")
+            # 检查初始化返回值
+            success = self.dispenser_controller.initialize_dispenser()
+            if success:
+                self.dispenser_initialized_signal.emit(True)
+                print("[Init] Dispenser initialization completed")
+            else:
+                self.dispenser_initialized_signal.emit(False)
+                print("[Error] Dispenser initialization failed")
         except Exception as e:
             print(f"[Error] Dispenser initialization failed: {e}")
             self.dispenser_initialized_signal.emit(False)
@@ -70,6 +80,17 @@ class MainController(QObject):
 ###########################
 # Prescription Management #
 ###########################
+    def get_server_url(self):
+        """Get current server URL from rx_manager"""
+        return self.server_url
+
+    def set_server_url(self, url):
+        """Set server URL for rx_manager"""
+        if self.rx_manager:
+            self.rx_manager.server_url = url
+            self.server_url = url
+            print(f"[Settings] Server URL updated to: {url}")
+
     @Slot(object)
     def generate_pills_dispensing_list(self, id):
         """Generate pill dispensing list for a patient"""
@@ -391,6 +412,11 @@ class MainController(QObject):
         self.current_pills_dispensing_list = {}
         self.current_medicines = []
         self.current_medicine_index = 0
+
+    @Slot()
+    def zero_dispensing_motor_position(self):
+        """Zero dispensing motor position"""
+        self.dispenser_controller.reset_dispenser()
         
 
 

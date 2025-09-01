@@ -1,0 +1,4 @@
+duration_days,evening_dosage,is_active,last_dispensed_expiry_date,meal_timing,medicine_name,morning_dosage,noon_dosage,patientId,patient_name,pill_size,rfid,start_date
+7,0,1,2025-08-27,before,阿莫西林,1,0,102,测试2,M,,2025-08-28
+7,1,1,2025-09-04,before,维生素C,1,1,123,sjy,S,,2025-08-29
+7,0,1,2025-09-04,before,阿莫西林,0,2,123,sjy,L,,2025-08-29

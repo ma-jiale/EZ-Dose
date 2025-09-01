@@ -73,6 +73,7 @@ class CamController(QObject):
             
             if not self.cap.isOpened():
                 print(f"Error: Cannot open camera at index {self.camera_index}")
+                self.camera_initialized_signal.emit(False)  # 发射失败信号
                 return False
             
             # Set camera properties
