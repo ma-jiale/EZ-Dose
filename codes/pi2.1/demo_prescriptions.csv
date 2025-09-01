@@ -1,6 +1,0 @@
-﻿patient_name,rfid,qr_data,medicine_name,morning_dosage,noon_dosage,evening_dosage,duration_days,start_date,meal_timing,prescription_id,doctor_name
-张三,1111222277774028C8262910,1001,阿司匹林肠溶片,1,0,1,7,2025/5/29,after,RX001,李医生
-张三,1111222277774028C8262910,1001,维生素C片,0,1,1,5,2025/5/29,anytime,RX001,李医生
-张三,1111222277774028C8262910,1001,阿莫西林胶囊,1,1,1,14,2025/5/29,after,RX001,李医生
-张三,1111222277774028C8262910,1001,盐酸二甲双胍肠溶片,0,2,0,3,2025/5/29,anytime,RX001,李医生
-李四,666655554444333322221111,1002,复方氨酚烷胺片,1,0,0,3,2025/5/29,before,RX002,王医生

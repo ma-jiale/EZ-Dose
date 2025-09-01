@@ -1,5 +1,0 @@
-patient_name,patientId,rfid,medicine_name,morning_dosage,noon_dosage,evening_dosage,meal_timing,start_date,duration_days,last_dispensed_expiry_date,is_active,pill_size
-测试1,101,,阿莫西林胶囊,0,2,0,after,2025-08-28,7,2025-08-27,1,L
-测试1,101,,叶酸片,2,0,2,before,2025-08-28,7,2025-08-27,1,M
-测试1,101,,复方氨酚烷胺片,1,0,1,before,2025-08-28,7,2025-08-27,1,L
-测试1,101,,维生素C,1,1,1,before,2025-08-27,7,2025-08-26,0,S
