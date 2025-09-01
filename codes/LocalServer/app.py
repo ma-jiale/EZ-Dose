@@ -38,21 +38,25 @@ def write_csv_safe(filename, data, fieldnames):
         print(f"Error writing {filename}: {e}")
         return False
 
-@app.route('/')
-def home():
-    """Home endpoint"""
-    return jsonify({
-        "message": "Pill Dispenser Local Server",
-        "endpoints": {
-            "patients": "/api/patients (GET)",
-            "prescriptions": "/api/prescriptions (GET)",
-            "patient_prescriptions": "/api/prescriptions/<patient_id>",
-            "upload_patients": "/api/patients/upload (POST)",
-            "upload_prescriptions": "/api/prescriptions/upload (POST)"
-        }
-    })
+def ensure_patient_fields(patient_data):
+    """Ensure patient data has all required fields with default values"""
+    required_fields = {
+        'auntieId': '',
+        'imageResourceId': '',
+        'patientBarcode': '',
+        'patientBedNumber': '',
+        'patientName': '',
+        'patientId': ''
+    }
+    
+    # Create a new dict with all required fields
+    complete_patient = {}
+    for field, default_value in required_fields.items():
+        complete_patient[field] = patient_data.get(field, default_value)
+    
+    return complete_patient
 
-@app.route('/api/patients', methods=['GET'])
+@app.route('/patients', methods=['GET'])
 def get_patients_for_dispensing():
     """Get all patients"""
     patients = read_csv_safe(PATIENTS_FILE)
@@ -62,7 +66,7 @@ def get_patients_for_dispensing():
         "count": len(patients)
     })
 
-@app.route('/api/prescriptions', methods=['GET'])
+@app.route('/prescriptions', methods=['GET'])
 def get_prescriptions_for_dispensing():
     """Get all prescriptions"""
     prescriptions = read_csv_safe(PRESCRIPTIONS_FILE)
@@ -72,7 +76,7 @@ def get_prescriptions_for_dispensing():
         "count": len(prescriptions)
     })
 
-@app.route('/api/patients/upload', methods=['POST'])
+@app.route('/patients/upload', methods=['POST'])
 def upload_patients_for_dispensing():
     """Upload multiple patients (replaces existing data)"""
     try:
@@ -86,21 +90,33 @@ def upload_patients_for_dispensing():
         
         patients = data['patients']
         
-        # Validate each patient
+        # Validate each patient and ensure required fields
+        validated_patients = []
         for i, patient in enumerate(patients):
-            if not isinstance(patient, dict) or 'patientName' not in patient or 'patientId' not in patient:
+            if not isinstance(patient, dict):
+                return jsonify({
+                    "success": False,
+                    "message": f"Invalid patient data at index {i}. Expected dictionary."
+                }), 400
+            
+            # Check for required fields (patientName and patientId are mandatory)
+            if 'patientName' not in patient or 'patientId' not in patient:
                 return jsonify({
                     "success": False,
                     "message": f"Invalid patient data at index {i}. Required: patientName, patientId"
                 }), 400
+            
+            # Ensure all fields are present with default values
+            complete_patient = ensure_patient_fields(patient)
+            validated_patients.append(complete_patient)
         
-        # Write to CSV (replaces existing file)
-        fieldnames = ['patientName', 'patientId']
-        if write_csv_safe(PATIENTS_FILE, patients, fieldnames):
+        # Write to CSV with all 6 fields
+        fieldnames = ['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId']
+        if write_csv_safe(PATIENTS_FILE, validated_patients, fieldnames):
             return jsonify({
                 "success": True,
-                "message": f"Successfully uploaded {len(patients)} patients",
-                "count": len(patients)
+                "message": f"Successfully uploaded {len(validated_patients)} patients",
+                "count": len(validated_patients)
             })
         else:
             return jsonify({
@@ -114,7 +130,7 @@ def upload_patients_for_dispensing():
             "message": f"Error uploading patients: {str(e)}"
         }), 500
 
-@app.route('/api/prescriptions/upload', methods=['POST'])
+@app.route('/prescriptions/upload', methods=['POST'])
 def upload_prescriptions_for_dispensing():
     """Upload multiple prescriptions (replaces existing data)"""
     try:
@@ -180,11 +196,18 @@ if __name__ == '__main__':
     print("Starting Pill Dispenser Local Server...")
     print(f"Patients file: {PATIENTS_FILE}")
     print(f"Prescriptions file: {PRESCRIPTIONS_FILE}")
-    
-    # Check if files exist
-    if not os.path.exists(PATIENTS_FILE):
+     
+    # Check if files exist and show their status
+    if os.path.exists(PATIENTS_FILE):
+        patients_data = read_csv_safe(PATIENTS_FILE)
+        print(f"Patients file loaded with {len(patients_data)} records")
+    else:
         print(f"Warning: {PATIENTS_FILE} not found!")
-    if not os.path.exists(PRESCRIPTIONS_FILE):
+        
+    if os.path.exists(PRESCRIPTIONS_FILE):
+        prescriptions_data = read_csv_safe(PRESCRIPTIONS_FILE)
+        print(f"Prescriptions file loaded with {len(prescriptions_data)} records")
+    else:
         print(f"Warning: {PRESCRIPTIONS_FILE} not found!")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
