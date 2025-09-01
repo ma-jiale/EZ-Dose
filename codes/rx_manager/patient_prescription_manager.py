@@ -13,6 +13,9 @@ class PatientPrescriptionManager:
         self.current_dispensing_days = {}  # 存储每个药物的配药天数
         self.server_url = server_url
 
+####################
+# For Loading Data #
+####################
     def load_prescriptions(self):
         """load prescriptions from server, if can't, read local prescriptions"""
         try:
@@ -54,7 +57,7 @@ class PatientPrescriptionManager:
     def fetch_online_prescriptions(self):
         """load prescriptions from server"""
         try:
-            response = requests.get(f"{self.server_url}/api/prescriptions", timeout=10)
+            response = requests.get(f"{self.server_url}/prescriptions", timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success') and data.get('data'):
@@ -94,7 +97,7 @@ class PatientPrescriptionManager:
             
             # Send to server
             response = requests.post(
-                f"{self.server_url}/api/prescriptions/upload",
+                f"{self.server_url}/prescriptions/upload",
                 json=payload,
                 headers={'Content-Type': 'application/json'},
                 timeout=30
@@ -183,6 +186,9 @@ class PatientPrescriptionManager:
         except Exception as e:
             return False, {'error': f'Query error: {str(e)}', 'error_code': 500}
 
+############################
+# Generate Dispensing List #
+############################
     def generate_pills_dispensing_list(self, patientId, max_days=7):
         """
         Generate pills dispensing list with 4x7 matrix for each medicine
@@ -322,7 +328,6 @@ class PatientPrescriptionManager:
                     "pill_size": pill_size  # Add pill_size to the dispensing list
                 }
                 pills_dispensing_list['medicines_2'].append(drug_info_2)
-
 
     def update_medicine_expiry_date(self, medicine_name: str):
         """
@@ -476,9 +481,9 @@ class PatientPrescriptionManager:
             print(f"[Error] Exception in get_patients_for_today: {e}")
             return False, [{'error': f'Query error: {str(e)}', 'error_code': 500}]
 
-########################
+#######################
 # Update prescription #
-########################
+#######################
 
     def add_patient_prescription(self, prescription_data):
         """

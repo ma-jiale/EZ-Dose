@@ -1,8 +1,8 @@
 import sys
 import os
-import pandas as pd
+import json
 from datetime import datetime, timedelta
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QPushButton, 
+from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, 
                                QMessageBox, QGridLayout, QSizePolicy, QDialog,
                                QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
                                QDialogButtonBox)
@@ -12,6 +12,134 @@ from main_window_ui import Ui_MainWindow
 from medicine_setting_ui import Ui_medicine_setting
 from patient_prescription_manager import PatientPrescriptionManager
 from patient_info_manager import PatientInfoManager
+
+class ServerSettingsDialog(QDialog):
+    """服务器设置对话框"""
+    
+    def __init__(self, current_url, parent=None):
+        super().__init__(parent)
+        self.current_url = current_url
+        self.setWindowTitle("服务器设置")
+        self.setModal(True)
+        self.setFixedSize(500, 200)
+        self.setup_ui()
+    
+    def setup_ui(self):
+        """设置对话框界面"""
+        layout = QVBoxLayout(self)
+        
+        # 标题
+        title_label = QLabel("服务器URL设置")
+        title_label.setFont(QFont("Microsoft YaHei", 12, QFont.Weight.Bold))
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # 输入区域
+        form_layout = QVBoxLayout()
+        
+        # 服务器URL
+        url_layout = QHBoxLayout()
+        url_label = QLabel("服务器URL:")
+        url_label.setMinimumWidth(80)
+        url_label.setFont(QFont("Microsoft YaHei", 10))
+        self.url_input = QLineEdit()
+        self.url_input.setText(self.current_url)
+        self.url_input.setPlaceholderText("请输入服务器URL，例如: http://localhost:5000")
+        self.url_input.setFont(QFont("Microsoft YaHei", 10))
+        url_layout.addWidget(url_label)
+        url_layout.addWidget(self.url_input)
+        form_layout.addLayout(url_layout)
+
+       # 说明文字
+        info_label = QLabel("注意：更改服务器URL后，请重新加载数据以确保连接正常")
+        info_label.setFont(QFont("Microsoft YaHei", 9))
+        info_label.setStyleSheet("color: #666666; padding: 5px;")
+        info_label.setWordWrap(True)
+        form_layout.addWidget(info_label)
+        
+        layout.addLayout(form_layout)
+        
+        # 按钮区域
+        button_layout = QHBoxLayout()
+        
+        # 重置按钮
+        reset_button = QPushButton("重置为默认")
+        reset_button.clicked.connect(self.reset_to_default)
+        
+        # 确定/取消按钮
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        
+        # 设置按钮文本为中文
+        button_box.button(QDialogButtonBox.StandardButton.Ok).setText("确定")
+        button_box.button(QDialogButtonBox.StandardButton.Cancel).setText("取消")
+        
+        button_layout.addWidget(reset_button)
+        button_layout.addWidget(button_box)
+        layout.addLayout(button_layout)
+
+        # 设置样式
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+            }
+            QLineEdit {
+                border: 2px solid #cccccc;
+                border-radius: 6px;
+                padding: 8px;
+                margin: 5px 0;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+            QPushButton {
+                background-color: #0078d4;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #106ebe;
+            }
+            QPushButton:pressed {
+                background-color: #005a9e;
+            }
+        """)
+    
+    def reset_to_default(self):
+        """重置为默认URL"""
+        default_url = "http://localhost:5000"
+        self.url_input.setText(default_url)
+
+    def get_server_url(self):
+        """获取输入的服务器URL"""
+        return self.url_input.text().strip()
+    
+    def validate_input(self):
+        """验证输入数据"""
+        url = self.get_server_url()
+        
+        if not url:
+            QMessageBox.warning(self, "警告", "请输入服务器URL")
+            return False
+        
+        # 简单的URL格式验证
+        if not (url.startswith('http://') or url.startswith('https://')):
+            QMessageBox.warning(self, "警告", "URL必须以 http:// 或 https:// 开头")
+            return False
+        
+        return True
+    
+    def accept(self):
+        """确定按钮事件"""
+        if self.validate_input():
+            super().accept()
 
 class AddPatientDialog(QDialog):
     """新增患者对话框"""
@@ -688,18 +816,20 @@ class PatientPrescriptionMainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        # 加载配置
+        self.config_file = "config.json"
+        self.load_config()
+
         # 使用UI文件
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         
         # 初始化数据管理器
-        # self.rx_manager = PatientPrescriptionManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
-        self.rx_manager = PatientPrescriptionManager()
+        self.rx_manager = PatientPrescriptionManager(server_url=self.server_url)
         self.rx_manager.load_prescriptions()
         
         # 初始化患者信息管理器
-        # self.patient_manager = PatientInfoManager(server_url="https://ixd.sjtu.edu.cn/flask/packer")
-        self.patient_manager = PatientInfoManager()
+        self.patient_manager = PatientInfoManager(server_url=self.server_url)
         
         # 初始化状态变量
         self.current_patient_info = None
@@ -720,7 +850,59 @@ class PatientPrescriptionMainWindow(QMainWindow):
         
         # 添加新增患者按钮
         self.add_patient_button()
+
+    def load_config(self):
+        """加载配置文件"""
+        default_config = {
+            "server_url": "http://localhost:5000"
+        }
+        
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    self.server_url = config.get("server_url", default_config["server_url"])
+            else:
+                self.server_url = default_config["server_url"]
+                self.save_config()
+        except Exception as e:
+            print(f"加载配置文件失败: {e}")
+            self.server_url = default_config["server_url"]
     
+    def save_config(self):
+        """保存配置文件"""
+        try:
+            config = {
+                "server_url": self.server_url
+            }
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存配置文件失败: {e}")
+
+    @Slot()
+    def show_server_settings(self):
+        """显示服务器设置对话框"""
+        dialog = ServerSettingsDialog(self.server_url, self)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            new_url = dialog.get_server_url()
+            
+            if new_url != self.server_url:
+                # 更新服务器URL
+                self.server_url = new_url
+                
+                # 保存配置
+                self.save_config()
+                
+                # 更新数据管理器的服务器URL
+                self.rx_manager.server_url = new_url
+                self.patient_manager.server_url = new_url
+                
+                QMessageBox.information(self, "成功", 
+                    f"服务器URL已更新为: {new_url}\n"
+                    "建议点击菜单中的'刷新'来重新加载数据")
+                        
     def add_patient_button(self):
         """添加新增患者按钮到搜索组"""
         # 创建新增患者按钮
@@ -799,6 +981,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         self.ui.refresh_action.triggered.connect(self.refresh_data)
         self.ui.exit_action.triggered.connect(self.close)
         self.ui.about_action.triggered.connect(self.show_about)
+        self.ui.settings_action.triggered.connect(self.show_server_settings)
     
     def setup_styles(self):
         """设置样式"""
@@ -1080,7 +1263,8 @@ class PatientPrescriptionMainWindow(QMainWindow):
         patient_count = self.patient_manager.get_patient_count()
         about_text = (f"患者处方管理系统 v1.0\n\n"
                      f"用于管理患者处方信息的应用程序\n"
-                     f"当前患者列表中有 {patient_count} 个患者")
+                     f"当前患者列表中有 {patient_count} 个患者\n\n"
+                     f"当前服务器: {self.server_url}")
         QMessageBox.about(self, "关于", about_text)
 
 def main():

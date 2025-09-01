@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 class PatientInfoManager:
     """患者信息管理器 - 负责患者CSV文件的操作"""
     
-    def __init__(self, csv_file_path: str = None, server_url: str = "http://localhost:5000/api"):
+    def __init__(self, csv_file_path: str = None, server_url: str = "http://localhost:5000"):
         """
         初始化患者信息管理器
         
@@ -24,22 +24,9 @@ class PatientInfoManager:
         self.patient_df = None
         self.load_patient_list()
 
-    def create_empty_patient_csv(self) -> bool:
-        """
-        创建空的患者CSV文件
-        
-        Returns:
-            bool: 创建是否成功
-        """
-        try:
-            empty_df = pd.DataFrame(columns=['patientName', 'patientId'])
-            empty_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
-            print(f"创建空的患者文件: {self.csv_file_path}")
-            return True
-        except Exception as e:
-            print(f"创建患者文件失败: {str(e)}")
-            return False
-        
+####################
+# For Loading Data #
+####################
     def load_patient_list(self):
         """load patient list from server, if can't, read local patient list"""
         try:
@@ -70,6 +57,23 @@ class PatientInfoManager:
                 print("没有患者数据需要保存")
         except Exception as e:
             print(f"保存患者列表时出错: {str(e)}")
+
+    def create_empty_patient_csv(self) -> bool:
+        """
+        创建空的患者CSV文件
+        
+        Returns:
+            bool: 创建是否成功
+        """
+        try:
+            # 更新列结构以匹配新的CSV格式
+            empty_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
+            empty_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
+            print(f"创建空的患者文件: {self.csv_file_path}")
+            return True
+        except Exception as e:
+            print(f"创建患者文件失败: {str(e)}")
+            return False
     
     def read_local_patient_list(self) -> bool:
         """
@@ -83,11 +87,17 @@ class PatientInfoManager:
                 print(f"警告: 患者文件不存在: {self.csv_file_path}")
                 # 创建空的CSV文件
                 self.create_empty_patient_csv()
-                self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
+                self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
                 return True
             
             # 读取CSV文件
             self.patient_df = pd.read_csv(self.csv_file_path, encoding='utf-8')
+            
+            # 检查并添加缺失的列
+            required_columns = ['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId']
+            for col in required_columns:
+                if col not in self.patient_df.columns:
+                    self.patient_df[col] = ''
             
             # 确保patientName列是字符串类型
             if 'patientName' in self.patient_df.columns:
@@ -107,7 +117,7 @@ class PatientInfoManager:
             
         except Exception as e:
             print(f"加载患者列表失败: {str(e)}")
-            self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
+            self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
             return False
     
     def write_local_patient_list(self, patient_data: Dict[str, str]) -> bool:
@@ -126,8 +136,18 @@ class PatientInfoManager:
                 print("错误: 患者数据缺少必要字段")
                 return False
             
+            # 创建完整的患者数据，未提供的字段设为空字符串
+            complete_patient_data = {
+                'auntieId': patient_data.get('auntieId', ''),
+                'imageResourceId': patient_data.get('imageResourceId', ''),
+                'patientBarcode': patient_data.get('patientBarcode', ''),
+                'patientBedNumber': patient_data.get('patientBedNumber', ''),
+                'patientName': patient_data['patientName'],
+                'patientId': patient_data['patientId']
+            }
+            
             # 创建新患者的DataFrame
-            new_patient = pd.DataFrame([patient_data])
+            new_patient = pd.DataFrame([complete_patient_data])
             
             # 如果文件存在且有数据，追加数据；否则创建新文件
             if os.path.exists(self.csv_file_path) and self.patient_df is not None and not self.patient_df.empty:
@@ -164,6 +184,12 @@ class PatientInfoManager:
                         # 转换为DataFrame
                         self.patient_df = pd.DataFrame(patients_data)
                         
+                        # 确保所有必要的列存在
+                        required_columns = ['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId']
+                        for col in required_columns:
+                            if col not in self.patient_df.columns:
+                                self.patient_df[col] = ''
+                        
                         # 确保列名正确
                         if 'patientName' in self.patient_df.columns:
                             self.patient_df['patientName'] = self.patient_df['patientName'].astype(str)
@@ -182,7 +208,7 @@ class PatientInfoManager:
                         return True
                     else:
                         # 服务器返回空列表
-                        self.patient_df = pd.DataFrame(columns=['patientName', 'patientId'])
+                        self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
                         print("服务器返回空的患者列表")
                         return True
                 else:
@@ -260,7 +286,10 @@ class PatientInfoManager:
         except Exception as e:
             print(f"上传患者列表失败: {str(e)}")
             return False
-    
+
+###################
+# Basic Operation #
+###################
     def check_patient_exists(self, patient_name: str = None, patient_id: str = None) -> bool:
         """
         检查患者是否已存在
