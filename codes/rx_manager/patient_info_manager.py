@@ -5,23 +5,25 @@ import json
 from typing import Dict, List, Optional, Tuple
 
 class PatientInfoManager:
-    """患者信息管理器 - 负责患者CSV文件的操作"""
+    """Patient Information Manager"""
     
     def __init__(self, csv_file_path: str = None, server_url: str = "http://localhost:5000"):
         """
-        初始化患者信息管理器
+        Initialize patient information manager
         
         Args:
-            csv_file_path: CSV文件路径，如果为None则使用默认路径
-            server_url: 服务器URL
+            csv_file_path: CSV file path, use default path if None
+            server_url: Server URL
         """
+        # Intialize parameters
         if csv_file_path is None:
             self.csv_file_path = os.path.join(os.path.dirname(__file__), 'patients.csv')
         else:
             self.csv_file_path = csv_file_path
-        
         self.server_url = server_url.rstrip('/')
         self.patient_df = None
+
+        # Load patients from server or local csv file
         self.load_patient_list()
 
 ####################
@@ -30,113 +32,114 @@ class PatientInfoManager:
     def load_patient_list(self):
         """load patient list from server, if can't, read local patient list"""
         try:
-            # 首先尝试从服务器加载
+            # First try to load from server
             if self.fetch_online_patient_list():
-                print("成功从服务器加载患者列表")
+                print("Successfully loaded patient list from server")
+                return True
             else:
-                print("服务器加载失败，使用本地患者列表")
-                self.read_local_patient_list()
+                print("Server loading failed, using local patient list")
+                return self.read_local_patient_list()
         except Exception as e:
-            print(f"加载患者列表时出错: {str(e)}")
-            self.read_local_patient_list()
+            print(f"Error loading patient list: {str(e)}")
+            return self.read_local_patient_list()
 
     def save_patient_list(self):
         """upload self.patient_df to server, and save it to local"""
         try:
-            # 首先保存到本地
+            # First save to local
             if self.patient_df is not None and not self.patient_df.empty:
                 self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
-                print("成功保存到本地文件")
+                print("Successfully saved to local file")
                 
-                # 然后上传到服务器
+                # Then upload to server
                 if self.upload_patient_list():
-                    print("成功上传到服务器")
+                    print("Successfully uploaded to server")
                 else:
-                    print("上传到服务器失败，但本地保存成功")
+                    print("Failed to upload to server, but local save successful")
             else:
-                print("没有患者数据需要保存")
+                print("No patient data to save")
         except Exception as e:
-            print(f"保存患者列表时出错: {str(e)}")
+            print(f"Error saving patient list: {str(e)}")
 
-    def create_empty_patient_csv(self) -> bool:
+    def _create_empty_patient_csv(self) -> bool:
         """
-        创建空的患者CSV文件
+        Create empty patient CSV file
         
         Returns:
-            bool: 创建是否成功
+            bool: Whether creation was successful
         """
         try:
-            # 更新列结构以匹配新的CSV格式
+            # Update column structure to match new CSV format
             empty_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
             empty_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
-            print(f"创建空的患者文件: {self.csv_file_path}")
+            print(f"Created empty patient file: {self.csv_file_path}")
             return True
         except Exception as e:
-            print(f"创建患者文件失败: {str(e)}")
+            print(f"Failed to create patient file: {str(e)}")
             return False
     
     def read_local_patient_list(self) -> bool:
         """
-        从CSV文件中加载患者列表
+        Load patient list from CSV file
         
         Returns:
-            bool: 加载是否成功
+            bool: Whether loading was successful
         """
         try:
             if not os.path.exists(self.csv_file_path):
-                print(f"警告: 患者文件不存在: {self.csv_file_path}")
-                # 创建空的CSV文件
-                self.create_empty_patient_csv()
+                print(f"Warning: Patient file does not exist: {self.csv_file_path}")
+                # Create empty CSV file
+                self._create_empty_patient_csv()
                 self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
                 return True
             
-            # 读取CSV文件
+            # Read CSV file
             self.patient_df = pd.read_csv(self.csv_file_path, encoding='utf-8')
             
-            # 检查并添加缺失的列
+            # Check and add missing columns
             required_columns = ['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId']
             for col in required_columns:
                 if col not in self.patient_df.columns:
                     self.patient_df[col] = ''
             
-            # 确保patientName列是字符串类型
+            # Ensure patientName column is string type
             if 'patientName' in self.patient_df.columns:
                 self.patient_df['patientName'] = self.patient_df['patientName'].astype(str)
                 
-                # 清理数据 - 去除空白行和无效数据
+                # Clean data - remove empty rows and invalid data
                 self.patient_df = self.patient_df.dropna(subset=['patientName'])
                 self.patient_df['patientName'] = self.patient_df['patientName'].str.strip()
                 self.patient_df = self.patient_df[self.patient_df['patientName'] != '']
-                self.patient_df = self.patient_df[self.patient_df['patientName'] != 'nan']  # 去除字符串'nan'
+                self.patient_df = self.patient_df[self.patient_df['patientName'] != 'nan']  # Remove string 'nan'
             
-            print(f"成功加载 {len(self.patient_df)} 个患者:")
+            print(f"Successfully loaded {len(self.patient_df)} patients:")
             for _, row in self.patient_df.iterrows():
                 print(f"  - {row['patientName']} (patientId: {row['patientId']})")
             
             return True
             
         except Exception as e:
-            print(f"加载患者列表失败: {str(e)}")
+            print(f"Failed to load patient list: {str(e)}")
             self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
             return False
     
     def write_local_patient_list(self, patient_data: Dict[str, str]) -> bool:
         """
-        保存患者信息到CSV文件
+        Save patient information to CSV file
         
         Args:
-            patient_data: 患者数据字典，包含 'patientName' 和 'patientId' 字段
+            patient_data: Patient data dictionary containing 'patientName' and 'patientId' fields
         
         Returns:
-            bool: 保存是否成功
+            bool: Whether saving was successful
         """
         try:
-            # 验证必要字段
+            # Validate required fields
             if 'patientName' not in patient_data or 'patientId' not in patient_data:
-                print("错误: 患者数据缺少必要字段")
+                print("Error: Patient data missing required fields")
                 return False
             
-            # 创建完整的患者数据，未提供的字段设为空字符串
+            # Create complete patient data, set unprovided fields to empty string
             complete_patient_data = {
                 'auntieId': patient_data.get('auntieId', ''),
                 'imageResourceId': patient_data.get('imageResourceId', ''),
@@ -146,28 +149,28 @@ class PatientInfoManager:
                 'patientId': patient_data['patientId']
             }
             
-            # 创建新患者的DataFrame
+            # Create new patient DataFrame
             new_patient = pd.DataFrame([complete_patient_data])
             
-            # 如果文件存在且有数据，追加数据；否则创建新文件
+            # If file exists and has data, append data; otherwise create new file
             if os.path.exists(self.csv_file_path) and self.patient_df is not None and not self.patient_df.empty:
-                # 追加到现有数据
+                # Append to existing data
                 updated_df = pd.concat([self.patient_df, new_patient], ignore_index=True)
             else:
-                # 创建新文件
+                # Create new file
                 updated_df = new_patient
             
-            # 保存到文件
+            # Save to file
             updated_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
             
-            # 更新内存中的数据
+            # Update data in memory
             self.patient_df = updated_df
             
-            print(f"成功保存患者: {patient_data['patientName']} (patientId: {patient_data['patientId']})")
+            print(f"Successfully saved patient: {patient_data['patientName']} (patientId: {patient_data['patientId']})")
             return True
             
         except Exception as e:
-            print(f"保存患者信息失败: {str(e)}")
+            print(f"Failed to save patient information: {str(e)}")
             return False
         
     def fetch_online_patient_list(self) -> bool:
@@ -181,80 +184,80 @@ class PatientInfoManager:
                     patients_data = data['data']
                     
                     if patients_data:
-                        # 转换为DataFrame
+                        # Convert to DataFrame
                         self.patient_df = pd.DataFrame(patients_data)
                         
-                        # 确保所有必要的列存在
+                        # Ensure all required columns exist
                         required_columns = ['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId']
                         for col in required_columns:
                             if col not in self.patient_df.columns:
                                 self.patient_df[col] = ''
                         
-                        # 确保列名正确
+                        # Ensure correct column names
                         if 'patientName' in self.patient_df.columns:
                             self.patient_df['patientName'] = self.patient_df['patientName'].astype(str)
                         
-                        # 清理数据
+                        # Clean data
                         self.patient_df = self.patient_df.dropna(subset=['patientName'])
                         self.patient_df['patientName'] = self.patient_df['patientName'].str.strip()
                         self.patient_df = self.patient_df[self.patient_df['patientName'] != '']
                         self.patient_df = self.patient_df[self.patient_df['patientName'] != 'nan']
                         
-                        print(f"从服务器成功获取 {len(self.patient_df)} 个患者")
+                        print(f"Successfully retrieved {len(self.patient_df)} patients from server")
                         
-                        # 同时保存到本地
+                        # Also save to local
                         self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
                         
                         return True
                     else:
-                        # 服务器返回空列表
+                        # Server returned empty list
                         self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
-                        print("服务器返回空的患者列表")
+                        print("Server returned empty patient list")
                         return True
                 else:
-                    print(f"服务器返回错误: {data.get('message', '未知错误')}")
+                    print(f"Server returned error: {data.get('message', 'Unknown error')}")
                     return False
             else:
-                print(f"服务器请求失败，状态码: {response.status_code}")
+                print(f"Server request failed, status code: {response.status_code}")
                 return False
                 
         except requests.exceptions.RequestException as e:
-            print(f"网络请求失败: {str(e)}")
+            print(f"Network request failed: {str(e)}")
             return False
         except Exception as e:
-            print(f"从服务器获取患者列表失败: {str(e)}")
+            print(f"Failed to retrieve patient list from server: {str(e)}")
             return False
 
     def upload_patient_list(self) -> bool:
         """upload self.patient_df to server"""
         try:
             if self.patient_df is None or self.patient_df.empty:
-                # 上传空列表
+                # Upload empty list
                 patients_data = []
             else:
-                # 将DataFrame转换为字典列表
+                # Convert DataFrame to list of dictionaries
                 patients_data = self.patient_df.to_dict('records')
                 
-                # 确保数据格式正确
+                # Ensure correct data format
                 for patient in patients_data:
-                    # 确保ID是字符串或数字
+                    # Ensure ID is string or number
                     if pd.isna(patient.get('patientId')):
                         patient['patientId'] = ''
                     else:
                         patient['patientId'] = str(patient['patientId'])
                     
-                    # 确保patientName存在且不为空
+                    # Ensure patientName exists and is not empty
                     if pd.isna(patient.get('patientName')):
                         patient['patientName'] = ''
                     else:
                         patient['patientName'] = str(patient['patientName']).strip()
             
-            # 准备上传数据
+            # Prepare upload data
             upload_data = {
                 'patients': patients_data
             }
             
-            # 发送POST请求
+            # Send POST request
             headers = {'Content-Type': 'application/json'}
             response = requests.post(
                 f"{self.server_url}/patients/upload",
@@ -266,25 +269,25 @@ class PatientInfoManager:
             if response.status_code == 200:
                 data = response.json()
                 if data.get('success'):
-                    print(f"成功上传 {len(patients_data)} 个患者到服务器")
+                    print(f"Successfully uploaded {len(patients_data)} patients to server")
                     return True
                 else:
-                    print(f"服务器返回错误: {data.get('message', '未知错误')}")
+                    print(f"Server returned error: {data.get('message', 'Unknown error')}")
                     return False
             else:
-                print(f"上传失败，状态码: {response.status_code}")
+                print(f"Upload failed, status code: {response.status_code}")
                 try:
                     error_data = response.json()
-                    print(f"错误信息: {error_data.get('message', '未知错误')}")
+                    print(f"Error message: {error_data.get('message', 'Unknown error')}")
                 except:
-                    print(f"响应内容: {response.text}")
+                    print(f"Response content: {response.text}")
                 return False
                 
         except requests.exceptions.RequestException as e:
-            print(f"网络请求失败: {str(e)}")
+            print(f"Network request failed: {str(e)}")
             return False
         except Exception as e:
-            print(f"上传患者列表失败: {str(e)}")
+            print(f"Failed to upload patient list: {str(e)}")
             return False
 
 ###################
@@ -292,20 +295,20 @@ class PatientInfoManager:
 ###################
     def check_patient_exists(self, patient_name: str = None, patient_id: str = None) -> bool:
         """
-        检查患者是否已存在
+        Check if patient already exists
         
         Args:
-            patient_name: 患者姓名
-            patient_id: 患者ID
+            patient_name: Patient name
+            patient_id: Patient ID
         
         Returns:
-            bool: 患者是否存在
+            bool: Whether patient exists
         """
         if self.patient_df is None or self.patient_df.empty:
             return False
         
         try:
-            # 检查姓名或ID是否已存在
+            # Check if name or ID already exists
             name_exists = False
             id_exists = False
             
@@ -318,38 +321,38 @@ class PatientInfoManager:
             return name_exists or id_exists
             
         except Exception as e:
-            print(f"检查患者是否存在时出错: {str(e)}")
+            print(f"Error checking if patient exists: {str(e)}")
             return False
     
     def find_patient_by_name(self, patient_name: str, exact_match: bool = False) -> Optional[Dict[str, str]]:
         """
-        根据姓名查找患者
+        Find patient by name
         
         Args:
-            patient_name: 患者姓名
-            exact_match: 是否精确匹配，False时进行模糊匹配
+            patient_name: Patient name
+            exact_match: Whether to use exact match, False for fuzzy matching
         
         Returns:
-            Optional[Dict]: 患者信息字典，如果未找到返回None
+            Optional[Dict]: Patient information dictionary, returns None if not found
         """
         if self.patient_df is None or self.patient_df.empty:
             return None
         
         try:
             if exact_match:
-                # 精确匹配
+                # Exact match
                 exact_match_df = self.patient_df[self.patient_df['patientName'] == patient_name]
                 if not exact_match_df.empty:
                     patient_row = exact_match_df.iloc[0]
                 else:
                     return None
             else:
-                # 首先尝试精确匹配
+                # First try exact match
                 exact_match_df = self.patient_df[self.patient_df['patientName'] == patient_name]
                 if not exact_match_df.empty:
                     patient_row = exact_match_df.iloc[0]
                 else:
-                    # 如果精确匹配失败，尝试模糊匹配
+                    # If exact match fails, try fuzzy matching
                     matching_patients = self.patient_df[
                         self.patient_df['patientName'].str.contains(patient_name, na=False, case=False)
                     ]
@@ -359,22 +362,22 @@ class PatientInfoManager:
             
             return {
                 'patient_name': patient_row['patientName'],
-                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else '未知'
+                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else 'Unknown'
             }
             
         except Exception as e:
-            print(f"查找患者时出错: {str(e)}")
+            print(f"Error finding patient: {str(e)}")
             return None
     
     def find_patient_by_id(self, patient_id: str) -> Optional[Dict[str, str]]:
         """
-        根据ID查找患者
+        Find patient by ID
         
         Args:
-            patient_id: 患者ID
+            patient_id: Patient ID
         
         Returns:
-            Optional[Dict]: 患者信息字典，如果未找到返回None
+            Optional[Dict]: Patient information dictionary, returns None if not found
         """
         if self.patient_df is None or self.patient_df.empty:
             return None
@@ -388,19 +391,19 @@ class PatientInfoManager:
             patient_row = matching_patients.iloc[0]
             return {
                 'patient_name': patient_row['patientName'],
-                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else '未知'
+                'patient_id': str(patient_row['patientId']) if pd.notna(patient_row['patientId']) else 'Unknown'
             }
             
         except Exception as e:
-            print(f"根据ID查找患者时出错: {str(e)}")
+            print(f"Error finding patient by ID: {str(e)}")
             return None
     
     def get_all_patients(self) -> List[Dict[str, str]]:
         """
-        获取所有患者列表
+        Get all patients list
         
         Returns:
-            List[Dict]: 患者信息列表
+            List[Dict]: Patient information list
         """
         if self.patient_df is None or self.patient_df.empty:
             return []
@@ -410,89 +413,89 @@ class PatientInfoManager:
             for _, row in self.patient_df.iterrows():
                 patients.append({
                     'patient_name': row['patientName'],
-                    'patient_id': str(row['patientId']) if pd.notna(row['patientId']) else '未知'
+                    'patient_id': str(row['patientId']) if pd.notna(row['patientId']) else 'Unknown'
                 })
             return patients
             
         except Exception as e:
-            print(f"获取所有患者时出错: {str(e)}")
+            print(f"Error getting all patients: {str(e)}")
             return []
     
     def update_patient(self, old_patient_id: str, new_patient_data: Dict[str, str]) -> bool:
         """
-        更新患者信息
+        Update patient information
         
         Args:
-            old_patient_id: 原患者ID
-            new_patient_data: 新的患者数据
+            old_patient_id: Original patient ID
+            new_patient_data: New patient data
         
         Returns:
-            bool: 更新是否成功
+            bool: Whether update was successful
         """
         if self.patient_df is None or self.patient_df.empty:
             return False
         
         try:
-            # 查找患者
+            # Find patient
             mask = self.patient_df['patientId'].astype(str) == str(old_patient_id)
             if not mask.any():
-                print(f"未找到ID为 {old_patient_id} 的患者")
+                print(f"Patient with ID {old_patient_id} not found")
                 return False
             
-            # 更新数据
+            # Update data
             for key, value in new_patient_data.items():
                 if key in self.patient_df.columns:
                     self.patient_df.loc[mask, key] = value
             
-            # 保存到文件
+            # Save to file
             self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
             
-            print(f"成功更新患者信息: {new_patient_data}")
+            print(f"Successfully updated patient information: {new_patient_data}")
             return True
             
         except Exception as e:
-            print(f"更新患者信息失败: {str(e)}")
+            print(f"Failed to update patient information: {str(e)}")
             return False
     
     def delete_patient(self, patient_id: str) -> bool:
         """
-        删除患者
+        Delete patient
         
         Args:
-            patient_id: 患者ID
+            patient_id: Patient ID
         
         Returns:
-            bool: 删除是否成功
+            bool: Whether deletion was successful
         """
         if self.patient_df is None or self.patient_df.empty:
             return False
         
         try:
-            # 查找患者
+            # Find patient
             mask = self.patient_df['patientId'].astype(str) == str(patient_id)
             if not mask.any():
-                print(f"未找到ID为 {patient_id} 的患者")
+                print(f"Patient with ID {patient_id} not found")
                 return False
             
-            # 删除患者
+            # Delete patient
             self.patient_df = self.patient_df[~mask]
             
-            # 保存到文件
+            # Save to file
             self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
             
-            print(f"成功删除患者ID: {patient_id}")
+            print(f"Successfully deleted patient ID: {patient_id}")
             return True
             
         except Exception as e:
-            print(f"删除患者失败: {str(e)}")
+            print(f"Failed to delete patient: {str(e)}")
             return False
     
     def get_patient_count(self) -> int:
         """
-        获取患者总数
+        Get total number of patients
         
         Returns:
-            int: 患者总数
+            int: Total number of patients
         """
         if self.patient_df is None or self.patient_df.empty:
             return 0
@@ -500,45 +503,45 @@ class PatientInfoManager:
     
     def validate_patient_data(self, patient_data: Dict[str, str]) -> Tuple[bool, str]:
         """
-        验证患者数据
+        Validate patient data, only a patient_data with both patient name and patien id is valid
         
         Args:
-            patient_data: 患者数据字典
+            patient_data: Patient data dictionary
         
         Returns:
-            Tuple[bool, str]: (是否有效, 错误信息)
+            Tuple[bool, str]: (Whether valid, error message)
         """
         if not isinstance(patient_data, dict):
-            return False, "患者数据必须是字典格式"
+            return False, "Patient data must be in dictionary format"
         
         if 'patientName' not in patient_data:
-            return False, "缺少患者姓名"
+            return False, "Missing patient name"
         
         if 'patientId' not in patient_data:
-            return False, "缺少患者ID"
+            return False, "Missing patient ID"
         
         patient_name = patient_data['patientName'].strip() if patient_data['patientName'] else ''
         patient_id = str(patient_data['patientId']).strip() if patient_data['patientId'] else ''
         
         if not patient_name:
-            return False, "患者姓名不能为空"
+            return False, "Patient name cannot be empty"
         
         if not patient_id:
-            return False, "患者ID不能为空"
+            return False, "Patient ID cannot be empty"
         
-        # 验证ID是否为数字
+        # Validate if ID is numeric
         try:
             int(patient_id)
         except ValueError:
-            return False, "患者ID必须是数字"
+            return False, "Patient ID must be numeric"
         
         return True, ""
     
     def refresh_data(self) -> bool:
         """
-        刷新数据（重新加载CSV文件）
+        Refresh data
         
         Returns:
-            bool: 刷新是否成功
+            bool: Whether refresh was successful
         """
         return self.load_patient_list()
