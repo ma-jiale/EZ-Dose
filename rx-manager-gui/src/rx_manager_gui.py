@@ -848,8 +848,8 @@ class PatientPrescriptionMainWindow(QMainWindow):
         # 初始状态
         self.setup_initial_state()
         
-        # 添加新增患者按钮
-        self.add_patient_button()
+        # # 添加新增患者按钮
+        # self.add_patient_button()
 
     def load_config(self):
         """加载配置文件"""
@@ -903,16 +903,16 @@ class PatientPrescriptionMainWindow(QMainWindow):
                     f"服务器URL已更新为: {new_url}\n"
                     "建议点击菜单中的'刷新'来重新加载数据")
                         
-    def add_patient_button(self):
-        """添加新增患者按钮到搜索组"""
-        # 创建新增患者按钮
-        self.add_patient_btn = QPushButton("新增患者")
-        self.add_patient_btn.setObjectName("add_patient_button")
-        self.add_patient_btn.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
-        self.add_patient_btn.clicked.connect(self.show_add_patient_dialog)
+    # def add_patient_button(self):
+    #     """添加新增患者按钮到搜索组"""
+    #     # 创建新增患者按钮
+    #     self.add_patient_btn = QPushButton("新增患者")
+    #     self.add_patient_btn.setObjectName("add_patient_button")
+    #     self.add_patient_btn.setFont(QFont("Microsoft YaHei", 10, QFont.Weight.Bold))
+    #     self.add_patient_btn.clicked.connect(self.show_add_patient_dialog)
         
-        # 添加到搜索布局
-        self.ui.search_layout.addWidget(self.add_patient_btn)
+    #     # 添加到搜索布局
+    #     self.ui.search_layout.addWidget(self.add_patient_btn)
     
     @Slot()
     def show_add_patient_dialog(self):
