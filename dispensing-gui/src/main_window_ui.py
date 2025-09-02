@@ -27,6 +27,9 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(978, 656)
+        icon = QIcon()
+        icon.addFile(u":/icons/icon.ico", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        MainWindow.setWindowIcon(icon)
         MainWindow.setStyleSheet(u"QPushButton {\n"
 "    min-width: 213px;\n"
 "    min-height: 61px;\n"
@@ -34,6 +37,7 @@ class Ui_MainWindow(object):
 "    max-height: 61px;\n"
 "}\n"
 "")
+        MainWindow.setLocale(QLocale(QLocale.Chinese, QLocale.China))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.horizontalLayout = QHBoxLayout(self.centralwidget)
@@ -119,9 +123,9 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "")
-        icon = QIcon()
-        icon.addFile(u":/icons/icon_machine.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.btn_dispense_page.setIcon(icon)
+        icon1 = QIcon()
+        icon1.addFile(u":/icons/icon_machine.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.btn_dispense_page.setIcon(icon1)
         self.btn_dispense_page.setIconSize(QSize(28, 28))
 
         self.verticalLayout.addWidget(self.btn_dispense_page)
@@ -157,9 +161,9 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "")
-        icon1 = QIcon()
-        icon1.addFile(u":/icons/icon_setting.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.btn_setting_page.setIcon(icon1)
+        icon2 = QIcon()
+        icon2.addFile(u":/icons/icon_setting.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.btn_setting_page.setIcon(icon2)
         self.btn_setting_page.setIconSize(QSize(28, 28))
 
         self.verticalLayout.addWidget(self.btn_setting_page)
@@ -199,9 +203,9 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "")
-        icon2 = QIcon()
-        icon2.addFile(u":/icons/icon_refresh.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.btn_refresh_database.setIcon(icon2)
+        icon3 = QIcon()
+        icon3.addFile(u":/icons/icon_refresh.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.btn_refresh_database.setIcon(icon3)
         self.btn_refresh_database.setIconSize(QSize(28, 28))
 
         self.verticalLayout.addWidget(self.btn_refresh_database)
@@ -237,9 +241,9 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "")
-        icon3 = QIcon()
-        icon3.addFile(u":/icons/icon_help.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.btn_contact_us_page.setIcon(icon3)
+        icon4 = QIcon()
+        icon4.addFile(u":/icons/icon_help.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.btn_contact_us_page.setIcon(icon4)
         self.btn_contact_us_page.setIconSize(QSize(28, 28))
 
         self.verticalLayout.addWidget(self.btn_contact_us_page)
@@ -1142,7 +1146,7 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"EZ Dose", None))
         self.img_profile_photo.setText("")
         self.btn_dispense_page.setText(QCoreApplication.translate("MainWindow", u"   \u5206\u836f            ", None))
         self.btn_setting_page.setText(QCoreApplication.translate("MainWindow", u"   \u8bbe\u7f6e            ", None))

@@ -11,7 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>EZ Dose</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="icons.qrc">
+    <normaloff>:/icons/icon.ico</normaloff>:/icons/icon.ico</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">QPushButton {
@@ -21,6 +25,9 @@
     max-height: 61px;
 }
 </string>
+  </property>
+  <property name="locale">
+   <locale language="Chinese" country="China"/>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">

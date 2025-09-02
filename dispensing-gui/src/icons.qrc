@@ -6,5 +6,6 @@
     <file>icons/icon_machine.png</file>
     <file>icons/icon_refresh.png</file>
     <file>icons/icon_setting.png</file>
+    <file>icons/icon.ico</file>
 </qresource>
 </RCC>
