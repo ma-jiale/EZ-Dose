@@ -333,7 +333,304 @@ class MedicineSettingDialog(QDialog):
             self.ui.dateEdit_start_date.setCalendarPopup(True)
             self.ui.dateEdit_start_date.setDisplayFormat("yyyy-MM-dd")
         
-        # 不设置任何样式，保持原始UI样式
+        # 应用美化样式
+        self.apply_styles()
+    
+    def apply_styles(self):
+        """应用美化样式"""
+        self.setStyleSheet("""
+            /* 对话框整体样式 */
+            QDialog {
+                background-color: #f8f9fa;
+                color: #333333;
+                font-family: "Microsoft YaHei", Arial, sans-serif;
+            }
+            
+            /* 标签样式 */
+            QLabel {
+                color: #495057;
+                font-weight: 500;
+                font-size: 12px;
+                padding: 2px;
+            }
+            
+            /* 输入框样式 */
+            QLineEdit {
+                border: 2px solid #e9ecef;
+                border-radius: 6px;
+                padding: 8px 12px;
+                background-color: white;
+                font-size: 12px;
+                selection-background-color: #0078d4;
+            }
+            
+            QLineEdit:focus {
+                border-color: #0078d4;
+                outline: none;
+            }
+            
+            QLineEdit:hover {
+                border-color: #ced4da;
+            }
+            
+            /* 数字输入框样式 */
+            QSpinBox {
+                border: 2px solid #e9ecef;
+                border-radius: 6px;
+                padding: 6px 8px;
+                background-color: white;
+                font-size: 12px;
+                min-width: 60px;
+            }
+            
+            QSpinBox:focus {
+                border-color: #0078d4;
+            }
+            
+            QSpinBox:hover {
+                border-color: #ced4da;
+            }
+            
+            QSpinBox::up-button, QSpinBox::down-button {
+                border: none;
+                background: transparent;
+                width: 16px;
+            }
+            
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: #e9ecef;
+            }
+            
+            QSpinBox::up-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 4px solid #6c757d;
+                width: 0;
+                height: 0;
+            }
+            
+            QSpinBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #6c757d;
+                width: 0;
+                height: 0;
+            }
+            
+            /* 下拉框样式 */
+            QComboBox {
+                border: 2px solid #e9ecef;
+                border-radius: 6px;
+                padding: 6px 12px;
+                background-color: white;
+                font-size: 12px;
+                min-width: 100px;
+            }
+            
+            QComboBox:focus {
+                border-color: #0078d4;
+            }
+            
+            QComboBox:hover {
+                border-color: #ced4da;
+            }
+            
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #6c757d;
+                width: 0;
+                height: 0;
+            }
+            
+            QComboBox QAbstractItemView {
+                border: 1px solid #ced4da;
+                background-color: white;
+                selection-background-color: #e3f2fd;
+                selection-color: #1976d2;
+                outline: none;
+            }
+            
+            /* 日期选择器样式 */
+            QDateEdit {
+                border: 2px solid #e9ecef;
+                border-radius: 6px;
+                padding: 6px 12px;
+                background-color: white;
+                font-size: 12px;
+                min-width: 120px;
+            }
+            
+            QDateEdit:focus {
+                border-color: #0078d4;
+            }
+            
+            QDateEdit:hover {
+                border-color: #ced4da;
+            }
+            
+            QDateEdit::drop-down {
+                border: none;
+                width: 20px;
+            }
+            
+            QDateEdit::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #6c757d;
+                width: 0;
+                height: 0;
+            }
+            
+            /* 按钮样式 */
+            QPushButton {
+                background-color: #0078d4;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                min-height: 16px;
+            }
+            
+            QPushButton:hover {
+                background-color: #106ebe;
+            }
+            
+            QPushButton:pressed {
+                background-color: #005a9e;
+            }
+            
+            QPushButton:disabled {
+                background-color: #6c757d;
+                color: #adb5bd;
+            }
+            
+            /* 保存按钮特殊样式 */
+            QPushButton#btn_save_medicine {
+                background-color: #28a745;
+                font-size: 14px;
+                padding: 12px 24px;
+            }
+            
+            QPushButton#btn_save_medicine:hover {
+                background-color: #218838;
+            }
+            
+            QPushButton#btn_save_medicine:pressed {
+                background-color: #1e7e34;
+            }
+            
+            /* 删除按钮特殊样式 */
+            QPushButton#btn_delete_medicine {
+                background-color: #dc3545;
+                font-size: 14px;
+                padding: 12px 24px;
+            }
+            
+            QPushButton#btn_delete_medicine:hover {
+                background-color: #c82333;
+            }
+            
+            QPushButton#btn_delete_medicine:pressed {
+                background-color: #bd2130;
+            }
+            
+            /* 拍照和清除按钮样式 */
+            QPushButton#btn_take_photo, QPushButton#btb_delete_photo {
+                background-color: #6c757d;
+                padding: 8px 16px;
+                font-size: 11px;
+            }
+            
+            QPushButton#btn_take_photo:hover, QPushButton#btb_delete_photo:hover {
+                background-color: #5a6268;
+            }
+            
+            /* 图片框样式 */
+            QLabel#img_cam_frame {
+                border: 2px dashed #ced4da;
+                border-radius: 8px;
+                background-color: #f8f9fa;
+                color: #6c757d;
+                font-size: 14px;
+                text-align: center;
+                padding: 20px;
+            }
+            
+            /* 剂量标签特殊样式 */
+            QLabel#txt_dosage {
+                font-size: 14px;
+                font-weight: bold;
+                color: #495057;
+                margin-top: 10px;
+                margin-bottom: 5px;
+            }
+            
+            /* 药品名称标签样式 */
+            QLabel#txt_medicine_name {
+                font-size: 13px;
+                font-weight: bold;
+                color: #495057;
+            }
+            
+            /* 服药时间段标签样式 */
+            QLabel#txt_morning, QLabel#txt_noon, QLabel#txt_evening {
+                font-weight: 600;
+                color: #28a745;
+                min-width: 30px;
+            }
+            
+            /* 其他重要标签样式 */
+            QLabel#txt_dosage_time, QLabel#txt_start_time, QLabel#txt_duration_days, 
+            QLabel#txt_size, QLabel#label {
+                font-weight: 600;
+                color: #495057;
+                min-width: 80px;
+            }
+        """)
+        
+        # 设置按钮的objectName以应用特定样式
+        if hasattr(self.ui, 'btn_save_medicine'):
+            self.ui.btn_save_medicine.setObjectName("btn_save_medicine")
+        if hasattr(self.ui, 'btn_delete_medicine'):
+            self.ui.btn_delete_medicine.setObjectName("btn_delete_medicine")
+        if hasattr(self.ui, 'btn_take_photo'):
+            self.ui.btn_take_photo.setObjectName("btn_take_photo")
+        if hasattr(self.ui, 'btb_delete_photo'):
+            self.ui.btb_delete_photo.setObjectName("btb_delete_photo")
+        if hasattr(self.ui, 'img_cam_frame'):
+            self.ui.img_cam_frame.setObjectName("img_cam_frame")
+        if hasattr(self.ui, 'txt_dosage'):
+            self.ui.txt_dosage.setObjectName("txt_dosage")
+        if hasattr(self.ui, 'txt_medicine_name'):
+            self.ui.txt_medicine_name.setObjectName("txt_medicine_name")
+        if hasattr(self.ui, 'txt_morning'):
+            self.ui.txt_morning.setObjectName("txt_morning")
+        if hasattr(self.ui, 'txt_noon'):
+            self.ui.txt_noon.setObjectName("txt_noon")
+        if hasattr(self.ui, 'txt_evening'):
+            self.ui.txt_evening.setObjectName("txt_evening")
+        if hasattr(self.ui, 'txt_dosage_time'):
+            self.ui.txt_dosage_time.setObjectName("txt_dosage_time")
+        if hasattr(self.ui, 'txt_start_time'):
+            self.ui.txt_start_time.setObjectName("txt_start_time")
+        if hasattr(self.ui, 'txt_duration_days'):
+            self.ui.txt_duration_days.setObjectName("txt_duration_days")
+        if hasattr(self.ui, 'txt_size'):
+            self.ui.txt_size.setObjectName("txt_size")
+        if hasattr(self.ui, 'label'):
+            self.ui.label.setObjectName("label")
     
     def setup_new_medicine_defaults(self):
         """为新药品设置默认值"""
