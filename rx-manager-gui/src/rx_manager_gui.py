@@ -272,6 +272,7 @@ class MedicineSettingDialog(QDialog):
     # 添加信号，用于通知主窗口刷新数据
     medicine_updated = Signal()
     medicine_added = Signal()  # 新增药品成功信号
+    medicine_deleted = Signal()  # 删除药品成功信号
     
     def __init__(self, medicine_info, current_patient_info, rx_manager, is_new_medicine=False, parent=None):
         super().__init__(parent)
@@ -302,8 +303,14 @@ class MedicineSettingDialog(QDialog):
         # 加载药品数据
         if not is_new_medicine:
             self.load_medicine_data()
+            # 为现有药品显示删除按钮
+            if hasattr(self.ui, 'btn_delete_medicine'):
+                self.ui.btn_delete_medicine.show()
         else:
             self.setup_new_medicine_defaults()
+            # 新增药品时隐藏删除按钮
+            if hasattr(self.ui, 'btn_delete_medicine'):
+                self.ui.btn_delete_medicine.hide()
     
     def setup_interface(self):
         """设置界面"""
@@ -372,6 +379,8 @@ class MedicineSettingDialog(QDialog):
             self.ui.btb_delete_photo.clicked.connect(self.delete_photo)
         if hasattr(self.ui, 'btn_save_medicine'):
             self.ui.btn_save_medicine.clicked.connect(self.save_medicine)
+        if hasattr(self.ui, 'btn_delete_medicine'):
+            self.ui.btn_delete_medicine.clicked.connect(self.delete_medicine)
     
     def load_medicine_data(self):
         """加载药品数据到界面"""
@@ -699,6 +708,55 @@ class MedicineSettingDialog(QDialog):
             return False
         
         return True
+    
+    @Slot()
+    def delete_medicine(self):
+        """删除药品"""
+        if not self.current_patient_info or not self.medicine_info:
+            QMessageBox.warning(self, "错误", "缺少必要信息，无法删除")
+            return
+        
+        medicine_name = self.medicine_info.get('medicine_name', '未知药品')
+        
+        # 确认删除
+        reply = QMessageBox.question(
+            self, 
+            "确认删除", 
+            f"确定要删除药品 '{medicine_name}' 吗？\n\n此操作不可撤销！",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        
+        try:
+            # 执行删除操作
+            success, result = self.rx_manager.delete_medicine(
+                self.current_patient_info['patient_id'],
+                medicine_name
+            )
+            
+            if success:
+                # 立即上传到服务器以保持同步
+                upload_success = self.rx_manager.upload_prescriptions_to_server()
+                if upload_success:
+                    print("[Info] Successfully synced medicine deletion to server")
+                else:
+                    print("[Warning] Failed to sync to server, but deleted locally")
+                
+                QMessageBox.information(self, "成功", f"药品 '{medicine_name}' 已成功删除")
+                
+                # 发出删除成功信号
+                self.medicine_deleted.emit()
+                
+                # 关闭对话框
+                self.accept()
+            else:
+                QMessageBox.critical(self, "删除失败", f"删除药品失败：{result['error']}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"删除药品时发生异常：{str(e)}")
 
 class AddMedicineButton(QPushButton):
     """添加药品按钮"""
@@ -888,7 +946,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_url = dialog.get_server_url()
             
-            if new_url != self.server_url:
+            if (new_url != self.server_url):
                 # 更新服务器URL
                 self.server_url = new_url
                 
@@ -1237,6 +1295,7 @@ class PatientPrescriptionMainWindow(QMainWindow):
         """药品按钮点击事件处理器 - 打开药品设置对话框"""
         dialog = MedicineSettingDialog(medicine_info, self.current_patient_info, self.rx_manager, is_new_medicine=False, parent=self)
         dialog.medicine_updated.connect(self.refresh_current_patient)
+        dialog.medicine_deleted.connect(self.refresh_current_patient)
         dialog.exec()
     
     @Slot()

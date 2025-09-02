@@ -406,3 +406,44 @@ class PatientPrescriptionManager:
             new_df = pd.DataFrame(new_records)
             self.df = pd.concat([self.df, new_df], ignore_index=True)
             print(f"[Info] Fallback: Appended {len(new_records)} record(s) to the end")
+
+    def delete_medicine(self, patient_id, medicine_name):
+        """
+        删除指定患者的指定药品
+        
+        Args:
+            patient_id: 患者ID
+            medicine_name: 药品名称
+            
+        Returns:
+            Tuple[bool, Dict]: (success flag, result message or error dict)
+        """
+        try:
+            if self.df is None or self.df.empty:
+                return False, {'error': 'No prescription data available', 'error_code': 404}
+            
+            # 查找要删除的记录
+            delete_mask = (
+                (self.df['patientId'].astype(str) == str(patient_id)) & 
+                (self.df['medicine_name'] == medicine_name)
+            )
+            
+            if not delete_mask.any():
+                return False, {'error': f'Medicine "{medicine_name}" not found for patient {patient_id}', 'error_code': 404}
+            
+            # 删除记录
+            self.df = self.df[~delete_mask].reset_index(drop=True)
+            
+            # 保存到CSV文件
+            self.write_local_prescriptions()
+            
+            print(f"[Info] Deleted medicine '{medicine_name}' for patient {patient_id}")
+            
+            return True, {
+                'message': f'Successfully deleted medicine "{medicine_name}"',
+                'patient_id': patient_id,
+                'medicine_name': medicine_name
+            }
+            
+        except Exception as e:
+            return False, {'error': f'Failed to delete medicine: {str(e)}', 'error_code': 500}

@@ -203,6 +203,11 @@ class Ui_medicine_setting(object):
 
         self.verticalLayout_2.addWidget(self.btn_save_medicine)
 
+        self.btn_delete_medicine = QPushButton(medicine_setting)
+        self.btn_delete_medicine.setObjectName(u"btn_delete_medicine")
+
+        self.verticalLayout_2.addWidget(self.btn_delete_medicine)
+
 
         self.horizontalLayout_3.addLayout(self.verticalLayout_2)
 
@@ -248,6 +253,7 @@ class Ui_medicine_setting(object):
         self.comboBox_isActive.setItemText(0, QCoreApplication.translate("medicine_setting", u"\u662f", None))
         self.comboBox_isActive.setItemText(1, QCoreApplication.translate("medicine_setting", u"\u5426", None))
 
-        self.btn_save_medicine.setText(QCoreApplication.translate("medicine_setting", u"\u4fdd\u5b58", None))
+        self.btn_save_medicine.setText(QCoreApplication.translate("medicine_setting", u"\u4fdd\u5b58\u836f\u54c1", None))
+        self.btn_delete_medicine.setText(QCoreApplication.translate("medicine_setting", u"\u5220\u9664\u836f\u54c1", None))
     # retranslateUi
 

@@ -258,7 +258,14 @@
      <item>
       <widget class="QPushButton" name="btn_save_medicine">
        <property name="text">
-        <string>保存</string>
+        <string>保存药品</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_delete_medicine">
+       <property name="text">
+        <string>删除药品</string>
        </property>
       </widget>
      </item>
