@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}排班管理{% endblock %}
+
+{% block content %}
+    <h1>排班管理</h1>
+    
+    <div class="actions">
+        <a href="{{ URL_PREFIX }}{{ url_for('add_schedule') }}" class="btn btn-primary">新增排班</a>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>患者ID</th>
+                <th>患者姓名</th>
+                <th>时间段</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for schedule in schedules %}
+            <tr>
+                <td>{{ schedule.patientId }}</td>
+                <td>{{ schedule.patientName }}</td>
+                <td>
+                    {% for time_slot in schedule.timeSlots %}
+                        <span class="time-slot-badge">
+                            {% if time_slot == 'BEFORE_BREAKFAST' %}早饭前
+                            {% elif time_slot == 'AFTER_BREAKFAST' %}早饭后
+                            {% elif time_slot == 'BEFORE_LUNCH' %}午饭前
+                            {% elif time_slot == 'AFTER_LUNCH' %}午饭后
+                            {% elif time_slot == 'BEFORE_DINNER' %}晚饭前
+                            {% elif time_slot == 'AFTER_DINNER' %}晚饭后
+                            {% else %}{{ time_slot }}
+                            {% endif %}
+                        </span>
+                        {% if not loop.last %} {% endif %}
+                    {% endfor %}
+                </td>
+                <td class="actions">
+                    <a href="{{ URL_PREFIX }}{{ url_for('edit_schedule_by_patient', patient_id=schedule.patientId) }}" class="btn btn-warning">编辑</a>
+                    <a href="{{ URL_PREFIX }}{{ url_for('delete_schedule_by_patient', patient_id=schedule.patientId) }}" 
+                       onclick="return confirm('确定要删除患者 {{ schedule.patientName }} 的所有排班记录吗？')" 
+                       class="btn btn-danger">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

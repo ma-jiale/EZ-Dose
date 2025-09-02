@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑患者" if patient else "新增患者" }}{% endblock %}
+
+{% block content %}
+    <h1>{{ "编辑患者" if patient else "新增患者" }}</h1>
+
+    <form method="POST" class="form" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="auntieId">负责护工ID:</label>
+            <input type="text" id="auntieId" name="auntieId" 
+                   value="{{ patient.auntieId if patient else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="patientImage">患者照片:</label>
+            {% if patient and patient.imageResourceId %}
+                <div style="margin-bottom: 10px;">
+                    <img src="{{ URL_PREFIX }}{{ url_for('static', filename='images_patients/' + patient.imageResourceId) }}" 
+                         width="150" height="150" style="object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
+                    <p style="font-size: 12px; color: #666; margin: 5px 0;">当前图片: {{ patient.imageResourceId }}</p>
+                </div>
+            {% endif %}
+            <input type="file" id="patientImage" name="patientImage" 
+                   accept="image/png,image/jpg,image/jpeg,image/gif,image/bmp,image/webp">
+            <small style="color: #666; display: block; margin-top: 5px;">
+                支持格式：PNG, JPG, JPEG, GIF, BMP, WEBP (最大16MB)
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label for="patientName">患者姓名:</label>
+            <input type="text" id="patientName" name="patientName" 
+                   value="{{ patient.patientName if patient else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="patientBedNumber">床号:</label>
+            <input type="text" id="patientBedNumber" name="patientBedNumber" 
+                   value="{{ patient.patientBedNumber if patient else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="patientBarcode">条码:</label>
+            <input type="text" id="patientBarcode" name="patientBarcode" 
+                   value="{{ patient.patientBarcode if patient else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if patient else "新增" }}</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

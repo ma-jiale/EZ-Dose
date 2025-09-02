@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ URL_PREFIX }}{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <nav style="background-color: #343a40; padding: 10px; margin: -2em -2em 20px -2em;">
+        <a href="{{ URL_PREFIX }}{{ url_for('admin_dashboard') }}" class="btn btn-secondary">系统首页</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_caregivers') }}" class="btn btn-secondary">护士管理</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_aunties') }}" class="btn btn-secondary">护工管理</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" class="btn btn-secondary">患者管理</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_schedules') }}" class="btn btn-secondary">排班管理</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_timeslots') }}" class="btn btn-secondary">时间段管理</a>
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_tasks') }}" class="btn btn-secondary">服药记录查看</a>
+    </nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,892 @@
+{
+    "user": "Tayvick",
+    "course": 30,
+    "patches": 85,
+    "schedule": [
+        {
+            "day": 1,
+            "content": [
+                {
+                    "patch": 1,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_b"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 2,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 3,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 2,
+            "content": [
+                {
+                    "patch": 4,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_b"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 5,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 6,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 3,
+            "content": [
+                {
+                    "patch": 7,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_b"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 8,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 9,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 4,
+            "content": [
+                {
+                    "patch": 10,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_b"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 11,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 12,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 5,
+            "content": [
+                {
+                    "patch": 13,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_b"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 14,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 15,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 6,
+            "content": [
+                {
+                    "patch": 16,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 17,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 18,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 7,
+            "content": [
+                {
+                    "patch": 19,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 20,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 21,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 8,
+            "content": [
+                {
+                    "patch": 22,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 23,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 24,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 9,
+            "content": [
+                {
+                    "patch": 25,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 26,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 27,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 10,
+            "content": [
+                {
+                    "patch": 28,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 29,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 30,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 11,
+            "content": [
+                {
+                    "patch": 31,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 32,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 33,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 12,
+            "content": [
+                {
+                    "patch": 34,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 35,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 36,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 13,
+            "content": [
+                {
+                    "patch": 37,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 38,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 39,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 14,
+            "content": [
+                {
+                    "patch": 40,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 41,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 42,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 15,
+            "content": [
+                {
+                    "patch": 43,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 44,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 45,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 16,
+            "content": [
+                {
+                    "patch": 46,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 47,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 48,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 17,
+            "content": [
+                {
+                    "patch": 49,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 50,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 51,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 18,
+            "content": [
+                {
+                    "patch": 52,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 53,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 54,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 19,
+            "content": [
+                {
+                    "patch": 55,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 56,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 57,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 20,
+            "content": [
+                {
+                    "patch": 58,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 59,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 60,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 21,
+            "content": [
+                {
+                    "patch": 61,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 62,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 63,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 22,
+            "content": [
+                {
+                    "patch": 64,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 65,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 66,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 23,
+            "content": [
+                {
+                    "patch": 67,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 68,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 69,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 24,
+            "content": [
+                {
+                    "patch": 70,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 71,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 72,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 25,
+            "content": [
+                {
+                    "patch": 73,
+                    "medicines": [
+                        "medicine_a"
+                    ],
+                    "time_start": "08:00",
+                    "time_end": "08:30"
+                },
+                {
+                    "patch": 74,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 75,
+                    "medicines": [
+                        "medicine_a",
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 26,
+            "content": [
+                {
+                    "patch": 76,
+                    "medicines": [
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 77,
+                    "medicines": [
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 27,
+            "content": [
+                {
+                    "patch": 78,
+                    "medicines": [
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 79,
+                    "medicines": [
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 28,
+            "content": [
+                {
+                    "patch": 80,
+                    "medicines": [
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 81,
+                    "medicines": [
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 29,
+            "content": [
+                {
+                    "patch": 82,
+                    "medicines": [
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 83,
+                    "medicines": [
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        },
+        {
+            "day": 30,
+            "content": [
+                {
+                    "patch": 84,
+                    "medicines": [
+                        "medicine_c"
+                    ],
+                    "time_start": "12:00",
+                    "time_end": "12:30"
+                },
+                {
+                    "patch": 85,
+                    "medicines": [
+                        "medicine_d"
+                    ],
+                    "time_start": "18:00",
+                    "time_end": "18:30"
+                }
+            ]
+        }
+    ]
+}

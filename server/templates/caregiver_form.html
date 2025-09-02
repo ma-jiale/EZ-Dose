@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑护士" if caregiver else "新增护士" }}{% endblock %}
+
+{% block content %}
+    <h1>{{ "编辑护士" if caregiver else "新增护士" }}</h1>
+
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">护士姓名:</label>
+            <input type="text" id="name" name="name" 
+                   value="{{ caregiver.name if caregiver else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" 
+                   value="{{ caregiver.username if caregiver else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">密码{{ " (留空保持不变)" if caregiver else "" }}:</label>
+            <input type="password" id="password" name="password" 
+                   {{ "required" if not caregiver else "" }}>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if caregiver else "新增" }}</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_caregivers') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

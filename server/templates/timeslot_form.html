@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}编辑时间段{% endblock %}
+{% block content %}
+    <h1>编辑时间段: {{ timeslot.displayName }}</h1>
+
+    <form method="POST">
+        <div class="form-group">
+            <label>名称 (标识符 - 不可修改):</label>
+            <div><strong>{{ timeslot.name }}</strong></div>
+        </div>
+
+        <div class="form-group">
+            <label for="displayName">显示名称:</label>
+            <input type="text" id="displayName" name="displayName" value="{{ timeslot.displayName }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="startHour">开始小时 (0-23):</label>
+            <input type="number" id="startHour" name="startHour" value="{{ timeslot.startHour }}" min="0" max="23" required>
+        </div>
+
+        <div class="form-group">
+            <label for="startMinute">开始分钟 (0-59):</label>
+            <input type="number" id="startMinute" name="startMinute" value="{{ timeslot.startMinute }}" min="0" max="59" required>
+        </div>
+
+        <div class="form-group">
+            <label for="endHour">结束小时 (0-23):</label>
+            <input type="number" id="endHour" name="endHour" value="{{ timeslot.endHour }}" min="0" max="23" required>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">更新</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_timeslots') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

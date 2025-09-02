@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑护工" if auntie else "新增护工" }}{% endblock %}
+
+{% block content %}
+    <h1>{{ "编辑护工" if auntie else "新增护工" }}</h1>
+
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="name">护工姓名:</label>
+            <input type="text" id="name" name="name" 
+                   value="{{ auntie.name if auntie else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" 
+                   value="{{ auntie.username if auntie else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">密码{{ " (留空保持不变)" if auntie else "" }}:</label>
+            <input type="password" id="password" name="password" 
+                   {{ "required" if not auntie else "" }}>
+        </div>
+
+        <div class="form-group">
+            <label for="caregiverId">所属护士ID:</label>
+            <input type="text" id="caregiverId" name="caregiverId" 
+                   value="{{ auntie.caregiverId if auntie else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if auntie else "新增" }}</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_aunties') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

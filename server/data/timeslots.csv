@@ -1,0 +1,7 @@
+﻿name,displayName,startHour,endHour,startMinute
+BEFORE_BREAKFAST,早饭前,1,2,0
+AFTER_BREAKFAST,早饭后,1,2,0
+BEFORE_LUNCH,午饭前,10,11,0
+AFTER_LUNCH,午饭后,11,12,0
+BEFORE_DINNER,晚饭前,17,18,0
+AFTER_DINNER,晚饭后,18,19,0

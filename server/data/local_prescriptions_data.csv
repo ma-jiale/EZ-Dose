@@ -1,0 +1,2 @@
+﻿patient_name,patientId,rfid,medicine_name,morning_dosage,noon_dosage,evening_dosage,meal_timing,start_date,duration_days,last_dispensed_expiry_date,is_active,pill_size
+阿一,1756800796,,阿莫西林,1,2,1,before,2025-09-02,7,2025-09-01,1,M

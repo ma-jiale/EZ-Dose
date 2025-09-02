@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}系统管理首页{% endblock %}
+
+{% block content %}
+    <h1>分药管理系统</h1>
+    <p>欢迎使用分药管理系统，请选择您要管理的模块：</p>
+    
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <h3>护士管理</h3>
+            <p>管理护士的基本信息和账户</p>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_caregivers') }}" class="btn btn-primary">进入管理</a>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>护工管理</h3>
+            <p>管理护工的基本信息、用户名密码等</p>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_aunties') }}" class="btn btn-primary">进入管理</a>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>患者管理</h3>
+            <p>管理患者基本信息、床号、条码等</p>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" class="btn btn-primary">进入管理</a>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>排班管理</h3>
+            <p>管理患者用药时间安排</p>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_schedules') }}" class="btn btn-primary">进入管理</a>
+        </div>
+    </div>
+{% endblock %}

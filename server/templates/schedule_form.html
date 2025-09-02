@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑排班" if schedule else "新增排班" }}{% endblock %}
+
+{% block content %}
+    <h1>{{ "编辑排班" if schedule else "新增排班" }}</h1>
+
+    <form method="POST" class="form">
+        {% if edit_mode %}
+            <!-- 编辑模式：显示患者信息，不允许修改 -->
+            <div class="form-group">
+                <label>患者信息:</label>
+                <div style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #ced4da;">
+                    <strong>{{ schedule.patientId }} - {{ schedule.patientName }}</strong>
+                </div>
+                <input type="hidden" name="patientId" value="{{ schedule.patientId }}">
+            </div>
+        {% else %}
+            <!-- 新增模式：可选择患者 -->
+            <div class="form-group">
+                <label for="patientId">患者:</label>
+                <select id="patientId" name="patientId" required>
+                    <option value="">请选择患者</option>
+                    {% for patient in patients %}
+                    <option value="{{ patient.patientId }}">
+                        {{ patient.patientId }} - {{ patient.patientName }} ({{ patient.patientBedNumber }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>时间段 (可多选):</label>
+            <div class="checkbox-group">
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="BEFORE_BREAKFAST" 
+                           {% if schedule and schedule.timeSlots and 'BEFORE_BREAKFAST' in schedule.timeSlots %}checked{% endif %}>
+                    早饭前
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="AFTER_BREAKFAST" 
+                           {% if schedule and schedule.timeSlots and 'AFTER_BREAKFAST' in schedule.timeSlots %}checked{% endif %}>
+                    早饭后
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="BEFORE_LUNCH" 
+                           {% if schedule and schedule.timeSlots and 'BEFORE_LUNCH' in schedule.timeSlots %}checked{% endif %}>
+                    午饭前
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="AFTER_LUNCH" 
+                           {% if schedule and schedule.timeSlots and 'AFTER_LUNCH' in schedule.timeSlots %}checked{% endif %}>
+                    午饭后
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="BEFORE_DINNER" 
+                           {% if schedule and schedule.timeSlots and 'BEFORE_DINNER' in schedule.timeSlots %}checked{% endif %}>
+                    晚饭前
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" name="timeSlotName" value="AFTER_DINNER" 
+                           {% if schedule and schedule.timeSlots and 'AFTER_DINNER' in schedule.timeSlots %}checked{% endif %}>
+                    晚饭后
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if schedule else "新增" }}</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_schedules') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

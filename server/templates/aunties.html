@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}护工管理{% endblock %}
+
+{% block content %}
+    <h1>护工管理</h1>
+
+    <div class="actions">
+        <a href="{{ URL_PREFIX }}{{ url_for('add_auntie') }}" class="btn btn-primary">新增护工</a>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>护工ID</th>
+                <th>姓名</th>
+                <th>用户名</th>
+                <th>所属护士ID</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for auntie in aunties %}
+            <tr>
+                <td>{{ auntie.auntieId }}</td>
+                <td>{{ auntie.name }}</td>
+                <td>{{ auntie.username }}</td>
+                <td>{{ auntie.caregiverId }}</td>
+                <td class="actions">
+                    <a href="{{ URL_PREFIX }}{{ url_for('edit_auntie', auntie_id=auntie.auntieId) }}" class="btn btn-warning">编辑</a>
+                    <a href="{{ URL_PREFIX }}{{ url_for('delete_auntie', auntie_id=auntie.auntieId) }}" 
+                       onclick="return confirm('确定要删除护工 {{ auntie.name }} 吗？')" 
+                       class="btn btn-danger">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
