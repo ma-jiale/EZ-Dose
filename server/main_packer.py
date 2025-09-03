@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename # 导入安全文件名工具
 from datetime import datetime, timedelta
 import schedule
 import threading
-
+import json
 
 # --- 1. 创建 Flask 应用实例 ---
 app = Flask(__name__)
@@ -27,6 +27,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # --- 分药机系统的配置文件 ---#
 PRESCRIPTIONS_FILE = 'data/local_prescriptions_data.csv'
 PATIENTS_FILE = 'data/patients.csv'
+
+# 新增：配置文件路径
+SCHEDULE_CONFIG_FILE = 'data/schedule_config.json'
 
 # 确保上传目录存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -122,6 +125,36 @@ def read_csv_file(filename):
     except Exception as e:
         print(f"!!! 严重错误: 读取 {filename} 时发生错误: {e}")
     return data
+
+# 新增：读取和保存配置的函数
+def read_schedule_config():
+    """读取自动排班配置"""
+    try:
+        if os.path.exists(SCHEDULE_CONFIG_FILE):
+            with open(SCHEDULE_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return config.get('schedule_time', '04:00')
+        else:
+            # 默认配置
+            return '04:00'
+    except Exception as e:
+        print(f"读取排班配置失败: {e}")
+        return '04:00'
+
+def save_schedule_config(schedule_time):
+    """保存自动排班配置"""
+    try:
+        config = {'schedule_time': schedule_time}
+        os.makedirs(os.path.dirname(SCHEDULE_CONFIG_FILE), exist_ok=True)
+        with open(SCHEDULE_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"保存排班配置失败: {e}")
+        return False
+
+# 全局变量存储当前配置的时间
+current_schedule_time = read_schedule_config()
 
 # 在路由定义之前添加
 @app.context_processor
@@ -760,7 +793,12 @@ def manage_schedules():
     merged_schedules = list(patient_schedules.values())
     sorted_schedules = sorted(merged_schedules, key=lambda item: int(item['patientId']))
 
-    return render_template('schedules.html', schedules=sorted_schedules)
+    # 获取当前的自动排班时间配置
+    current_schedule_time = read_schedule_config()
+
+    return render_template('schedules.html', 
+                         schedules=sorted_schedules, 
+                         current_schedule_time=current_schedule_time)
 
 @app.route('/admin/schedules/add', methods=['GET', 'POST'])
 def add_schedule():
@@ -858,6 +896,42 @@ def delete_schedule_by_patient(patient_id):
     schedules_after_delete = [s for s in all_schedules if s['patientId'] != patient_id]
     write_csv_file('data/schedules.csv', schedules_after_delete, fieldnames=['patientId', 'patientName', 'timeSlotName'])
     return redirect(URL_PREFIX + url_for('manage_schedules'))
+
+# 新增：更新排班时间的API
+@app.route('/admin/schedules/update-time', methods=['POST'])
+def update_schedule_time():
+    """更新自动排班时间配置"""
+    try:
+        data = request.get_json()
+        new_time = data.get('scheduleTime')
+        
+        if not new_time:
+            return jsonify({'success': False, 'error': '时间参数不能为空'}), 400
+        
+        # 验证时间格式
+        try:
+            datetime.strptime(new_time, '%H:%M')
+        except ValueError:
+            return jsonify({'success': False, 'error': '时间格式无效'}), 400
+        
+        # 保存新的配置
+        if save_schedule_config(new_time):
+            global current_schedule_time
+            current_schedule_time = new_time
+            
+            # 重新设置定时任务
+            schedule.clear()  # 清除所有现有任务
+            schedule.every().day.at(new_time).do(daily_schedule_generation)
+            
+            return jsonify({
+                'success': True, 
+                'message': f'自动排班时间已更新为 {new_time}'
+            })
+        else:
+            return jsonify({'success': False, 'error': '保存配置失败'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- 时间段管理页面路由 ---
 @app.route('/admin/timeslots')
@@ -1057,18 +1131,21 @@ def daily_schedule_generation():
     except Exception as e:
         print(f"[{time.ctime()}] 每日排班生成过程中发生错误: {e}")
         
+# 修改 run_scheduler_in_background 函数
 def run_scheduler_in_background():
     """运行定时任务调度器"""
-    # 设置每天设定时间执行自动排班生成
-    schedule.every().day.at("10:44").do(daily_schedule_generation)
+    # 从配置文件读取时间设置
+    schedule_time = read_schedule_config()
+    schedule.every().day.at(schedule_time).do(daily_schedule_generation)
     
-    print(f"[{time.ctime()}] 定时任务已启动: 每天凌晨4:00自动生成排班")
+    print(f"[{time.ctime()}] 定时任务已启动: 每天 {schedule_time} 自动生成排班")
     
     while True:
         schedule.run_pending()
         time.sleep(60)  # 每分钟检查一次
 
-@app.route('/flask/admin/generate-schedules', methods=['POST'])
+# 修改现有的API路由路径
+@app.route('/admin/generate-schedules', methods=['POST'])
 def generate_schedules_api():
     """【API接口】手动生成今天的排班数据"""
     try:
