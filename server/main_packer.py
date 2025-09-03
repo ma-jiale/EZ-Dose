@@ -728,12 +728,21 @@ def delete_patient(patient_id):
 def manage_schedules():
     """显示所有排班的列表页面"""
     
-     # ⭐ 修改：支持查看指定日期的排班⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
-    selected_date_str = request.args.get('date', time.strftime("%Y-%m-%d"))
-    schedule_filename = f"schedules_{selected_date_str}.csv"
-
-    # 优先读取指定日期的排班文件
-    schedules_list = read_csv_file(schedule_filename)
+    # 获取日期参数
+    selected_date_str = request.args.get('date')
+    
+    if selected_date_str:
+        # 如果指定了日期，读取对应日期的排班文件
+        schedule_filename = f"data/schedules_{selected_date_str}.csv"
+        schedules_list = read_csv_file(schedule_filename)
+        
+        # 如果指定日期的文件不存在或为空，回退到默认排班文件
+        if not schedules_list:
+            print(f"[{time.ctime()}] 未找到 {schedule_filename}，回退到默认排班文件")
+            schedules_list = read_csv_file('data/schedules.csv')
+    else:
+        # 如果没有指定日期，直接读取默认排班文件
+        schedules_list = read_csv_file('data/schedules.csv')
     
     # 将同一患者的不同时间段合并到一起
     patient_schedules = {}
@@ -749,7 +758,6 @@ def manage_schedules():
     
     # 转换为列表格式
     merged_schedules = list(patient_schedules.values())
-
     sorted_schedules = sorted(merged_schedules, key=lambda item: int(item['patientId']))
 
     return render_template('schedules.html', schedules=sorted_schedules)
@@ -1051,8 +1059,8 @@ def daily_schedule_generation():
         
 def run_scheduler_in_background():
     """运行定时任务调度器"""
-    # 设置每天凌晨4点执行排班生成
-    schedule.every().day.at("04:00").do(daily_schedule_generation)
+    # 设置每天设定时间执行自动排班生成
+    schedule.every().day.at("10:44").do(daily_schedule_generation)
     
     print(f"[{time.ctime()}] 定时任务已启动: 每天凌晨4:00自动生成排班")
     
