@@ -5,6 +5,22 @@
 {% block content %}
     <h1>排班管理</h1>
     
+    <!-- 新增：自动排班配置区域 -->
+    <div class="auto-schedule-config" style="background-color: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #dee2e6;">
+        <h4>自动排班配置</h4>
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <label for="scheduleTime">自动生成时间:</label>
+                <input type="time" id="scheduleTime" value="{{ current_schedule_time }}" style="margin-left: 5px;">
+            </div>
+            <button onclick="updateScheduleTime()" class="btn btn-secondary">更新时间</button>
+            <button onclick="generateSchedulesNow()" class="btn btn-success">立即生成排班</button>
+            <div style="margin-left: auto; color: #6c757d;">
+                <small>当前设置: 每天 {{ current_schedule_time }} 自动生成排班</small>
+            </div>
+        </div>
+    </div>
+    
     <div class="actions">
         <a href="{{ URL_PREFIX }}{{ url_for('add_schedule') }}" class="btn btn-primary">新增排班</a>
     </div>
@@ -48,4 +64,63 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <script>
+        function updateScheduleTime() {
+            const timeInput = document.getElementById('scheduleTime');
+            const newTime = timeInput.value;
+            
+            if (!newTime) {
+                alert('请选择一个有效的时间');
+                return;
+            }
+            
+            fetch('{{ URL_PREFIX }}{{ url_for("update_schedule_time") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ scheduleTime: newTime })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('自动排班时间已更新为: ' + newTime);
+                    location.reload();
+                } else {
+                    alert('更新失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新失败');
+            });
+        }
+        
+        function generateSchedulesNow() {
+            if (!confirm('确定要立即生成今天的排班吗？这将覆盖现有的排班数据。')) {
+                return;
+            }
+            
+            fetch('{{ URL_PREFIX }}{{ url_for("generate_schedules_api") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('生成失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('生成失败');
+            });
+        }
+    </script>
 {% endblock %}
