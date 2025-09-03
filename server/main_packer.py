@@ -634,18 +634,28 @@ def delete_caregiver(caregiver_id):
     write_csv_file('data/caregivers.csv', caregivers_after_delete, fieldnames=['caregiverId', 'name', 'username', 'password'])
     return redirect(URL_PREFIX + url_for('manage_caregivers'))
 
+
 # --- 患者管理页面路由  ---
 @app.route('/admin/patients')
 def manage_patients():
     """显示所有患者的列表页面"""
     patients_list = read_csv_file('data/patients.csv')
+    aunties_list = read_csv_file('data/aunties.csv')
+    
+    # 创建护工ID到姓名的映射
+    auntie_name_map = {auntie['auntieId']: auntie['name'] for auntie in aunties_list}
+    
+    # 为每个患者添加护工姓名
+    for patient in patients_list:
+        patient['auntieName'] = auntie_name_map.get(patient.get('auntieId', ''), '')
+    
     return render_template('patients.html', patients=patients_list)
 
 @app.route('/admin/patients/add', methods=['GET', 'POST'])
 def add_patient():
     """处理新增患者的逻辑"""
     if request.method == 'POST':
-                # --- ⭐ 新增：处理文件上传 ---
+        # --- ⭐ 新增：处理文件上传 ---
         image_filename = ""
         if 'patientImage' in request.files:
             file = request.files['patientImage']
@@ -658,18 +668,22 @@ def add_patient():
                 image_filename = new_filename
 
         all_patients = read_csv_file('data/patients.csv')
+        patient_id = str(int(time.time()))
         new_patient = {
-            'patientId': str(int(time.time())),
+            'patientId': patient_id,
             'auntieId': request.form['auntieId'],
             'imageResourceId': image_filename,
             'patientName': request.form['patientName'],
             'patientBedNumber': request.form['patientBedNumber'],
-            'patientBarcode': request.form['patientBarcode']
+            'patientBarcode': patient_id  # 条码与患者ID一致
         }
         all_patients.append(new_patient)
         write_csv_file('data/patients.csv', all_patients, fieldnames=['patientId', 'auntieId', 'imageResourceId', 'patientName', 'patientBedNumber', 'patientBarcode'])
         return redirect(URL_PREFIX + url_for('manage_patients'))
-    return render_template('patient_form.html', patient=None)
+    
+    # GET请求：获取护工列表用于下拉选择
+    aunties_list = read_csv_file('data/aunties.csv')
+    return render_template('patient_form.html', patient=None, aunties=aunties_list)
 
 @app.route('/admin/patients/edit/<patient_id>', methods=['GET', 'POST'])
 def edit_patient(patient_id):
@@ -681,12 +695,12 @@ def edit_patient(patient_id):
 
     if request.method == 'POST':
         patient_to_edit['auntieId'] = request.form['auntieId']
-        # patient_to_edit['imageResourceId'] = request.form['imageResourceId']
         patient_to_edit['patientName'] = request.form['patientName']
         patient_to_edit['patientBedNumber'] = request.form['patientBedNumber']
-        patient_to_edit['patientBarcode'] = request.form['patientBarcode']
+        # 条码保持与患者ID一致，不需要从表单获取
+        patient_to_edit['patientBarcode'] = patient_id
 
-                # --- 2. ⭐ 新增：处理可能的文件上传 ---
+        # --- 2. ⭐ 新增：处理可能的文件上传 ---
         if 'patientImage' in request.files:
             file = request.files['patientImage']
             
@@ -711,7 +725,9 @@ def edit_patient(patient_id):
         write_csv_file('data/patients.csv', all_patients, fieldnames=['patientId', 'auntieId', 'imageResourceId', 'patientName', 'patientBedNumber', 'patientBarcode'])
         return redirect(url_for('manage_patients'))
     
-    return render_template('patient_form.html', patient=patient_to_edit)
+    # GET请求：获取护工列表用于下拉选择
+    aunties_list = read_csv_file('data/aunties.csv')
+    return render_template('patient_form.html', patient=patient_to_edit, aunties=aunties_list)
 
 @app.route('/admin/patients/delete/<patient_id>')
 def delete_patient(patient_id):

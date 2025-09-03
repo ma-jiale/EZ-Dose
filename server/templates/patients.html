@@ -13,7 +13,7 @@
         <thead>
             <tr>
                 <th>患者ID</th>
-                <th>负责护工ID</th>
+                <th>负责护工</th>
                 <th>图片资源ID</th>
                 <th>患者姓名</th>
                 <th>床号</th>
@@ -25,7 +25,7 @@
             {% for patient in patients %}
             <tr>
                 <td>{{ patient.patientId }}</td>
-                <td>{{ patient.auntieId }}</td>
+                <td>{{ patient.auntieName or '未分配' }}</td>
                 <td>{{ patient.imageResourceId }}</td>
                 <td>{{ patient.patientName }}</td>
                 <td>{{ patient.patientBedNumber }}</td>
