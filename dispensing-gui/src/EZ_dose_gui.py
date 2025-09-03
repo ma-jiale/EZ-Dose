@@ -927,51 +927,63 @@ class Manager(QObject):
         self.set_mode_signal.emit(CamMode.IDLE)
         print("Camera idle mode activated")
 
-    def qr_scan_done_callbcak(self, qr_results):
-        """Handle QR scan completion"""
-        print("QR scan completed")
-        if qr_results and self.main_window:
-            # Extract QR data from results
+    def qr_scan_done_callbcak(self, code_results):
+        """Handle QR code and barcode scan completion"""
+        print("Code scan completed")
+        if code_results and self.main_window:
+            # Extract code data from results and separate by type
             qr_data_list = []
-            for qr in qr_results:
-                qr_data_list.append(qr['data'])
+            barcode_data_list = []
             
-            # Check if all QR codes are the same
-            if len(set(qr_data_list)) == 1:
-                # All QR codes are identical
-                qr_id = qr_data_list[0]  
-                print(f"All QR codes are identical: {qr_id}")
+            for code in code_results:
+                if code.get('is_qr', False):
+                    qr_data_list.append(code['data'])
+                elif code.get('is_barcode', False):
+                    barcode_data_list.append(code['data'])
+            
+            # Combine all detected codes for processing
+            all_code_data = qr_data_list + barcode_data_list
+            
+            # Check if all codes are the same
+            if len(set(all_code_data)) == 1:
+                # All codes are identical
+                code_id = all_code_data[0]
+                code_type = "QR码" if qr_data_list else "条形码"
+                print(f"All codes are identical: {code_id} (Type: {code_type})")
                 
-                # Check if QR code matches selected patient ID
+                # Check if code matches selected patient ID
                 if self.selected_patient_id is not None:
                     # Convert both to string for comparison to handle different data types
-                    if str(qr_id) == str(self.selected_patient_id):
-                        # QR code matches patient ID - proceed with dispensing
-                        print(f"QR code matches patient ID: {self.selected_patient_id}")
+                    if str(code_id) == str(self.selected_patient_id):
+                        # Code matches patient ID - proceed with dispensing
+                        print(f"{code_type} matches patient ID: {self.selected_patient_id}")
                         self.set_idle_mode()
                         self.pause_camera()
-                        self.show_prescriptions(qr_id)
+                        self.show_prescriptions(code_id)
                     else:
-                        # QR code doesn't match patient ID - show error and continue scanning
-                        print(f"QR code mismatch: scanned {qr_id}, expected {self.selected_patient_id}")
+                        # Code doesn't match patient ID - show error and continue scanning
+                        print(f"Code mismatch: scanned {code_id}, expected {self.selected_patient_id}")
                         self.qr_mismatch_signal.emit()
-                        # Keep camera in QR scan mode and continue scanning
-                        # Don't pause camera, just continue scanning
+                        # Keep camera in scan mode and continue scanning
                 else:
                     # No patient selected (shouldn't happen in normal flow)
                     print("No patient ID selected")
                     self.set_idle_mode()
                     self.pause_camera()
-                    self.show_prescriptions(qr_id)
-            else:
-                # QR codes are different
-                qr_display_list = []
-                for qr in qr_results:
-                    qr_display_list.append(f"Type: {qr['type']}, Data: {qr['data']}")
+                    self.show_prescriptions(code_id)
+            elif len(all_code_data) > 1:
+                # Multiple different codes detected
+                code_display_list = []
+                for code in code_results:
+                    code_type_str = "QR码" if code.get('is_qr', False) else "条形码"
+                    code_display_list.append(f"类型: {code_type_str}, 数据: {code['data']}")
                 
-                qr_data_str = "\n".join(qr_display_list)
-                print(f"Multiple different QR codes detected: {qr_data_str}")
-                # Keep scanning for consistent QR codes
+                code_data_str = "\n".join(code_display_list)
+                print(f"Multiple different codes detected: {code_data_str}")
+                # Keep scanning for consistent codes
+            else:
+                # No valid codes detected (shouldn't reach here if callback is called)
+                print("No valid codes in results")
 
     def show_qr_mismatch_message(self):
         """Show message when QR code doesn't match patient ID"""

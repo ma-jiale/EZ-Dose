@@ -299,53 +299,63 @@ class CamController(QObject):
         self.qr_callback = callback
 
     def _process_qr_scan(self, frame):
-        """Process frame for QR code detection"""
-        # Convert to grayscale for better QR detection
+        """Process frame for QR code and barcode detection"""
+        # Convert to grayscale for better detection
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
-        # Detect QR codes
-        qr_codes = pyzbar.decode(gray)
+        # Detect QR codes and barcodes
+        codes = pyzbar.decode(gray)
         
-        # Process detected QR codes
-        qr_results = []
+        # Process detected codes
+        code_results = []
         
-        for qr_code in qr_codes:
-            # Get QR code data
-            qr_data = qr_code.data.decode('utf-8')
-            qr_type = qr_code.type
+        for code in codes:
+            # Get code data
+            code_data = code.data.decode('utf-8')
+            code_type = code.type
             
             # Get bounding box coordinates
-            points = qr_code.polygon
-            if len(points) == 4:
-                # Draw green bounding box around QR code
+            points = code.polygon
+            if len(points) >= 4:
+                # Different colors for different code types
+                if code_type == 'QRCODE':
+                    color = (0, 255, 0)  # Green for QR codes
+                    label_prefix = "QR"
+                else:
+                    color = (255, 0, 0)  # Blue for barcodes
+                    label_prefix = "Barcode"
+                
+                # Draw bounding box around code
                 pts = np.array([[point.x, point.y] for point in points], dtype=np.int32)
-                cv2.polylines(frame, [pts], True, (0, 255, 0), 3)
+                cv2.polylines(frame, [pts], True, color, 3)
                 
-                # Display QR code information on frame
+                # Display code information on frame
                 x, y = points[0].x, points[0].y
-                cv2.putText(frame, f"Type: {qr_type}", (x, y - 40), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                cv2.putText(frame, f"Data: {qr_data}", (x, y - 10), 
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                cv2.putText(frame, f"{label_prefix} Type: {code_type}", (x, y - 40), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                cv2.putText(frame, f"Data: {code_data}", (x, y - 10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
                 
-                # Store QR code result
-                qr_result = {
-                    'type': qr_type,
-                    'data': qr_data,
+                # Store code result
+                code_result = {
+                    'type': code_type,
+                    'data': code_data,
                     'points': [(point.x, point.y) for point in points],
-                    'timestamp': time.time()
+                    'timestamp': time.time(),
+                    'is_qr': code_type == 'QRCODE',
+                    'is_barcode': code_type != 'QRCODE'
                 }
-                qr_results.append(qr_result)
+                code_results.append(code_result)
                 
-                print(f"QR Code detected - Type: {qr_type}, Data: {qr_data}")
+                print(f"Code detected - Type: {code_type}, Data: {code_data}")
         
-        # Update QR codes detected
+        # Update detected codes
         with self.thread_lock:
-            self.qr_codes_detected = qr_results
+            self.qr_codes_detected = code_results
         
         # Call callback if set
-        if qr_results and self.qr_callback:
-            self.qr_callback(qr_results)
+        if code_results and self.qr_callback:
+            self.qr_callback(code_results)
         
         return frame
     
