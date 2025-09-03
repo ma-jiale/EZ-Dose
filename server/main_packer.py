@@ -540,7 +540,7 @@ def edit_auntie(auntie_id):
         auntie_to_edit['caregiverId'] = request.form['caregiverId']
         if request.form['password']:
             auntie_to_edit['password'] = request.form['password']
-        write_csv_file('aunties.csv', all_aunties, fieldnames=['auntieId', 'name', 'username', 'password', 'caregiverId'])
+        write_csv_file('data/aunties.csv', all_aunties, fieldnames=['auntieId', 'name', 'username', 'password', 'caregiverId'])
         return redirect(URL_PREFIX + url_for('manage_aunties'))
     
     return render_template('auntie_form.html', auntie=auntie_to_edit)
@@ -1052,7 +1052,7 @@ def daily_schedule_generation():
 def run_scheduler_in_background():
     """运行定时任务调度器"""
     # 设置每天凌晨4点执行排班生成
-    schedule.every().day.at("4:00").do(daily_schedule_generation)
+    schedule.every().day.at("04:00").do(daily_schedule_generation)
     
     print(f"[{time.ctime()}] 定时任务已启动: 每天凌晨4:00自动生成排班")
     
