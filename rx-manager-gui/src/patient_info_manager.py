@@ -33,11 +33,16 @@ class PatientInfoManager:
         """load patient list from server, if can't, read local patient list"""
         try:
             # First try to load from server
-            if self.fetch_online_patient_list():
-                print("Successfully loaded patient list from server")
+            server_result = self.fetch_online_patient_list()
+            if server_result is not None:  # 服务器响应成功（包括空数据）
+                if server_result:
+                    print("Successfully loaded patient list from server")
+                else:
+                    print("Server returned empty patient data, cleared local data")
                 return True
             else:
-                print("Server loading failed, using local patient list")
+                # 只有在服务器完全无法连接时才使用本地数据
+                print("Server connection failed, using local patient list")
                 return self.read_local_patient_list()
         except Exception as e:
             print(f"Error loading patient list: {str(e)}")
@@ -180,11 +185,11 @@ class PatientInfoManager:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('success') and 'data' in data:
-                    patients_data = data['data']
+                if data.get('success'):
+                    patients_data = data.get('data', [])
                     
                     if patients_data:
-                        # Convert to DataFrame
+                        # 有数据：转换为DataFrame
                         self.patient_df = pd.DataFrame(patients_data)
                         
                         # Ensure all required columns exist
@@ -204,29 +209,32 @@ class PatientInfoManager:
                         self.patient_df = self.patient_df[self.patient_df['patientName'] != 'nan']
                         
                         print(f"Successfully retrieved {len(self.patient_df)} patients from server")
-                        
-                        # Also save to local
-                        self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
-                        
-                        return True
                     else:
-                        # Server returned empty list
+                        # 空数据：创建空的DataFrame
                         self.patient_df = pd.DataFrame(columns=['auntieId', 'imageResourceId', 'patientBarcode', 'patientBedNumber', 'patientName', 'patientId'])
-                        print("Server returned empty patient list")
-                        return True
+                        print("Server returned empty patient list, cleared local data")
+                    # 无论数据是否为空，都保存到本地以覆盖本地数据
+                    try:
+                        self.patient_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
+                        print("Local patient data updated from server")
+                    except Exception as e:
+                        print(f"Warning: Failed to save patient data to local file: {e}")
+                    
+                    return True  # 服务器响应成功
                 else:
                     print(f"Server returned error: {data.get('message', 'Unknown error')}")
-                    return False
+                    return None  # 服务器响应失败
             else:
                 print(f"Server request failed, status code: {response.status_code}")
-                return False
+                return None  # 服务器响应失败
                 
         except requests.exceptions.RequestException as e:
             print(f"Network request failed: {str(e)}")
-            return False
+            return None  # 网络错误
         except Exception as e:
             print(f"Failed to retrieve patient list from server: {str(e)}")
-            return False
+            return None  # 其他错误
+
 
     def upload_patient_list(self) -> bool:
         """upload self.patient_df to server"""

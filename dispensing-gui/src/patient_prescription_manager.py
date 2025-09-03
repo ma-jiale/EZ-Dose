@@ -17,12 +17,16 @@ class PatientPrescriptionManager:
         """load prescriptions from server, if can't, read local prescriptions"""
         try:
             # Try to fetch from server first
-            success = self.fetch_online_prescriptions()
-            if success:
-                print("[Info] Successfully loaded prescriptions from server")
+            server_result = self.fetch_online_prescriptions()
+            if server_result is not None:  # 服务器响应成功（包括空数据）
+                if server_result:
+                    print("[Info] Successfully loaded prescriptions from server")
+                else:
+                    print("[Info] Server returned empty prescription data, cleared local data")
                 return True
             else:
-                print("[Warning] Failed to load from server, using local data")
+                # 只有在服务器完全无法连接时才使用本地数据
+                print("[Warning] Server connection failed, using local data")
                 self.read_local_prescriptions()
                 return False
         except Exception as e:
@@ -57,25 +61,45 @@ class PatientPrescriptionManager:
             response = requests.get(f"{self.server_url}/prescriptions", timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                if data.get('success') and data.get('data'):
-                    # Convert to DataFrame
-                    self.df = pd.DataFrame(data['data'])
-                    # Save to local file as backup
-                    self.write_local_prescriptions()
-                    print(f"[Info] Fetched {len(self.df)} prescriptions from server")
-                    return True
+                if data.get('success'):
+                    # 无论数据是否为空，都要处理
+                    prescription_data = data.get('data', [])
+                    
+                    if prescription_data:
+                        # 有数据：转换为DataFrame并保存
+                        self.df = pd.DataFrame(prescription_data)
+                        self.write_local_prescriptions()
+                        print(f"[Info] Fetched {len(self.df)} prescriptions from server")
+                    else:
+                        # 空数据：创建空的DataFrame但保留列结构
+                        columns = [
+                            'duration_days', 'evening_dosage', 'is_active', 
+                            'last_dispensed_expiry_date', 'meal_timing', 'medicine_name',
+                            'morning_dosage', 'noon_dosage', 'patientId', 'patient_name',
+                            'pill_size', 'rfid', 'start_date'
+                        ]
+                        self.df = pd.DataFrame(columns=columns)
+                
+                        # 写入只有表头的CSV文件
+                        try:
+                            self.df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
+                            print("[Info] Server returned empty data, cleared local prescription data")
+                        except Exception as e:
+                            print(f"[Warning] Failed to clear local prescriptions file: {e}")
+                    
+                    return True  # 服务器响应成功
                 else:
-                    print("[Warning] Server returned empty or invalid prescription data")
-                    return False
+                    print("[Warning] Server returned unsuccessful response")
+                    return None  # 服务器响应失败
             else:
                 print(f"[Warning] Server returned status code: {response.status_code}")
-                return False
+                return None  # 服务器响应失败
         except requests.exceptions.RequestException as e:
             print(f"[Error] Network error fetching prescriptions: {e}")
-            return False
+            return None  # 网络错误
         except Exception as e:
             print(f"[Error] Error fetching online prescriptions: {e}")
-            return False
+            return None  # 其他错误    
 
     def upload_prescriptions_to_server(self):
         """Upload local prescriptions to server"""
