@@ -363,7 +363,7 @@ QPushButton:pressed {
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="start_page">
        <layout class="QGridLayout" name="gridLayout_2">
@@ -1125,6 +1125,11 @@ QPushButton:pressed {
               <height>120</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QFrame {
+    background: transparent;
+}</string>
+            </property>
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
             </property>
@@ -1305,6 +1310,12 @@ line-height: normal;
               <height>120</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">QFrame {
+    background: transparent;
+}
+</string>
+            </property>
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
             </property>
@@ -1408,7 +1419,7 @@ line-height: normal;
               <rect>
                <x>230</x>
                <y>80</y>
-               <width>51</width>
+               <width>61</width>
                <height>41</height>
               </rect>
              </property>

@@ -275,10 +275,11 @@ class PatientPrescriptionManager:
         pill_matrix = np.zeros([4, 7], dtype=np.int8)
         
         for day in range(min(dispensing_days, 7)):
-            pill_matrix[0, day] = medicine['morning_dosage']   # Morning (row 0)
-            pill_matrix[1, day] = medicine['noon_dosage']      # Noon (row 1)
-            pill_matrix[2, day] = medicine['evening_dosage']   # Evening (row 2)
-            # pill_matrix[3, day] = 0  # 4th row remains 0 (already initialized to 0)
+            # 重新排列：第1行变为第3行，第2行保持不变，第3行变为第1行
+            pill_matrix[0, day] = medicine['evening_dosage']   # 第1行：晚上（原第3行）
+            pill_matrix[1, day] = medicine['noon_dosage']      # 第2行：中午（保持不变）
+            pill_matrix[2, day] = medicine['morning_dosage']   # 第3行：早上（原第1行）
+            # pill_matrix[3, day] = 0  # 第4行保持0（已初始化为0）
         
         # Add to medicine list
         drug_info = {
@@ -304,10 +305,11 @@ class PatientPrescriptionManager:
         pill_matrix = np.zeros([4, 7], dtype=np.int8)
         
         for day in range(min(dispensing_days, 7)):
-            pill_matrix[0, day] = medicine['morning_dosage']   # Morning
-            pill_matrix[1, day] = medicine['noon_dosage']      # Noon
-            pill_matrix[2, day] = medicine['evening_dosage']   # Evening
-            # pill_matrix[3, day] = 0  # 4th row remains 0 (already initialized to 0)
+            # 重新排列：第1行变为第3行，第2行保持不变，第3行变为第1行
+            pill_matrix[0, day] = medicine['evening_dosage']   # 第1行：晚上（原第3行）
+            pill_matrix[1, day] = medicine['noon_dosage']      # 第2行：中午（保持不变）
+            pill_matrix[2, day] = medicine['morning_dosage']   # 第3行：早上（原第1行）
+            # pill_matrix[3, day] = 0  # 第4行保持0（已初始化为0）
         
         # Create drug info
         drug_info = {

@@ -664,6 +664,9 @@ class Ui_MainWindow(object):
         self.frame_7 = QFrame(self.dispensing_page)
         self.frame_7.setObjectName(u"frame_7")
         self.frame_7.setMinimumSize(QSize(0, 120))
+        self.frame_7.setStyleSheet(u"QFrame {\n"
+"    background: transparent;\n"
+"}")
         self.frame_7.setFrameShape(QFrame.StyledPanel)
         self.frame_7.setFrameShadow(QFrame.Raised)
         self.pills_num_msg_4 = QLabel(self.frame_7)
@@ -770,6 +773,10 @@ class Ui_MainWindow(object):
         self.frame_6 = QFrame(self.dispensing_page)
         self.frame_6.setObjectName(u"frame_6")
         self.frame_6.setMinimumSize(QSize(40, 120))
+        self.frame_6.setStyleSheet(u"QFrame {\n"
+"    background: transparent;\n"
+"}\n"
+"")
         self.frame_6.setFrameShape(QFrame.StyledPanel)
         self.frame_6.setFrameShadow(QFrame.Raised)
         self.pills_num_msg_1 = QLabel(self.frame_6)
@@ -820,7 +827,7 @@ class Ui_MainWindow(object):
         self.txt_pills_num_needed.setAlignment(Qt.AlignCenter)
         self.txt_current_medicine_percentage = QLabel(self.frame_6)
         self.txt_current_medicine_percentage.setObjectName(u"txt_current_medicine_percentage")
-        self.txt_current_medicine_percentage.setGeometry(QRect(230, 80, 51, 41))
+        self.txt_current_medicine_percentage.setGeometry(QRect(230, 80, 61, 41))
         self.txt_current_medicine_percentage.setStyleSheet(u"QLabel\n"
 "{\n"
 "color: #515151;\n"
@@ -1139,7 +1146,7 @@ class Ui_MainWindow(object):
         self.btn_setting_page.setDefault(False)
         self.btn_refresh_database.setDefault(False)
         self.btn_contact_us_page.setDefault(False)
-        self.stackedWidget.setCurrentIndex(3)
+        self.stackedWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(MainWindow)

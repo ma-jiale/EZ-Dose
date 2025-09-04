@@ -365,8 +365,8 @@ class MainWindow(QMainWindow):
                 floor = patient_id_str[0]  # 第一位是楼层
                 
                 # 格式化显示信息
-                prescription_info = f"成功获取{floor}楼{patient_id_str}床{patient_name}的处方信息"
-                patient_info_display = f"{patient_name}    {floor}楼{patient_id_str}床"
+                prescription_info = f"成功获取{patient_name}的处方信息"
+                patient_info_display = f"{patient_name}"
             else:
                 prescription_info = f"成功获取{patient_name}的处方信息"
                 patient_info_display = f"{patient_name}"
