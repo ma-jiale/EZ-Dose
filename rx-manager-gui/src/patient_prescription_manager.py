@@ -104,12 +104,14 @@ class PatientPrescriptionManager:
     def upload_prescriptions_to_server(self):
         """Upload local prescriptions to server"""
         try:
-            if self.df is None or self.df.empty:
-                print("[Warning] No prescription data to upload")
-                return False
-            
-            # Convert DataFrame to list of dictionaries
-            prescriptions_data = self.df.to_dict('records')
+            # 修改：即使数据为空也要上传，这样服务器端会清空数据
+            if self.df is None:
+                prescriptions_data = []
+            elif self.df.empty:
+                prescriptions_data = []
+            else:
+                # Convert DataFrame to list of dictionaries
+                prescriptions_data = self.df.to_dict('records')
             
             # Prepare payload for server
             payload = {
@@ -127,7 +129,10 @@ class PatientPrescriptionManager:
             if response.status_code == 200:
                 result = response.json()
                 if result.get('success'):
-                    print(f"[Info] Successfully uploaded {len(prescriptions_data)} prescriptions to server")
+                    if prescriptions_data:
+                        print(f"[Info] Successfully uploaded {len(prescriptions_data)} prescriptions to server")
+                    else:
+                        print("[Info] Successfully cleared prescription data on server")
                     return True
                 else:
                     print(f"[Error] Server rejected upload: {result.get('message', 'Unknown error')}")
@@ -458,8 +463,20 @@ class PatientPrescriptionManager:
             # 删除记录
             self.df = self.df[~delete_mask].reset_index(drop=True)
             
-            # 保存到CSV文件
-            self.write_local_prescriptions()
+            # 保存到CSV文件 - 修改：即使数据为空也要保存
+            if self.df.empty:
+                # 创建只有表头的空文件
+                columns = [
+                    'duration_days', 'evening_dosage', 'is_active', 
+                    'last_dispensed_expiry_date', 'meal_timing', 'medicine_name',
+                    'morning_dosage', 'noon_dosage', 'patientId', 'patient_name',
+                    'pill_size', 'rfid', 'start_date'
+                ]
+                empty_df = pd.DataFrame(columns=columns)
+                empty_df.to_csv(self.csv_file_path, index=False, encoding='utf-8')
+                print("[Info] All prescriptions deleted, created empty CSV file")
+            else:
+                self.write_local_prescriptions()
             
             print(f"[Info] Deleted medicine '{medicine_name}' for patient {patient_id}")
             
