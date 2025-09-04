@@ -723,7 +723,7 @@ def edit_patient(patient_id):
                 patient_to_edit['imageResourceId'] = new_filename
 
         write_csv_file('data/patients.csv', all_patients, fieldnames=['patientId', 'auntieId', 'imageResourceId', 'patientName', 'patientBedNumber', 'patientBarcode'])
-        return redirect(url_for('manage_patients'))
+        return redirect(URL_PREFIX + url_for('manage_patients'))
     
     # GET请求：获取护工列表用于下拉选择
     aunties_list = read_csv_file('data/aunties.csv')
