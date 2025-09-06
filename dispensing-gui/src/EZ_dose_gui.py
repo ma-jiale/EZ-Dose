@@ -319,9 +319,9 @@ class MainWindow(QMainWindow):
         
         if pill_matrix is not None:
             # 从pill_matrix第一列（第0天）获取用药剂量
-            morning = int(pill_matrix[0, 0]) if pill_matrix.shape[1] > 0 else 0
+            morning = int(pill_matrix[2, 0]) if pill_matrix.shape[1] > 0 else 0
             noon = int(pill_matrix[1, 0]) if pill_matrix.shape[1] > 0 else 0
-            evening = int(pill_matrix[2, 0]) if pill_matrix.shape[1] > 0 else 0
+            evening = int(pill_matrix[0, 0]) if pill_matrix.shape[1] > 0 else 0
         else:
             morning = noon = evening = 0
         
