@@ -104,12 +104,14 @@ class PatientPrescriptionManager:
     def upload_prescriptions_to_server(self):
         """Upload local prescriptions to server"""
         try:
-            if self.df is None or self.df.empty:
-                print("[Warning] No prescription data to upload")
-                return False
-            
-            # Convert DataFrame to list of dictionaries
-            prescriptions_data = self.df.to_dict('records')
+            # 修改：即使数据为空也要上传，这样服务器端会清空数据
+            if self.df is None:
+                prescriptions_data = []
+            elif self.df.empty:
+                prescriptions_data = []
+            else:
+                # Convert DataFrame to list of dictionaries
+                prescriptions_data = self.df.to_dict('records')
             
             # Prepare payload for server
             payload = {
@@ -127,7 +129,10 @@ class PatientPrescriptionManager:
             if response.status_code == 200:
                 result = response.json()
                 if result.get('success'):
-                    print(f"[Info] Successfully uploaded {len(prescriptions_data)} prescriptions to server")
+                    if prescriptions_data:
+                        print(f"[Info] Successfully uploaded {len(prescriptions_data)} prescriptions to server")
+                    else:
+                        print("[Info] Successfully cleared prescription data on server")
                     return True
                 else:
                     print(f"[Error] Server rejected upload: {result.get('message', 'Unknown error')}")
