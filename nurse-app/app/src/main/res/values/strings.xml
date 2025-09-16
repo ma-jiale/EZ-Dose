@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">智能用药提醒</string>
+    <string name="time_morning">上午</string>
+    <string name="time_noon">中午</string>
+    <string name="time_evening">晚上</string>
+    <string name="time_beforeSleep">睡前</string>
+    <string name="currentTasks">正在进行</string>
+    <string name="overTasks">超时未完成任务</string>
+    <string name="abnormalEvent">异常事件提醒</string>
+
+    <string name="greeting">，您好！</string>
+    <string name="current_task_progress">当前任务进度</string>
+
+    <string name="patient_1_name">李栋梁</string>
+    <string name="patient_2_name">王小美</string>
+    <string name="patient_3_name">张桂芳</string>
+    <string name="patient_4_name">王小花</string>
+    <string name="patient_5_name">王晓梅</string>
+    <string name="patient_6_name">刘霞</string>
+    <string name="patient_7_name">李东</string>
+    <string name="patient_8_name">王晓华</string>
+    <string name="patient_9_name">周玄</string>
+
+    <string name="patient_1_bednumber">床号615</string>
+    <string name="patient_2_bednumber">床号332</string>
+    <string name="patient_3_bednumber">床号231</string>
+    <string name="patient_4_bednumber">床号213</string>
+    <string name="patient_5_bednumber">床号333</string>
+    <string name="patient_6_bednumber">床号125</string>
+    <string name="patient_7_bednumber">床号127</string>
+    <string name="patient_8_bednumber">床号215</string>
+    <string name="patient_9_bednumber">床号337</string>
+
+    <string name="medicine_box">药盒ID 514153</string>
+    <string name="not_taking_medicine">未服药</string>
+    <string name="have_taking_medicine">已服药</string>
+    <string name="task_timeout">任务超时</string>
+    <string name="task_upcomingtimeout">任务超时</string>
+    <string name="manual_input">手动输入</string>
+    <string name="additional_inormation">备注</string>
+    <string name="scanning_check">扫描核对</string>
+    <string name="sending_medicine_record">送药记录</string>
+    <string name="filter_record">筛选</string>
+    <string name="whose_medicine_box">的药盒</string>
+    <string name="adding_photo">添加图片</string>
+    <string name="scanning_again">重新扫描</string>
+    <string name="taking_medicine_reminder">送药提醒</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>

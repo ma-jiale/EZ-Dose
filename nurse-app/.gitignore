@@ -1,0 +1,37 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (SDK path, etc.)
+local.properties
+
+# IntelliJ / Android Studio files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Generated files
+app/build/
+*/build/
+captures/
+output.json
+
+# Keystore files (don’t commit secrets!)
+*.jks
+*.keystore
+
+# Log files
+*.log
+
+# Android Studio crash reports
+*.hprof
+
+# Gradle caches
+.gradle/
+.gradle/*
+!gradle/wrapper/gradle-wrapper.jar
+
+# Misc
+.DS_Store
+Thumbs.db
