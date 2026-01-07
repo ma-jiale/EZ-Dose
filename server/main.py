@@ -635,14 +635,25 @@ def admin_dashboard():
 @permission_required('can_edit_users')
 def manage_users():
     """
-    Display list of all users.
+    Display list of all users with optional search.
     """
     conn = get_db_connection()
-    users = conn.execute('SELECT * FROM users ORDER BY id').fetchall()
+    
+    search_query = request.args.get('search', '').strip()
+    
+    if search_query:
+        users = conn.execute('''
+            SELECT * FROM users 
+            WHERE username LIKE ?
+            ORDER BY id
+        ''', (f'%{search_query}%',)).fetchall()
+    else:
+        users = conn.execute('SELECT * FROM users ORDER BY id').fetchall()
+    
     conn.close()
     
     users_list = [dict_from_row(u) for u in users]
-    return render_template('users.html', users=users_list)
+    return render_template('users.html', users=users_list, search_query=search_query)
 
 
 @app.route('/admin/users/add', methods=['GET', 'POST'])
@@ -899,19 +910,32 @@ def delete_patient(patient_id):
 @permission_required('can_edit_prescriptions')
 def manage_prescriptions():
     """
-    Display list of all prescriptions.
+    Display list of all prescriptions with optional search.
     """
     conn = get_db_connection()
-    prescriptions = conn.execute('''
-        SELECT p.*, pt.patient_name 
-        FROM prescriptions p
-        LEFT JOIN patients pt ON p.patient_id = pt.id
-        ORDER BY p.id DESC
-    ''').fetchall()
+    
+    search_query = request.args.get('search', '').strip()
+    
+    if search_query:
+        prescriptions = conn.execute('''
+            SELECT p.*, pt.patient_name 
+            FROM prescriptions p
+            LEFT JOIN patients pt ON p.patient_id = pt.id
+            WHERE pt.patient_name LIKE ? OR p.medicine_name LIKE ?
+            ORDER BY p.id DESC
+        ''', (f'%{search_query}%', f'%{search_query}%')).fetchall()
+    else:
+        prescriptions = conn.execute('''
+            SELECT p.*, pt.patient_name 
+            FROM prescriptions p
+            LEFT JOIN patients pt ON p.patient_id = pt.id
+            ORDER BY p.id DESC
+        ''').fetchall()
+    
     conn.close()
     
     prescriptions_list = [dict_from_row(p) for p in prescriptions]
-    return render_template('prescriptions.html', prescriptions=prescriptions_list)
+    return render_template('prescriptions.html', prescriptions=prescriptions_list, search_query=search_query)
 
 
 @app.route('/admin/prescriptions/add', methods=['GET', 'POST'])
