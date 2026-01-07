@@ -38,10 +38,15 @@
                            {{ "checked" if user and user.can_edit_patients else "" }}>
                     患者管理
                 </label>
-                <label style="display: inline-block;">
+                <label style="display: inline-block; margin-right: 20px;">
                     <input type="checkbox" name="can_edit_prescriptions" 
                            {{ "checked" if user and user.can_edit_prescriptions else "" }}>
                     处方管理
+                </label>
+                <label style="display: inline-block;">
+                    <input type="checkbox" name="can_view_logs" 
+                           {{ "checked" if user and user.can_view_logs else "" }}>
+                    系统记录
                 </label>
             </div>
         </div>

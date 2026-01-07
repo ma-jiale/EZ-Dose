@@ -3,7 +3,10 @@
 {% block title %}发药记录{% endblock %}
 
 {% block content %}
-    <h1>发药记录</h1>
+    <h1>💊 发药记录</h1>
+    <p style="color: #666; margin-bottom: 20px;">
+        <a href="{{ URL_PREFIX }}{{ url_for('logs_home') }}" style="color: #667eea;">← 返回记录中心</a>
+    </p>
     
     <div class="filter-form" style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
         <form method="GET" style="display: flex; gap: 20px; align-items: flex-end;">

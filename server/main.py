@@ -3,6 +3,8 @@ from functools import wraps
 import time
 import sqlite3
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -26,10 +28,41 @@ URL_PREFIX = ''  # Local development mode
 # ========================================
 UPLOAD_FOLDER = 'static/images'
 DATABASE_FILE = 'data/ezdose.db'
+LOG_FILE = 'data/ezdose.log'
 
 # Ensure directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('data', exist_ok=True)
+
+# ========================================
+# Logging Configuration
+# ========================================
+# Configure file logging for developers
+file_handler = RotatingFileHandler(
+    LOG_FILE, 
+    maxBytes=10*1024*1024,  # 10MB per file
+    backupCount=5,  # Keep 5 backup files
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+))
+
+# Create logger
+logger = logging.getLogger('ezdose')
+logger.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+
+# Also log to console
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s: %(message)s',
+    datefmt='%H:%M:%S'
+))
+logger.addHandler(console_handler)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -70,6 +103,7 @@ def init_db():
             can_edit_users INTEGER DEFAULT 0,
             can_edit_patients INTEGER DEFAULT 0,
             can_edit_prescriptions INTEGER DEFAULT 0,
+            can_view_logs INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -124,6 +158,24 @@ def init_db():
         )
     ''')
     
+    # Operation logs table - for tracking web admin operations
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS operation_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operation_type TEXT NOT NULL,
+            operation_category TEXT NOT NULL,
+            target_type TEXT NOT NULL,
+            target_id INTEGER,
+            target_name TEXT,
+            details TEXT,
+            user_id INTEGER,
+            user_name TEXT,
+            ip_address TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+    
     conn.commit()
     
     # Create default admin user if no users exist
@@ -131,9 +183,9 @@ def init_db():
     if user_count == 0:
         admin_password = generate_password_hash('admin123')
         cursor.execute('''
-            INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions)
-            VALUES (?, ?, ?, ?, ?)
-        ''', ('admin', admin_password, 1, 1, 1))
+            INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions, can_view_logs)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', ('admin', admin_password, 1, 1, 1, 1))
         conn.commit()
         print(f"[{time.ctime()}] Created default admin user (username: admin, password: admin123)")
     
@@ -154,6 +206,55 @@ def dict_from_row(row):
     if row is None:
         return None
     return dict(row)
+
+
+def log_operation(operation_type, operation_category, target_type, target_id=None, target_name=None, details=None):
+    """
+    Record an operation log to database and file.
+    
+    Args:
+        operation_type (str): Type of operation ('add', 'edit', 'delete', 'login', 'logout')
+        operation_category (str): Category ('user', 'patient', 'prescription', 'auth')
+        target_type (str): Type of target object ('用户', '患者', '处方', '系统')
+        target_id (int): ID of target object
+        target_name (str): Name of target object
+        details (str): Additional details about the operation
+    """
+    try:
+        user = get_current_user()
+        user_id = user['id'] if user else None
+        user_name = user.get('username', '未知用户') if user else '系统'
+        
+        # Get IP address
+        ip_address = request.remote_addr if request else 'N/A'
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO operation_logs (
+                operation_type, operation_category, target_type, target_id, 
+                target_name, details, user_id, user_name, ip_address
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            operation_type, operation_category, target_type, target_id,
+            target_name, details, user_id, user_name, ip_address
+        ))
+        conn.commit()
+        conn.close()
+        
+        # Also log to file
+        log_message = f"[{operation_category.upper()}] {user_name}@{ip_address} - {operation_type} {target_type}"
+        if target_name:
+            log_message += f": {target_name}"
+        if target_id:
+            log_message += f" (ID: {target_id})"
+        if details:
+            log_message += f" | {details}"
+        
+        logger.info(log_message)
+        
+    except Exception as e:
+        logger.error(f"Failed to log operation: {e}")
 
 
 def allowed_file(filename):
@@ -268,9 +369,13 @@ def login():
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
+            # Log login event
+            log_operation('login', 'auth', '系统', target_name=username, details='用户登录成功')
+            logger.info(f"User '{username}' logged in from {request.remote_addr}")
             return redirect(URL_PREFIX + url_for('admin_dashboard'))
         else:
             error = '用户名或密码错误'
+            logger.warning(f"Failed login attempt for username '{username}' from {request.remote_addr}")
     
     return render_template('login.html', error=error)
 
@@ -280,6 +385,10 @@ def logout():
     """
     Handle user logout.
     """
+    user = get_current_user()
+    if user:
+        log_operation('logout', 'auth', '系统', target_name=user['username'], details='用户登出')
+        logger.info(f"User '{user['username']}' logged out")
     session.clear()
     return redirect(URL_PREFIX + url_for('login'))
 
@@ -669,16 +778,20 @@ def add_user():
         try:
             password_hash = generate_password_hash(request.form['password'])
             cursor.execute('''
-                INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions, can_view_logs)
+                VALUES (?, ?, ?, ?, ?, ?)
             ''', (
                 request.form['username'],
                 password_hash,
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
-                1 if request.form.get('can_edit_prescriptions') else 0
+                1 if request.form.get('can_edit_prescriptions') else 0,
+                1 if request.form.get('can_view_logs') else 0
             ))
             conn.commit()
+            new_user_id = cursor.lastrowid
+            log_operation('add', 'user', '用户', target_id=new_user_id, target_name=request.form['username'], 
+                         details='新增用户')
         except sqlite3.IntegrityError:
             conn.close()
             return render_template('user_form.html', user=None, error="用户名已存在")
@@ -709,7 +822,7 @@ def edit_user(user_id):
             password_hash = generate_password_hash(request.form['password'])
             cursor.execute('''
                 UPDATE users SET username=?, password_hash=?, 
-                can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?
+                can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?, can_view_logs=?
                 WHERE id=?
             ''', (
                 request.form['username'],
@@ -717,22 +830,26 @@ def edit_user(user_id):
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
                 1 if request.form.get('can_edit_prescriptions') else 0,
+                1 if request.form.get('can_view_logs') else 0,
                 user_id
             ))
         else:
             cursor.execute('''
                 UPDATE users SET username=?, 
-                can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?
+                can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?, can_view_logs=?
                 WHERE id=?
             ''', (
                 request.form['username'],
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
                 1 if request.form.get('can_edit_prescriptions') else 0,
+                1 if request.form.get('can_view_logs') else 0,
                 user_id
             ))
         
         conn.commit()
+        log_operation('edit', 'user', '用户', target_id=user_id, target_name=request.form['username'],
+                     details='编辑用户信息')
         conn.close()
         return redirect(URL_PREFIX + url_for('manage_users'))
     
@@ -747,9 +864,16 @@ def delete_user(user_id):
     Handle deleting a user.
     """
     conn = get_db_connection()
+    # Get user info before deletion for logging
+    user = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+    user_name = user['username'] if user else '未知'
+    
     conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
+    
+    log_operation('delete', 'user', '用户', target_id=user_id, target_name=user_name,
+                 details='删除用户')
     
     return redirect(URL_PREFIX + url_for('manage_users'))
 
@@ -811,7 +935,11 @@ def add_patient():
             image_filename
         ))
         conn.commit()
+        new_patient_id = cursor.lastrowid
         conn.close()
+        
+        log_operation('add', 'patient', '患者', target_id=new_patient_id, target_name=request.form['patient_name'],
+                     details=f"床号: {request.form.get('bed_number', '-')}")
         
         return redirect(URL_PREFIX + url_for('manage_patients'))
     
@@ -862,6 +990,9 @@ def edit_patient(patient_id):
         conn.commit()
         conn.close()
         
+        log_operation('edit', 'patient', '患者', target_id=patient_id, target_name=request.form['patient_name'],
+                     details=f"床号: {request.form.get('bed_number', '-')}")
+        
         return redirect(URL_PREFIX + url_for('manage_patients'))
     
     conn.close()
@@ -898,7 +1029,10 @@ def delete_patient(patient_id):
     conn.commit()
     conn.close()
     
-    print(f"[{time.ctime()}] Deleted patient {patient_id} and all associated data")
+    patient_name = patient['patient_name'] if patient else '未知'
+    log_operation('delete', 'patient', '患者', target_id=patient_id, target_name=patient_name,
+                 details='删除患者及其所有关联数据')
+    logger.info(f"Deleted patient {patient_id} ({patient_name}) and all associated data")
     return redirect(URL_PREFIX + url_for('manage_patients'))
 
 
@@ -967,7 +1101,17 @@ def add_prescription():
             request.form.get('pill_size', '')
         ))
         conn.commit()
+        new_rx_id = cursor.lastrowid
+        
+        # Get patient name for log
+        patient = conn.execute('SELECT patient_name FROM patients WHERE id = ?', 
+                              (request.form['patient_id'],)).fetchone()
+        patient_name = patient['patient_name'] if patient else '未知'
         conn.close()
+        
+        log_operation('add', 'prescription', '处方', target_id=new_rx_id, 
+                     target_name=request.form['medicine_name'],
+                     details=f"患者: {patient_name}")
         
         return redirect(URL_PREFIX + url_for('manage_prescriptions'))
     
@@ -1011,7 +1155,16 @@ def edit_prescription(prescription_id):
             prescription_id
         ))
         conn.commit()
+        
+        # Get patient name for log
+        patient = conn.execute('SELECT patient_name FROM patients WHERE id = ?',
+                              (request.form['patient_id'],)).fetchone()
+        patient_name = patient['patient_name'] if patient else '未知'
         conn.close()
+        
+        log_operation('edit', 'prescription', '处方', target_id=prescription_id,
+                     target_name=request.form['medicine_name'],
+                     details=f"患者: {patient_name}")
         
         return redirect(URL_PREFIX + url_for('manage_prescriptions'))
     
@@ -1028,9 +1181,22 @@ def delete_prescription(prescription_id):
     Handle deleting a prescription.
     """
     conn = get_db_connection()
+    # Get prescription info before deletion for logging
+    rx = conn.execute('''
+        SELECT p.medicine_name, pt.patient_name 
+        FROM prescriptions p
+        LEFT JOIN patients pt ON p.patient_id = pt.id
+        WHERE p.id = ?
+    ''', (prescription_id,)).fetchone()
+    medicine_name = rx['medicine_name'] if rx else '未知'
+    patient_name = rx['patient_name'] if rx else '未知'
+    
     conn.execute('DELETE FROM prescriptions WHERE id = ?', (prescription_id,))
     conn.commit()
     conn.close()
+    
+    log_operation('delete', 'prescription', '处方', target_id=prescription_id,
+                 target_name=medicine_name, details=f"患者: {patient_name}")
     
     return redirect(URL_PREFIX + url_for('manage_prescriptions'))
 
@@ -1040,7 +1206,7 @@ def delete_prescription(prescription_id):
 # ========================================
 
 @app.route('/admin/dispense_logs')
-@login_required
+@permission_required('can_view_logs')
 def manage_dispense_logs():
     """
     Display dispense logs with optional filtering.
@@ -1078,6 +1244,96 @@ def manage_dispense_logs():
                           patients=[dict_from_row(p) for p in patients],
                           date_filter=date_filter,
                           patient_filter=patient_filter)
+
+
+# ========================================
+# Logs Home & Operation Logs Routes
+# ========================================
+
+@app.route('/admin/logs')
+@permission_required('can_view_logs')
+def logs_home():
+    """
+    Display logs home page with links to different log types.
+    """
+    conn = get_db_connection()
+    
+    # Get statistics
+    dispense_count = conn.execute('SELECT COUNT(*) FROM dispense_logs').fetchone()[0]
+    operation_count = conn.execute('SELECT COUNT(*) FROM operation_logs').fetchone()[0]
+    
+    # Get recent records
+    recent_dispense = conn.execute('''
+        SELECT dl.*, p.patient_name
+        FROM dispense_logs dl
+        LEFT JOIN patients p ON dl.patient_id = p.id
+        ORDER BY dl.created_at DESC LIMIT 5
+    ''').fetchall()
+    
+    recent_operations = conn.execute('''
+        SELECT * FROM operation_logs
+        ORDER BY created_at DESC LIMIT 5
+    ''').fetchall()
+    
+    conn.close()
+    
+    stats = {
+        'dispense_count': dispense_count,
+        'operation_count': operation_count
+    }
+    
+    return render_template('logs_home.html',
+                          stats=stats,
+                          recent_dispense=[dict_from_row(l) for l in recent_dispense],
+                          recent_operations=[dict_from_row(l) for l in recent_operations])
+
+
+@app.route('/admin/operation_logs')
+@permission_required('can_view_logs')
+def manage_operation_logs():
+    """
+    Display operation logs with optional filtering.
+    """
+    conn = get_db_connection()
+    
+    query = 'SELECT * FROM operation_logs WHERE 1=1'
+    params = []
+    
+    date_filter = request.args.get('date')
+    category_filter = request.args.get('category')
+    type_filter = request.args.get('operation_type')
+    user_filter = request.args.get('user_name')
+    
+    if date_filter:
+        query += ' AND DATE(created_at) = ?'
+        params.append(date_filter)
+    
+    if category_filter:
+        query += ' AND operation_category = ?'
+        params.append(category_filter)
+    
+    if type_filter:
+        query += ' AND operation_type = ?'
+        params.append(type_filter)
+    
+    if user_filter:
+        query += ' AND user_name = ?'
+        params.append(user_filter)
+    
+    query += ' ORDER BY created_at DESC LIMIT 200'
+    
+    logs = conn.execute(query, params).fetchall()
+    users = conn.execute('SELECT id, username FROM users ORDER BY username').fetchall()
+    conn.close()
+    
+    return render_template('operation_logs.html',
+                          logs=[dict_from_row(l) for l in logs],
+                          users=[dict_from_row(u) for u in users],
+                          date_filter=date_filter,
+                          category_filter=category_filter,
+                          type_filter=type_filter,
+                          user_filter=user_filter)
+
 
 # ========================================
 # Application Entry Point

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}操作记录{% endblock %}
+
+{% block content %}
+    <h1>📝 操作记录</h1>
+    <p style="color: #666; margin-bottom: 20px;">
+        <a href="{{ URL_PREFIX }}{{ url_for('logs_home') }}" style="color: #667eea;">← 返回记录中心</a>
+    </p>
+    
+    <div class="filter-form" style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="date">日期:</label>
+                <input type="date" id="date" name="date" value="{{ date_filter or '' }}">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="category">操作类别:</label>
+                <select id="category" name="category">
+                    <option value="">-- 全部类别 --</option>
+                    <option value="user" {{ "selected" if category_filter == "user" else "" }}>用户管理</option>
+                    <option value="patient" {{ "selected" if category_filter == "patient" else "" }}>患者管理</option>
+                    <option value="prescription" {{ "selected" if category_filter == "prescription" else "" }}>处方管理</option>
+                    <option value="auth" {{ "selected" if category_filter == "auth" else "" }}>登录/登出</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="operation_type">操作类型:</label>
+                <select id="operation_type" name="operation_type">
+                    <option value="">-- 全部类型 --</option>
+                    <option value="add" {{ "selected" if type_filter == "add" else "" }}>新增</option>
+                    <option value="edit" {{ "selected" if type_filter == "edit" else "" }}>编辑</option>
+                    <option value="delete" {{ "selected" if type_filter == "delete" else "" }}>删除</option>
+                    <option value="login" {{ "selected" if type_filter == "login" else "" }}>登录</option>
+                    <option value="logout" {{ "selected" if type_filter == "logout" else "" }}>登出</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="user_name">操作人:</label>
+                <select id="user_name" name="user_name">
+                    <option value="">-- 全部用户 --</option>
+                    {% for user in users %}
+                    <option value="{{ user.username }}" {{ "selected" if user_filter == user.username else "" }}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_operation_logs') }}" class="btn btn-secondary">清除</a>
+        </form>
+    </div>
+    
+    {% if logs %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>时间</th>
+                <th>操作人</th>
+                <th>IP地址</th>
+                <th>操作类型</th>
+                <th>操作对象</th>
+                <th>对象名称</th>
+                <th>详情</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.id }}</td>
+                <td>{{ log.created_at }}</td>
+                <td>
+                    <span style="background: #e9ecef; padding: 2px 8px; border-radius: 4px;">
+                        {{ log.user_name or '-' }}
+                    </span>
+                </td>
+                <td style="font-family: monospace; font-size: 12px; color: #666;">{{ log.ip_address or '-' }}</td>
+                <td>
+                    {% if log.operation_type == 'add' %}
+                        <span style="background: #d4edda; color: #155724; padding: 3px 8px; border-radius: 4px; font-size: 12px;">✚ 新增</span>
+                    {% elif log.operation_type == 'edit' %}
+                        <span style="background: #fff3cd; color: #856404; padding: 3px 8px; border-radius: 4px; font-size: 12px;">✎ 编辑</span>
+                    {% elif log.operation_type == 'delete' %}
+                        <span style="background: #f8d7da; color: #721c24; padding: 3px 8px; border-radius: 4px; font-size: 12px;">✖ 删除</span>
+                    {% elif log.operation_type == 'login' %}
+                        <span style="background: #cce5ff; color: #004085; padding: 3px 8px; border-radius: 4px; font-size: 12px;">🔓 登录</span>
+                    {% elif log.operation_type == 'logout' %}
+                        <span style="background: #e2e3e5; color: #383d41; padding: 3px 8px; border-radius: 4px; font-size: 12px;">🔒 登出</span>
+                    {% else %}
+                        <span style="background: #e2e3e5; padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ log.operation_type }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ log.target_type }}</td>
+                <td>
+                    {% if log.target_name %}
+                        {{ log.target_name }}
+                        {% if log.target_id %}
+                            <span style="color: #888; font-size: 11px;">(#{{ log.target_id }})</span>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.details or '' }}">
+                    {{ log.details or '-' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #888; padding: 40px;">暂无操作记录。</p>
+    {% endif %}
+{% endblock %}

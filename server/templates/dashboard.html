@@ -3,35 +3,8 @@
 {% block title %}系统管理首页{% endblock %}
 
 {% block content %}
-    <h1>EZ-Dose 养老院分药系统</h1>
-    <p>欢迎您，{{ current_user.name or current_user.username }}！请选择您要管理的模块：</p>
-    
-    {% if stats %}
-    <div class="stats-bar" style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-        {% if current_user.can_edit_patients %}
-        <div class="stat-item" style="background: #e3f2fd; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
-            <h4 style="margin: 0;">患者数量</h4>
-            <p style="font-size: 24px; margin: 5px 0; font-weight: bold;">{{ stats.patients }}</p>
-        </div>
-        {% endif %}
-        {% if current_user.can_edit_prescriptions %}
-        <div class="stat-item" style="background: #e8f5e9; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
-            <h4 style="margin: 0;">有效处方</h4>
-            <p style="font-size: 24px; margin: 5px 0; font-weight: bold;">{{ stats.prescriptions }}</p>
-        </div>
-        {% endif %}
-        {% if current_user.can_edit_users %}
-        <div class="stat-item" style="background: #fff3e0; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
-            <h4 style="margin: 0;">系统用户</h4>
-            <p style="font-size: 24px; margin: 5px 0; font-weight: bold;">{{ stats.users }}</p>
-        </div>
-        {% endif %}
-        <div class="stat-item" style="background: #fce4ec; padding: 15px; border-radius: 8px; flex: 1; min-width: 150px;">
-            <h4 style="margin: 0;">今日发药</h4>
-            <p style="font-size: 24px; margin: 5px 0; font-weight: bold;">{{ stats.dispense_today }}</p>
-        </div>
-    </div>
-    {% endif %}
+    <h1>养老院分药系统</h1>
+    <p>欢迎您，{{ current_user.name or current_user.username }}！您工作辛苦了！</p>
     
     <div class="dashboard-grid">
         {% if current_user.can_edit_users %}
@@ -58,17 +31,19 @@
         </div>
         {% endif %}
         
+        {% if current_user.can_view_logs %}
         <div class="dashboard-card">
-            <h3>发药记录</h3>
-            <p>查看每日发药记录和历史</p>
-            <a href="{{ URL_PREFIX }}{{ url_for('manage_dispense_logs') }}" class="btn btn-primary">查看记录</a>
+            <h3>系统记录</h3>
+            <p>查看发药记录和操作日志</p>
+            <a href="{{ URL_PREFIX }}{{ url_for('logs_home') }}" class="btn btn-primary">查看记录</a>
         </div>
+        {% endif %}
     </div>
     
-    {% if not current_user.can_edit_users and not current_user.can_edit_patients and not current_user.can_edit_prescriptions %}
+    {% if not current_user.can_edit_users and not current_user.can_edit_patients and not current_user.can_edit_prescriptions and not current_user.can_view_logs %}
     <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 20px;">
         <p style="margin: 0; color: #856404;">
-            ⚠️ 您目前没有任何管理权限，只能查看发药记录。如需更多权限，请联系管理员。
+            ⚠️ 您目前没有任何管理权限。如需更多权限，请联系管理员。
         </p>
     </div>
     {% endif %}

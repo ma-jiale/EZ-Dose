@@ -20,7 +20,9 @@
                 {% if current_user.can_edit_prescriptions %}
                 <a href="{{ URL_PREFIX }}{{ url_for('manage_prescriptions') }}" class="btn btn-secondary">处方管理</a>
                 {% endif %}
-                <a href="{{ URL_PREFIX }}{{ url_for('manage_dispense_logs') }}" class="btn btn-secondary">发药记录</a>
+                {% if current_user.can_view_logs %}
+                <a href="{{ URL_PREFIX }}{{ url_for('logs_home') }}" class="btn btn-secondary">系统记录</a>
+                {% endif %}
             {% endif %}
         </div>
         <div>
