@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}访问被拒绝{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 50px;">
+    <div style="font-size: 72px; margin-bottom: 20px;">🚫</div>
+    <h1 style="color: #dc3545;">访问被拒绝</h1>
+    <p style="color: #666; font-size: 18px; margin-bottom: 30px;">
+        抱歉，您没有权限访问此页面。
+    </p>
+    <p style="color: #999;">
+        如需访问权限，请联系管理员。
+    </p>
+    <div style="margin-top: 30px;">
+        <a href="{{ URL_PREFIX }}{{ url_for('admin_dashboard') }}" class="btn btn-primary">返回首页</a>
+    </div>
+</div>
+{% endblock %}

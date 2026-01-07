@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}处方管理{% endblock %}
+
+{% block content %}
+    <h1>处方管理</h1>
+    
+    <div class="actions">
+        <a href="{{ URL_PREFIX }}{{ url_for('add_prescription') }}" class="btn btn-primary">新增处方</a>
+    </div>
+    
+    {% if prescriptions %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>患者姓名</th>
+                <th>药品名称</th>
+                <th>早餐剂量</th>
+                <th>午餐剂量</th>
+                <th>晚餐剂量</th>
+                <th>用餐时机</th>
+                <th>开始日期</th>
+                <th>持续天数</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prescription in prescriptions %}
+            <tr>
+                <td>{{ prescription.id }}</td>
+                <td>{{ prescription.patient_name or '未知' }}</td>
+                <td>{{ prescription.medicine_name }}</td>
+                <td>{{ prescription.morning_dosage }}</td>
+                <td>{{ prescription.noon_dosage }}</td>
+                <td>{{ prescription.evening_dosage }}</td>
+                <td>
+                    {% if prescription.meal_timing == 'before_meal' or prescription.meal_timing == 'before' %}饭前
+                    {% elif prescription.meal_timing == 'after_meal' or prescription.meal_timing == 'after' %}饭后
+                    {% elif prescription.meal_timing == 'with_meal' %}随餐
+                    {% else %}{{ prescription.meal_timing or '-' }}
+                    {% endif %}
+                </td>
+                <td>{{ prescription.start_date }}</td>
+                <td>{{ prescription.duration_days }}</td>
+                <td>{{ '有效' if prescription.is_active == 1 else '无效' }}</td>
+                <td class="actions">
+                    <a href="{{ URL_PREFIX }}{{ url_for('edit_prescription', prescription_id=prescription.id) }}" class="btn btn-warning">编辑</a>
+                    <a href="{{ URL_PREFIX }}{{ url_for('delete_prescription', prescription_id=prescription.id) }}" 
+                       onclick="return confirm('确定要删除该处方吗？')" 
+                       class="btn btn-danger">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>暂无处方数据。</p>
+    {% endif %}
+{% endblock %}

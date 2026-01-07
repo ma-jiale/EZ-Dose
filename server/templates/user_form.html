@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑用户" if user else "新增用户" }}{% endblock %}
+
+{% block content %}
+    <h1>{{ "编辑用户" if user else "新增用户" }}</h1>
+
+    {% if error %}
+    <div class="alert alert-danger" style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" 
+                   value="{{ user.username if user else '' }}" 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="name">姓名:</label>
+            <input type="text" id="name" name="name" 
+                   value="{{ user.name if user else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="password">密码{{ " (留空保持不变)" if user else "" }}:</label>
+            <input type="password" id="password" name="password" 
+                   {{ "required" if not user else "" }}>
+        </div>
+
+        <div class="form-group">
+            <label>权限设置:</label>
+            <div style="margin-top: 10px;">
+                <label style="display: inline-block; margin-right: 20px;">
+                    <input type="checkbox" name="can_edit_users" 
+                           {{ "checked" if user and user.can_edit_users else "" }}>
+                    用户管理
+                </label>
+                <label style="display: inline-block; margin-right: 20px;">
+                    <input type="checkbox" name="can_edit_patients" 
+                           {{ "checked" if user and user.can_edit_patients else "" }}>
+                    患者管理
+                </label>
+                <label style="display: inline-block;">
+                    <input type="checkbox" name="can_edit_prescriptions" 
+                           {{ "checked" if user and user.can_edit_prescriptions else "" }}>
+                    处方管理
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if user else "新增" }}</button>
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_users') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+{% endblock %}

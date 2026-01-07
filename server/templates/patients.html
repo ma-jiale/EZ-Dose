@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}患者管理{% endblock %}
+
+{% block content %}
+    <h1>患者管理</h1>
+    
+    <div class="actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="{{ URL_PREFIX }}{{ url_for('add_patient') }}" class="btn btn-primary">新增患者</a>
+        
+        <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" name="search" placeholder="搜索姓名或床号..." 
+                   value="{{ search_query or '' }}" 
+                   style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; width: 200px;">
+            <button type="submit" class="btn btn-secondary">搜索</button>
+            {% if search_query %}
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" class="btn btn-secondary">清除</a>
+            {% endif %}
+        </form>
+    </div>
+    
+    {% if search_query %}
+    <p style="color: #666; margin-bottom: 15px;">搜索结果: "{{ search_query }}" - 共 {{ patients|length }} 条记录</p>
+    {% endif %}
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>患者姓名</th>
+                <th>床号</th>
+                <th>照片</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patients %}
+            <tr>
+                <td>{{ patient.id }}</td>
+                <td>{{ patient.patient_name }}</td>
+                <td>{{ patient.bed_number or '-' }}</td>
+                <td>{{ patient.profile_photo_resource_id or '-' }}</td>
+                <td>{{ patient.created_at or '-' }}</td>
+                <td class="actions">
+                    <a href="{{ URL_PREFIX }}{{ url_for('edit_patient', patient_id=patient.id) }}" class="btn btn-warning">编辑</a>
+                    <a href="{{ URL_PREFIX }}{{ url_for('delete_patient', patient_id=patient.id) }}" 
+                       onclick="return confirm('确定要删除患者 {{ patient.patient_name }} 吗？此操作将同时删除该患者的所有处方！')" 
+                       class="btn btn-danger">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
