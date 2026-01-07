@@ -14,7 +14,6 @@
             <tr>
                 <th>ID</th>
                 <th>用户名</th>
-                <th>姓名</th>
                 <th>用户管理权限</th>
                 <th>患者管理权限</th>
                 <th>处方管理权限</th>
@@ -27,7 +26,6 @@
             <tr>
                 <td>{{ user.id }}</td>
                 <td>{{ user.username }}</td>
-                <td>{{ user.name or '-' }}</td>
                 <td>{{ '✓' if user.can_edit_users else '✗' }}</td>
                 <td>{{ '✓' if user.can_edit_patients else '✗' }}</td>
                 <td>{{ '✓' if user.can_edit_prescriptions else '✗' }}</td>

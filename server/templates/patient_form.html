@@ -1,33 +1,34 @@
 {% extends "base.html" %}
 
-{% block title %}{% if patient %}编辑患者{% else %}新增患者{% endif %}{% endblock %}
+{% block title %}{{ "编辑患者" if patient else "新增患者" }}{% endblock %}
 
 {% block content %}
-    <h1>{% if patient %}编辑患者{% else %}新增患者{% endif %}</h1>
-    
-    <form method="POST" enctype="multipart/form-data">
+    <h1>{{ "编辑患者" if patient else "新增患者" }}</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="form">
         <div class="form-group">
-            <label for="patient_name">患者姓名：</label>
+            <label for="patient_name">患者姓名:</label>
             <input type="text" id="patient_name" name="patient_name" 
-                   value="{% if patient %}{{ patient.patient_name }}{% endif %}" required>
+                   value="{{ patient.patient_name if patient else '' }}" 
+                   required>
         </div>
-        
+
         <div class="form-group">
-            <label for="bed_number">床号：</label>
+            <label for="bed_number">床号:</label>
             <input type="text" id="bed_number" name="bed_number" 
-                   value="{% if patient %}{{ patient.bed_number }}{% endif %}">
+                   value="{{ patient.bed_number if patient else '' }}">
         </div>
-        
+
         <div class="form-group">
-            <label for="patientImage">患者照片：</label>
+            <label for="patientImage">患者照片:</label>
             <input type="file" id="patientImage" name="patientImage" accept="image/*">
             {% if patient and patient.profile_photo_resource_id %}
-                <p>当前图片：{{ patient.profile_photo_resource_id }}</p>
+                <p>当前图片: {{ patient.profile_photo_resource_id }}</p>
             {% endif %}
         </div>
-        
-        <div class="actions">
-            <button type="submit" class="btn btn-primary">保存</button>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">{{ "更新" if patient else "新增" }}</button>
             <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" class="btn btn-secondary">取消</a>
         </div>
     </form>

@@ -67,7 +67,6 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            name TEXT,
             can_edit_users INTEGER DEFAULT 0,
             can_edit_patients INTEGER DEFAULT 0,
             can_edit_prescriptions INTEGER DEFAULT 0,
@@ -132,9 +131,9 @@ def init_db():
     if user_count == 0:
         admin_password = generate_password_hash('admin123')
         cursor.execute('''
-            INSERT INTO users (username, password_hash, name, can_edit_users, can_edit_patients, can_edit_prescriptions)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', ('admin', admin_password, '管理员', 1, 1, 1))
+            INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('admin', admin_password, 1, 1, 1))
         conn.commit()
         print(f"[{time.ctime()}] Created default admin user (username: admin, password: admin123)")
     
@@ -659,12 +658,11 @@ def add_user():
         try:
             password_hash = generate_password_hash(request.form['password'])
             cursor.execute('''
-                INSERT INTO users (username, password_hash, name, can_edit_users, can_edit_patients, can_edit_prescriptions)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO users (username, password_hash, can_edit_users, can_edit_patients, can_edit_prescriptions)
+                VALUES (?, ?, ?, ?, ?)
             ''', (
                 request.form['username'],
                 password_hash,
-                request.form.get('name', ''),
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
                 1 if request.form.get('can_edit_prescriptions') else 0
@@ -699,13 +697,12 @@ def edit_user(user_id):
         if request.form.get('password'):
             password_hash = generate_password_hash(request.form['password'])
             cursor.execute('''
-                UPDATE users SET username=?, password_hash=?, name=?, 
+                UPDATE users SET username=?, password_hash=?, 
                 can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?
                 WHERE id=?
             ''', (
                 request.form['username'],
                 password_hash,
-                request.form.get('name', ''),
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
                 1 if request.form.get('can_edit_prescriptions') else 0,
@@ -713,12 +710,11 @@ def edit_user(user_id):
             ))
         else:
             cursor.execute('''
-                UPDATE users SET username=?, name=?, 
+                UPDATE users SET username=?, 
                 can_edit_users=?, can_edit_patients=?, can_edit_prescriptions=?
                 WHERE id=?
             ''', (
                 request.form['username'],
-                request.form.get('name', ''),
                 1 if request.form.get('can_edit_users') else 0,
                 1 if request.form.get('can_edit_patients') else 0,
                 1 if request.form.get('can_edit_prescriptions') else 0,
@@ -1028,7 +1024,7 @@ def manage_dispense_logs():
     conn = get_db_connection()
     
     query = '''
-        SELECT dl.*, p.patient_name, u.name as dispensed_by_name
+        SELECT dl.*, p.patient_name, u.username as dispensed_by_name
         FROM dispense_logs dl
         LEFT JOIN patients p ON dl.patient_id = p.id
         LEFT JOIN users u ON dl.dispensed_by_user_id = u.id
