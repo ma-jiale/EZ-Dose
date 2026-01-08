@@ -86,6 +86,36 @@ def get_db_connection():
     return conn
 
 
+def generate_next_patient_id():
+    """
+    Generate the next available patient ID in 6-digit zero-padded format.
+    
+    Patient IDs follow the format: 000001 to 999999
+    This format is optimized for Code128 barcode scanning - the fixed 6-digit
+    length produces consistent barcode widths that are easier to scan.
+    
+    Returns:
+        str: Next available patient ID (e.g., "000001", "000042", "001234")
+    """
+    conn = get_db_connection()
+    # Get the maximum current ID (as integer for proper comparison)
+    result = conn.execute('SELECT MAX(CAST(id AS INTEGER)) as max_id FROM patients').fetchone()
+    conn.close()
+    
+    if result['max_id'] is None:
+        # No patients exist yet, start with 000001
+        next_id = 1
+    else:
+        next_id = result['max_id'] + 1
+    
+    # Validate ID range (6-digit limit)
+    if next_id > 999999:
+        raise ValueError("Patient ID limit exceeded. Maximum is 999999.")
+    
+    # Format as 6-digit zero-padded string
+    return f"{next_id:06d}"
+
+
 def init_db():
     """
     Initialize the database with all required tables.
@@ -109,9 +139,10 @@ def init_db():
     ''')
     
     # Patients table
+    # Patient ID uses 6-digit zero-padded format (000001-999999) for better barcode scanning
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             patient_name TEXT NOT NULL,
             bed_number TEXT,
             profile_photo_resource_id TEXT,
@@ -123,7 +154,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS prescriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL,
+            patient_id TEXT NOT NULL,
             medicine_name TEXT NOT NULL,
             morning_dosage REAL DEFAULT 0,
             noon_dosage REAL DEFAULT 0,
@@ -145,7 +176,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS dispense_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             dispense_date DATE NOT NULL,
-            patient_id INTEGER NOT NULL,
+            patient_id TEXT NOT NULL,
             prescription_id INTEGER NOT NULL,
             medicine_name TEXT NOT NULL,
             dosage REAL NOT NULL,
@@ -503,10 +534,13 @@ def upload_patients_for_dispensing():
             bed_number = patient.get('patientBedNumber') or patient.get('bed_number', '')
             photo_id = patient.get('imageResourceId') or patient.get('profile_photo_resource_id', '')
             
+            # Generate 6-digit zero-padded patient ID for barcode compatibility
+            new_patient_id = generate_next_patient_id()
+            
             cursor.execute('''
-                INSERT INTO patients (patient_name, bed_number, profile_photo_resource_id)
-                VALUES (?, ?, ?)
-            ''', (patient_name, bed_number, photo_id))
+                INSERT INTO patients (id, patient_name, bed_number, profile_photo_resource_id)
+                VALUES (?, ?, ?, ?)
+            ''', (new_patient_id, patient_name, bed_number, photo_id))
             inserted_count += 1
         
         conn.commit()
@@ -939,16 +973,20 @@ def add_patient():
         
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Generate 6-digit zero-padded patient ID for barcode compatibility
+        new_patient_id = generate_next_patient_id()
+        
         cursor.execute('''
-            INSERT INTO patients (patient_name, bed_number, profile_photo_resource_id)
-            VALUES (?, ?, ?)
+            INSERT INTO patients (id, patient_name, bed_number, profile_photo_resource_id)
+            VALUES (?, ?, ?, ?)
         ''', (
+            new_patient_id,
             request.form['patient_name'],
             bed_number,
             image_filename
         ))
         conn.commit()
-        new_patient_id = cursor.lastrowid
         conn.close()
         
         log_operation('add', 'patient', '患者', target_id=new_patient_id, target_name=request.form['patient_name'],
@@ -959,7 +997,7 @@ def add_patient():
     return render_template('patient_form.html', patient=None)
 
 
-@app.route('/admin/patients/edit/<int:patient_id>', methods=['GET', 'POST'])
+@app.route('/admin/patients/edit/<patient_id>', methods=['GET', 'POST'])
 @permission_required('can_edit_patients')
 def edit_patient(patient_id):
     """
@@ -1024,7 +1062,7 @@ def edit_patient(patient_id):
     return render_template('patient_form.html', patient=dict_from_row(patient))
 
 
-@app.route('/admin/patients/delete/<int:patient_id>')
+@app.route('/admin/patients/delete/<patient_id>')
 @permission_required('can_edit_patients')
 def delete_patient(patient_id):
     """
@@ -1077,15 +1115,15 @@ def manage_prescriptions():
     
     if search_query:
         prescriptions = conn.execute('''
-            SELECT p.*, pt.patient_name 
+            SELECT p.*, pt.patient_name, pt.bed_number 
             FROM prescriptions p
             LEFT JOIN patients pt ON p.patient_id = pt.id
-            WHERE pt.patient_name LIKE ? OR p.medicine_name LIKE ?
+            WHERE pt.patient_name LIKE ? OR p.medicine_name LIKE ? OR pt.bed_number LIKE ?
             ORDER BY p.id DESC
-        ''', (f'%{search_query}%', f'%{search_query}%')).fetchall()
+        ''', (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%')).fetchall()
     else:
         prescriptions = conn.execute('''
-            SELECT p.*, pt.patient_name 
+            SELECT p.*, pt.patient_name, pt.bed_number 
             FROM prescriptions p
             LEFT JOIN patients pt ON p.patient_id = pt.id
             ORDER BY p.id DESC

@@ -29,6 +29,7 @@
             <tr>
                 <th>ID</th>
                 <th>患者姓名</th>
+                <th>床号</th>
                 <th>药品名称</th>
                 <th>早餐剂量</th>
                 <th>午餐剂量</th>
@@ -45,6 +46,7 @@
             <tr>
                 <td>{{ prescription.id }}</td>
                 <td>{{ prescription.patient_name or '未知' }}</td>
+                <td>{{ prescription.bed_number or '-' }}</td>
                 <td>{{ prescription.medicine_name }}</td>
                 <td>{{ prescription.morning_dosage }}</td>
                 <td>{{ prescription.noon_dosage }}</td>
