@@ -915,6 +915,19 @@ def add_patient():
     Handle adding a new patient.
     """
     if request.method == 'POST':
+        bed_number = request.form.get('bed_number', '').strip()
+        
+        # Check for duplicate bed number
+        if bed_number:
+            conn = get_db_connection()
+            existing = conn.execute(
+                'SELECT id FROM patients WHERE bed_number = ?', (bed_number,)
+            ).fetchone()
+            conn.close()
+            if existing:
+                return render_template('patient_form.html', patient=None, 
+                                     error=f'床号 "{bed_number}" 已被使用，请选择其他床号')
+        
         image_filename = ""
         if 'patientImage' in request.files:
             file = request.files['patientImage']
@@ -931,7 +944,7 @@ def add_patient():
             VALUES (?, ?, ?)
         ''', (
             request.form['patient_name'],
-            request.form.get('bed_number', ''),
+            bed_number,
             image_filename
         ))
         conn.commit()
@@ -960,6 +973,18 @@ def edit_patient(patient_id):
         return "Patient not found!", 404
 
     if request.method == 'POST':
+        bed_number = request.form.get('bed_number', '').strip()
+        
+        # Check for duplicate bed number (excluding current patient)
+        if bed_number:
+            existing = conn.execute(
+                'SELECT id FROM patients WHERE bed_number = ? AND id != ?', (bed_number, patient_id)
+            ).fetchone()
+            if existing:
+                conn.close()
+                return render_template('patient_form.html', patient=dict_from_row(patient), 
+                                     error=f'床号 "{bed_number}" 已被使用，请选择其他床号')
+        
         image_filename = patient['profile_photo_resource_id']
         
         if 'patientImage' in request.files:
@@ -983,7 +1008,7 @@ def edit_patient(patient_id):
             WHERE id=?
         ''', (
             request.form['patient_name'],
-            request.form.get('bed_number', ''),
+            bed_number,
             image_filename,
             patient_id
         ))

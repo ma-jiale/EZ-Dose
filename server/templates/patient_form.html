@@ -5,6 +5,12 @@
 {% block content %}
     <h1>{{ "编辑患者" if patient else "新增患者" }}</h1>
 
+    {% if error %}
+    <div class="alert alert-error">
+        {{ error }}
+    </div>
+    {% endif %}
+
     <form method="POST" enctype="multipart/form-data" class="form">
         <div class="form-group">
             <label for="patient_name">患者姓名:</label>
