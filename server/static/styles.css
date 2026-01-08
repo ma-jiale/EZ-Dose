@@ -203,3 +203,136 @@ h1 {
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
+/* ============================================================ */
+/* Modal Dialog Styles */
+/* ============================================================ */
+
+/* Modal overlay - dark background covering the entire screen */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Modal content container */
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 400px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Modal header with title and close button */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #343a40;
+}
+
+/* Close button in modal header */
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #343a40;
+}
+
+/* Modal body content area */
+.modal-body {
+    padding: 20px;
+}
+
+/* Modal footer with action buttons */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+/* ============================================================ */
+/* Printer Status Indicator Styles */
+/* ============================================================ */
+
+/* Printer status badge in the header */
+.printer-status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Connected state - green */
+.printer-status-connected {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Disconnected state - red/gray */
+.printer-status-disconnected {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Status text in modals */
+.status-text {
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* ============================================================ */
+/* Label Preview Styles */
+/* ============================================================ */
+
+/* Container for label preview image */
+.label-preview-container {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    min-height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Preview image styling */
+.label-preview-container img {
+    max-width: 100%;
+    max-height: 200px;
+    border: 1px solid #dee2e6;
+}
