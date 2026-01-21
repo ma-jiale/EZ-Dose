@@ -164,10 +164,18 @@ def init_db():
             duration_days INTEGER NOT NULL,
             last_dispensed_expiry_date DATE,
             is_active INTEGER DEFAULT 1,
-            pill_size TEXT,
+            pill_size_area REAL,
             image_resource_id TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # System settings table - for calibration configuration
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS system_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
         )
     ''')
     
@@ -445,9 +453,124 @@ def index():
             "GET /packer/prescriptions - Get prescription list",
             "POST /packer/patients/upload - Upload patient data",
             "POST /packer/prescriptions/upload - Upload prescription data",
-            "POST /packer/dispense - Record dispense log"
+            "POST /packer/dispense - Record dispense log",
+            "GET/POST /packer/settings/calibration - Calibration settings",
+            "POST /packer/prescription/<id>/pill-size - Update pill size area"
         ]
     })
+
+
+# ========================================
+# Calibration Settings API Endpoints
+# ========================================
+
+@app.route('/packer/settings/calibration', methods=['GET', 'POST'])
+def calibration_settings():
+    """
+    API endpoint to get/set calibration settings.
+    
+    GET - Returns current calibration settings:
+        - reference_pill_diameter_mm (default: 9.0)
+        
+    POST - Updates calibration settings:
+        - reference_pill_diameter_mm: Reference pill diameter in mm
+    
+    Returns:
+        JSON response with calibration settings
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            conn.close()
+            return jsonify({"success": False, "message": "No data provided"}), 400
+        
+        # Update reference pill diameter if provided
+        if 'reference_pill_diameter_mm' in data:
+            diameter = float(data['reference_pill_diameter_mm'])
+            cursor.execute('''
+                INSERT INTO system_settings (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            ''', ('reference_pill_diameter_mm', str(diameter)))
+            conn.commit()
+    
+    # Get current settings
+    settings = {}
+    rows = cursor.execute('SELECT key, value FROM system_settings').fetchall()
+    for row in rows:
+        settings[row['key']] = row['value']
+    
+    conn.close()
+    
+    return jsonify({
+        "success": True,
+        "data": {
+            "reference_pill_diameter_mm": float(settings.get('reference_pill_diameter_mm', 9.0))
+        }
+    })
+
+
+@app.route('/packer/prescription/<int:prescription_id>/pill-size', methods=['POST'])
+def update_prescription_pill_size(prescription_id):
+    """
+    API endpoint to update pill size area for a specific prescription.
+    Called by the device after calibrating a new medicine.
+    
+    Request Body:
+        - pill_size_area: Calibrated pill area in mm²
+    
+    Returns:
+        JSON response with success status
+    """
+    try:
+        data = request.get_json()
+        if not data or 'pill_size_area' not in data:
+            return jsonify({
+                "success": False,
+                "message": "pill_size_area is required"
+            }), 400
+        
+        pill_size_area = float(data['pill_size_area'])
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if prescription exists
+        prescription = cursor.execute(
+            'SELECT id, medicine_name FROM prescriptions WHERE id = ?', 
+            (prescription_id,)
+        ).fetchone()
+        
+        if not prescription:
+            conn.close()
+            return jsonify({
+                "success": False,
+                "message": f"Prescription {prescription_id} not found"
+            }), 404
+        
+        # Update pill size area
+        cursor.execute(
+            'UPDATE prescriptions SET pill_size_area = ? WHERE id = ?',
+            (pill_size_area, prescription_id)
+        )
+        conn.commit()
+        
+        logger.info(f"Updated pill_size_area for prescription {prescription_id} ({prescription['medicine_name']}): {pill_size_area:.2f} mm²")
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Pill size updated to {pill_size_area:.2f} mm²"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating pill size: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error updating pill size: {str(e)}"
+        }), 500
 
 
 # ========================================
@@ -484,7 +607,7 @@ def get_prescriptions_for_dispensing():
     """
     conn = get_db_connection()
     prescriptions = conn.execute('''
-        SELECT p.*, pt.patient_name 
+        SELECT p.*, pt.patient_name, pt.bed_number 
         FROM prescriptions p
         LEFT JOIN patients pt ON p.patient_id = pt.id
         WHERE p.is_active = 1
@@ -593,26 +716,61 @@ def upload_prescriptions_for_dispensing():
             if not patient_id or not medicine_name:
                 continue
             
-            cursor.execute('''
-                INSERT INTO prescriptions (
-                    patient_id, medicine_name, morning_dosage, noon_dosage, evening_dosage,
-                    meal_timing, start_date, duration_days, last_dispensed_expiry_date,
-                    is_active, pill_size, image_resource_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                patient_id,
-                medicine_name,
-                float(rx.get('morning_dosage', 0)),
-                float(rx.get('noon_dosage', 0)),
-                float(rx.get('evening_dosage', 0)),
-                rx.get('meal_timing', ''),
-                rx.get('start_date', datetime.now().strftime('%Y-%m-%d')),
-                int(rx.get('duration_days', 7)),
-                rx.get('last_dispensed_expiry_date'),
-                int(rx.get('is_active', 1)),
-                rx.get('pill_size', ''),
-                rx.get('image_resource_id', '')
-            ))
+            rx_id = rx.get('id')
+            
+            if rx_id:
+                # Update existing record
+                # NOTE: pill_size_area is preserved if client sends 0 or null
+                # This prevents overwriting the calibrated value during sync
+                client_pill_size = rx.get('pill_size_area')
+                client_pill_size_value = float(client_pill_size) if client_pill_size and float(client_pill_size) > 0 else None
+                
+                cursor.execute('''
+                    UPDATE prescriptions SET
+                        patient_id = ?, medicine_name = ?, morning_dosage = ?, 
+                        noon_dosage = ?, evening_dosage = ?, meal_timing = ?,
+                        start_date = ?, duration_days = ?, last_dispensed_expiry_date = ?,
+                        is_active = ?, 
+                        pill_size_area = COALESCE(?, pill_size_area),
+                        image_resource_id = ?
+                    WHERE id = ?
+                ''', (
+                    patient_id,
+                    medicine_name,
+                    float(rx.get('morning_dosage', 0)),
+                    float(rx.get('noon_dosage', 0)),
+                    float(rx.get('evening_dosage', 0)),
+                    rx.get('meal_timing', ''),
+                    rx.get('start_date', datetime.now().strftime('%Y-%m-%d')),
+                    int(rx.get('duration_days', 7)),
+                    rx.get('last_dispensed_expiry_date'),
+                    int(rx.get('is_active', 1)),
+                    client_pill_size_value,  # NULL preserves existing value via COALESCE
+                    rx.get('image_resource_id', ''),
+                    rx_id
+                ))
+            else:
+                # Insert new record
+                cursor.execute('''
+                    INSERT INTO prescriptions (
+                        patient_id, medicine_name, morning_dosage, noon_dosage, evening_dosage,
+                        meal_timing, start_date, duration_days, last_dispensed_expiry_date,
+                        is_active, pill_size_area, image_resource_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    patient_id,
+                    medicine_name,
+                    float(rx.get('morning_dosage', 0)),
+                    float(rx.get('noon_dosage', 0)),
+                    float(rx.get('evening_dosage', 0)),
+                    rx.get('meal_timing', ''),
+                    rx.get('start_date', datetime.now().strftime('%Y-%m-%d')),
+                    int(rx.get('duration_days', 7)),
+                    rx.get('last_dispensed_expiry_date'),
+                    int(rx.get('is_active', 1)),
+                    float(rx.get('pill_size_area', 0)) if rx.get('pill_size_area') else None,
+                    rx.get('image_resource_id', '')
+                ))
             inserted_count += 1
         
         conn.commit()
@@ -1149,7 +1307,7 @@ def add_prescription():
         cursor.execute('''
             INSERT INTO prescriptions (
                 patient_id, medicine_name, morning_dosage, noon_dosage, evening_dosage,
-                meal_timing, start_date, duration_days, is_active, pill_size
+                meal_timing, start_date, duration_days, is_active, pill_size_area
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             request.form['patient_id'],
@@ -1161,7 +1319,7 @@ def add_prescription():
             request.form['start_date'],
             int(request.form.get('duration_days', 7)),
             1 if request.form.get('is_active') else 0,
-            request.form.get('pill_size', '')
+            None  # pill_size_area is calibrated on device, not set in web admin
         ))
         conn.commit()
         new_rx_id = cursor.lastrowid
@@ -1202,7 +1360,7 @@ def edit_prescription(prescription_id):
         cursor.execute('''
             UPDATE prescriptions SET
                 patient_id=?, medicine_name=?, morning_dosage=?, noon_dosage=?, evening_dosage=?,
-                meal_timing=?, start_date=?, duration_days=?, is_active=?, pill_size=?
+                meal_timing=?, start_date=?, duration_days=?, is_active=?
             WHERE id=?
         ''', (
             request.form['patient_id'],
@@ -1214,7 +1372,6 @@ def edit_prescription(prescription_id):
             request.form['start_date'],
             int(request.form.get('duration_days', 7)),
             1 if request.form.get('is_active') else 0,
-            request.form.get('pill_size', ''),
             prescription_id
         ))
         conn.commit()

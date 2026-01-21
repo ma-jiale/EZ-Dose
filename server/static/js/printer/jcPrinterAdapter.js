@@ -29,24 +29,24 @@
  * Implements the PrinterAdapter interface for JC (精臣) label printers.
  * This adapter communicates with the JC print service via WebSocket.
  */
-const JCPrinterAdapter = (function() {
+const JCPrinterAdapter = (function () {
     // --------------------------------------------------------
     // Private State
     // --------------------------------------------------------
-    
+
     // Connection state tracking
     let _serviceConnected = false;
     let _printerConnected = false;
     let _sdkInitialized = false;
-    
+
     // Current printer information
     let _currentPrinter = null;
     let _printerType = 'NONE'; // 'USB' | 'WIFI' | 'NONE'
-    
+
     // Cached printer lists
     let _usbPrinters = null;
     let _wifiPrinters = null;
-    
+
     // Progress listener reference for cleanup
     let _currentProgressListener = null;
 
@@ -80,11 +80,11 @@ const JCPrinterAdapter = (function() {
      */
     function _buildPatientLabelLayout(labelData) {
         const config = LabelConfig;
-        
+
         // Use 小五 (Xiao Wu) font size - approximately 9pt or 3.18mm
         // This is a standard Chinese typography size suitable for labels
         const fontSize = config.FONT_SIZE ? config.FONT_SIZE.XIAO_WU : 3.18;
-        
+
         // Build the elements array for the label
         const elements = [
             // Element 1: Patient Name (positioned at top-left of label)
@@ -97,7 +97,7 @@ const JCPrinterAdapter = (function() {
                     height: 4.0,               // Text box height - sufficient for single line
                     width: 12.0,               // Text box width - allows for typical Chinese names
                     value: labelData.patientName || '',
-                    fontFamily: '',            // Empty string uses default font (ZT001.ttf)
+                    fontFamily: '宋体',        // Use 宋体 font (matches Demo)
                     rotate: 0,                 // No rotation
                     fontSize: fontSize,        // 小五 size (3.18mm)
                     textAlignHorizonral: config.TEXT_ALIGN.LEFT,   // Left-aligned text
@@ -118,7 +118,7 @@ const JCPrinterAdapter = (function() {
                     height: 4.0,               // Same text box height
                     width: 12.0,               // Same width as name field
                     value: labelData.bedNumber ? labelData.bedNumber + '床' : '',
-                    fontFamily: '',
+                    fontFamily: '宋体',        // Use 宋体 font (matches Demo)
                     rotate: 0,
                     fontSize: fontSize,
                     textAlignHorizonral: config.TEXT_ALIGN.LEFT,
@@ -130,7 +130,7 @@ const JCPrinterAdapter = (function() {
                 }
             }
         ];
-        
+
         // Element 3: Patient ID Barcode (positioned on right side of label)
         // Only add barcode if patient ID is provided
         // Uses Code128 format which supports alphanumeric characters
@@ -138,20 +138,20 @@ const JCPrinterAdapter = (function() {
             elements.push({
                 type: 'barCode',
                 json: {
-                    x: 14.4,                   // Positioned to the right of text elements
-                    y: 3.5,                    // Vertically centered on label
-                    height: 13.3,              // Barcode height in mm
-                    width: 32.7,               // Barcode width in mm
+                    x: 15.0,                   // Positioned to the right of text elements
+                    y: 2.0,                    // Top margin aligned
+                    height: 16.0,              // Barcode height in mm (fits within 20mm label)
+                    width: 33.0,               // Barcode width in mm (x + width = 48 < 50mm)
                     value: String(labelData.patientId),  // Patient ID as barcode content
                     codeType: config.BARCODE_TYPE ? config.BARCODE_TYPE.CODE128 : 20,  // Code128 format
                     rotate: 0,                 // No rotation
-                    fontSize: 0,               // Text font size (not displayed)
-                    textHeight: 0,             // Text height (not displayed)
+                    fontSize: 3.0,             // Text font size
+                    textHeight: 3.0,           // Text height
                     textPosition: config.BARCODE_TEXT_POSITION ? config.BARCODE_TEXT_POSITION.HIDDEN : 2  // Hide text below barcode
                 }
             });
         }
-        
+
         return {
             InitDrawingBoardParam: {
                 width: config.width,           // Label width: 50mm
@@ -177,7 +177,7 @@ const JCPrinterAdapter = (function() {
         for (const item of elements) {
             const json = item.json;
             let res;
-            
+
             switch (item.type) {
                 case 'text':
                     res = await DrawLableText(json);
@@ -201,7 +201,7 @@ const JCPrinterAdapter = (function() {
                     console.warn('JCPrinterAdapter: Unknown element type:', item.type);
                     continue;
             }
-            
+
             if (res && res.resultAck && res.resultAck.errorCode !== 0) {
                 throw new Error(`Failed to draw ${item.type}: ${res.resultAck.info}`);
             }
@@ -220,7 +220,7 @@ const JCPrinterAdapter = (function() {
         if (typeof type === 'number') {
             return type;
         }
-        
+
         const typeMap = {
             'gap': 1,        // 间隙纸
             'blackMark': 2,  // 黑标纸
@@ -243,7 +243,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {Promise<boolean>} - True if initialization successful
          */
-        initialize: function() {
+        initialize: function () {
             return new Promise((resolve, reject) => {
                 // Check if SDK functions are available
                 if (typeof getInstance !== 'function') {
@@ -286,7 +286,7 @@ const JCPrinterAdapter = (function() {
                         _serviceConnected = false;
                         _printerConnected = false;
                         _sdkInitialized = false;
-                        
+
                         // Notify PrinterManager of disconnection
                         if (typeof PrinterManager !== 'undefined') {
                             PrinterManager.notifyServiceDisconnected();
@@ -301,7 +301,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {boolean}
          */
-        isServiceConnected: function() {
+        isServiceConnected: function () {
             return _serviceConnected && _sdkInitialized;
         },
 
@@ -310,7 +310,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {boolean}
          */
-        isPrinterConnected: function() {
+        isPrinterConnected: function () {
             return _printerConnected;
         },
 
@@ -319,7 +319,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {Promise<Array<{name: string, port: number, type: string}>>}
          */
-        getAvailablePrinters: async function() {
+        getAvailablePrinters: async function () {
             const printers = [];
 
             // Get USB printers
@@ -369,7 +369,7 @@ const JCPrinterAdapter = (function() {
          * @param {Object} printer - Printer object with name, port, and type
          * @returns {Promise<boolean>}
          */
-        connectPrinter: async function(printer) {
+        connectPrinter: async function (printer) {
             // Disconnect existing printer first
             if (_printerConnected) {
                 await this.disconnectPrinter();
@@ -388,12 +388,12 @@ const JCPrinterAdapter = (function() {
                     _currentPrinter = printer;
                     _printerType = printer.type;
                     console.log(`JCPrinterAdapter: Connected to ${printer.type} printer: ${printer.name}`);
-                    
+
                     // Add status listener for hardware events
                     if (typeof addPrinterStatusListener === 'function') {
                         addPrinterStatusListener(this._onPrinterStatus.bind(this));
                     }
-                    
+
                     return true;
                 } else {
                     throw new Error(result.resultAck.info || 'Connection failed');
@@ -412,7 +412,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {Promise<void>}
          */
-        disconnectPrinter: async function() {
+        disconnectPrinter: async function () {
             try {
                 if (typeof closePrinter === 'function') {
                     await closePrinter();
@@ -420,11 +420,11 @@ const JCPrinterAdapter = (function() {
             } catch (error) {
                 console.warn('JCPrinterAdapter: Error during disconnect:', error);
             }
-            
+
             _printerConnected = false;
             _currentPrinter = null;
             _printerType = 'NONE';
-            
+
             // Remove status listener
             if (typeof removePrinterStatusListener === 'function') {
                 removePrinterStatusListener(this._onPrinterStatus);
@@ -439,7 +439,7 @@ const JCPrinterAdapter = (function() {
          * @param {Object} options - Print options (density, paperType, printMode)
          * @returns {Promise<boolean>}
          */
-        printLabel: async function(labelData, quantity, options = {}) {
+        printLabel: async function (labelData, quantity, options = {}) {
             if (!_printerConnected) {
                 throw new Error('Printer not connected');
             }
@@ -447,7 +447,7 @@ const JCPrinterAdapter = (function() {
             // Merge with default options
             const printOptions = Object.assign({}, LabelConfig.defaultPrintOptions, options);
             const layout = _buildPatientLabelLayout(labelData);
-            
+
             return new Promise(async (resolve, reject) => {
                 let currentPage = 0;
                 const totalPages = 1; // Single page for patient label
@@ -473,11 +473,11 @@ const JCPrinterAdapter = (function() {
                                     const commitRes = await commitJob(null, JSON.stringify({
                                         printerImageProcessingInfo: { printQuantity: printQuantity }
                                     }));
-                                    
+
                                     if (commitRes.resultAck.errorCode !== 0) {
                                         throw new Error(commitRes.resultAck.info);
                                     }
-                                    
+
                                     currentPage++;
                                 }
                             } else if (msg.resultAck.printCopies !== undefined) {
@@ -488,7 +488,7 @@ const JCPrinterAdapter = (function() {
                                     if (endRes.resultAck.errorCode !== 0) {
                                         throw new Error(endRes.resultAck.info);
                                     }
-                                    
+
                                     removeJobListener(progressListener);
                                     resolve(true);
                                 }
@@ -521,7 +521,7 @@ const JCPrinterAdapter = (function() {
                     }
                     // After startJob success, the SDK will send a 'commitJob ok!' 
                     // which will trigger our progressListener
-                    
+
                 } catch (error) {
                     console.error('JCPrinterAdapter: startJob error:', error);
                     removeJobListener(progressListener);
@@ -536,7 +536,7 @@ const JCPrinterAdapter = (function() {
          * @param {Object} labelData - Label content
          * @returns {Promise<string>} - Base64 encoded image data
          */
-        previewLabel: async function(labelData) {
+        previewLabel: async function (labelData) {
             const layout = _buildPatientLabelLayout(labelData);
 
             try {
@@ -557,7 +557,7 @@ const JCPrinterAdapter = (function() {
 
                 const imageInfo = JSON.parse(previewRes.resultAck.info);
                 return 'data:image/jpeg;base64,' + imageInfo.ImageData;
-                
+
             } catch (error) {
                 console.error('JCPrinterAdapter: Preview error:', error);
                 throw error;
@@ -569,7 +569,7 @@ const JCPrinterAdapter = (function() {
          * 
          * @returns {string}
          */
-        getAdapterName: function() {
+        getAdapterName: function () {
             return 'JC Printer Adapter (精臣打印机)';
         },
 
@@ -579,7 +579,7 @@ const JCPrinterAdapter = (function() {
          * @param {Object} res - Status response from SDK
          * @private
          */
-        _onPrinterStatus: function(res) {
+        _onPrinterStatus: function (res) {
             if (res.resultAck) {
                 if (res.resultAck.callback) {
                     const cb = res.resultAck.callback;
