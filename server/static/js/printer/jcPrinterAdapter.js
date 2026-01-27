@@ -234,14 +234,70 @@ const JCPrinterAdapter = (function () {
     }
 
     // --------------------------------------------------------
-    // Public Interface Implementation
+    // Private SDK Initialization Helper
     // --------------------------------------------------------
+
+    // Flag to prevent concurrent SDK initialization
+    let _sdkInitializing = false;
+
+    /**
+     * Ensure SDK is initialized before performing operations
+     * This is called lazily before preview/print, similar to Demo's manual "初始化SDK" flow
+     * 
+     * @returns {Promise<boolean>} - True if SDK is ready
+     * @private
+     */
+    async function _ensureSdkInitialized() {
+        // Already initialized
+        if (_sdkInitialized) {
+            return true;
+        }
+
+        // Wait if another initialization is in progress
+        if (_sdkInitializing) {
+            console.log('JCPrinterAdapter: Waiting for SDK initialization in progress...');
+            while (_sdkInitializing) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            return _sdkInitialized;
+        }
+
+        // Check if service is connected
+        if (!_serviceConnected) {
+            console.error('JCPrinterAdapter: Cannot initialize SDK, service not connected');
+            return false;
+        }
+
+        _sdkInitializing = true;
+        console.log('JCPrinterAdapter: Initializing SDK...');
+
+        try {
+            const initResult = await initSdk({ fontDir: '' });
+            if (initResult.resultAck.errorCode === 0) {
+                console.log('JCPrinterAdapter: SDK initialized successfully');
+                _sdkInitialized = true;
+                return true;
+            } else {
+                console.error('JCPrinterAdapter: SDK initialization failed:', initResult.resultAck.info);
+                return false;
+            }
+        } catch (error) {
+            console.error('JCPrinterAdapter: SDK initialization error:', error);
+            return false;
+        } finally {
+            _sdkInitializing = false;
+        }
+    }
 
     return {
         /**
          * Initialize the JC printer SDK and connect to the print service
          * 
-         * @returns {Promise<boolean>} - True if initialization successful
+         * Similar to Demo's getInstance() call in window.onload:
+         * - Only connects WebSocket, does NOT call initSdk() immediately
+         * - SDK will be initialized lazily when needed (before preview/print)
+         * 
+         * @returns {Promise<boolean>} - True if WebSocket connection successful
          */
         initialize: function () {
             return new Promise((resolve, reject) => {
@@ -252,27 +308,15 @@ const JCPrinterAdapter = (function () {
                 }
 
                 // Connect to the print service via WebSocket
+                // NOTE: We do NOT call initSdk() here - it will be called lazily
+                // This matches Demo's behavior where SDK init is a separate manual step
                 getInstance(
                     // onServiceConnected callback
-                    async () => {
-                        console.log('JCPrinterAdapter: Print service connected');
+                    () => {
+                        console.log('JCPrinterAdapter: Print service connected (SDK will be initialized on first use)');
                         _serviceConnected = true;
-
-                        // Initialize the SDK after service connection
-                        try {
-                            const initResult = await initSdk({ fontDir: '' });
-                            if (initResult.resultAck.errorCode === 0) {
-                                console.log('JCPrinterAdapter: SDK initialized successfully');
-                                _sdkInitialized = true;
-                                resolve(true);
-                            } else {
-                                console.error('JCPrinterAdapter: SDK initialization failed:', initResult.resultAck.info);
-                                resolve(false);
-                            }
-                        } catch (error) {
-                            console.error('JCPrinterAdapter: SDK initialization error:', error);
-                            resolve(false);
-                        }
+                        // Do NOT call initSdk() here - follow Demo's pattern
+                        resolve(true);
                     },
                     // onNotSupportedService callback
                     () => {
@@ -302,7 +346,7 @@ const JCPrinterAdapter = (function () {
          * @returns {boolean}
          */
         isServiceConnected: function () {
-            return _serviceConnected && _sdkInitialized;
+            return _serviceConnected;
         },
 
         /**
@@ -444,6 +488,12 @@ const JCPrinterAdapter = (function () {
                 throw new Error('Printer not connected');
             }
 
+            // Ensure SDK is initialized before printing (lazy initialization like Demo)
+            const sdkReady = await _ensureSdkInitialized();
+            if (!sdkReady) {
+                throw new Error('SDK initialization failed');
+            }
+
             // Merge with default options
             const printOptions = Object.assign({}, LabelConfig.defaultPrintOptions, options);
             const layout = _buildPatientLabelLayout(labelData);
@@ -537,6 +587,12 @@ const JCPrinterAdapter = (function () {
          * @returns {Promise<string>} - Base64 encoded image data
          */
         previewLabel: async function (labelData) {
+            // Ensure SDK is initialized before preview (lazy initialization like Demo)
+            const sdkReady = await _ensureSdkInitialized();
+            if (!sdkReady) {
+                throw new Error('SDK initialization failed');
+            }
+
             const layout = _buildPatientLabelLayout(labelData);
 
             try {
