@@ -1,20 +1,25 @@
-"""HC-06 baudrate configurator (USB-TTL + AT commands).
+"""HC-06 name configurator (USB-TTL + AT commands).
 
 Usage examples (Windows):
 
   # List available serial ports
-  python hc06_baudrate_configurator.py --list
+  python hc06_name_configurator.py --list
 
-  # Set HC-06 from 9600 (factory default) to 115200, AT commands without CR/LF
-  python hc06_baudrate_configurator.py --port COM6 --current-baud 9600 --target-baud 115200
+  # Set HC-06 name to "MyBluetooth" (default baudrate 9600)
+  python hc06_name_configurator.py --port COM6 --name MyBluetooth
+
+  # If current baudrate is not 9600, specify it
+  python hc06_name_configurator.py --port COM6 --name MyBluetooth --current-baud 115200
 
   # Some setups require CRLF; try this if you don't get OK
-  python hc06_baudrate_configurator.py --port COM6 --target-baud 115200 --terminator crlf
+  python hc06_name_configurator.py --port COM6 --name MyBluetooth --terminator crlf
 
 Notes (common HC-06 behavior):
 - AT mode when powered on and NOT paired.
 - Keep >= 1s between AT commands.
 - Default baudrate is 9600 (8N1).
+- Name can be up to 20 characters (varies by firmware).
+- Changes take effect after power cycle.
 """
 
 from __future__ import annotations
@@ -34,23 +39,6 @@ except Exception as exc:  # pragma: no cover
 		"Missing dependency 'pyserial'. Install with: pip install pyserial\n"
 		f"Original import error: {exc}"
 	)
-
-
-BAUD_TO_CODE: dict[int, str] = {
-	1200: "1",
-	2400: "2",
-	4800: "3",
-	9600: "4",
-	19200: "5",
-	38400: "6",
-	57600: "7",
-	115200: "8",
-	230400: "9",
-	460800: "A",
-	921600: "B",
-	1382400: "C",
-}
-CODE_TO_BAUD: dict[str, int] = {v: k for k, v in BAUD_TO_CODE.items()}
 
 
 @dataclass(frozen=True)
@@ -123,34 +111,29 @@ def ensure_ok(response: str, *, context: str) -> None:
 		)
 
 
-def baud_to_code(*, target_baud: Optional[int], code: Optional[str]) -> tuple[str, int]:
-	if (target_baud is None) == (code is None):
-		raise ValueError("Provide exactly one of --target-baud or --code")
-
-	if code is not None:
-		c = code.strip().upper()
-		if c not in CODE_TO_BAUD:
-			raise ValueError(f"Unknown baud code {c!r}. Valid: {', '.join(CODE_TO_BAUD)}")
-		return c, CODE_TO_BAUD[c]
-
-	assert target_baud is not None
-	if target_baud not in BAUD_TO_CODE:
-		valid = ", ".join(str(b) for b in sorted(BAUD_TO_CODE))
-		raise ValueError(f"Unsupported target baudrate {target_baud}. Valid: {valid}")
-	return BAUD_TO_CODE[target_baud], target_baud
+def validate_name(name: str) -> str:
+	"""Validate the Bluetooth name."""
+	if not name:
+		raise ValueError("Name cannot be empty")
+	if len(name) > 20:
+		raise ValueError(f"Name too long ({len(name)} chars). Maximum is 20 characters.")
+	# Check for ASCII-only characters (HC-06 typically only supports ASCII)
+	try:
+		name.encode("ascii")
+	except UnicodeEncodeError:
+		raise ValueError("Name must contain only ASCII characters (no Chinese or special Unicode)")
+	return name
 
 
-def configure_hc06_baudrate(
+def configure_hc06_name(
 	*,
 	port: str,
 	current_baud: int,
-	target_code: str,
-	target_baud: int,
+	new_name: str,
 	terminator: bytes,
 	timeout_s: float,
 	response_window_s: float,
 	inter_command_delay_s: float,
-	verify: bool,
 ) -> None:
 	cfg = SerialConfig(
 		port=port,
@@ -168,39 +151,35 @@ def configure_hc06_baudrate(
 		parity=serial.PARITY_NONE,
 		stopbits=serial.STOPBITS_ONE,
 	) as ser:
+		# First, test AT handshake
+		print(f"[INFO] Testing AT handshake on {port} at {current_baud} baud...")
 		resp = send_at_command(ser, "AT", terminator, response_window_s)
 		ensure_ok(resp, context="AT handshake")
+		print(f"[OK] AT handshake successful: {resp}")
 		time.sleep(inter_command_delay_s)
 
-		resp = send_at_command(ser, f"AT+BAUD{target_code}", terminator, response_window_s)
-		ensure_ok(resp, context=f"AT+BAUD{target_code} (set baudrate to {target_baud})")
-
-	if not verify:
-		return
-
-	time.sleep(inter_command_delay_s)
-	with serial.Serial(
-		port=port,
-		baudrate=target_baud,
-		timeout=timeout_s,
-		write_timeout=timeout_s,
-		bytesize=serial.EIGHTBITS,
-		parity=serial.PARITY_NONE,
-		stopbits=serial.STOPBITS_ONE,
-	) as ser:
-		resp = send_at_command(ser, "AT", terminator, response_window_s)
-		ensure_ok(resp, context=f"verify AT at new baudrate ({target_baud})")
+		# Set the new name
+		print(f"[INFO] Setting name to: {new_name}")
+		resp = send_at_command(ser, f"AT+NAME{new_name}", terminator, response_window_s)
+		ensure_ok(resp, context=f"AT+NAME{new_name}")
+		print(f"[OK] Name set successfully: {resp}")
 
 
 def build_parser() -> argparse.ArgumentParser:
-	p = argparse.ArgumentParser(description="Configure HC-06 baudrate over USB-TTL using AT commands")
+	p = argparse.ArgumentParser(
+		description="Configure HC-06 Bluetooth name over USB-TTL using AT commands"
+	)
 	p.add_argument("--list", action="store_true", help="List serial ports and exit")
 	p.add_argument("--port", help="Serial port, e.g. COM6")
-	p.add_argument("--current-baud", type=int, default=9600, help="Current baudrate (default: 9600)")
-	p.add_argument("--target-baud", type=int, help="Target baudrate, e.g. 115200")
 	p.add_argument(
-		"--code",
-		help="HC-06 baud code (1..9,A,B,C). Alternative to --target-baud",
+		"--current-baud",
+		type=int,
+		default=9600,
+		help="Current baudrate (default: 9600)",
+	)
+	p.add_argument(
+		"--name",
+		help="New Bluetooth name (max 20 ASCII characters)",
 	)
 	p.add_argument(
 		"--terminator",
@@ -208,7 +187,12 @@ def build_parser() -> argparse.ArgumentParser:
 		default="none",
 		help="Line terminator for AT commands (default: none)",
 	)
-	p.add_argument("--timeout", type=float, default=1.0, help="Serial read/write timeout seconds")
+	p.add_argument(
+		"--timeout",
+		type=float,
+		default=1.0,
+		help="Serial read/write timeout seconds",
+	)
 	p.add_argument(
 		"--response-window",
 		type=float,
@@ -220,11 +204,6 @@ def build_parser() -> argparse.ArgumentParser:
 		type=float,
 		default=1.1,
 		help="Delay between AT commands (manual suggests >= 1s)",
-	)
-	p.add_argument(
-		"--no-verify",
-		action="store_true",
-		help="Skip reopening serial port at new baudrate to verify",
 	)
 	return p
 
@@ -246,25 +225,28 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 		print("Error: --port is required (or use --list).", file=sys.stderr)
 		return 2
 
+	if not args.name:
+		print("Error: --name is required.", file=sys.stderr)
+		return 2
+
 	try:
-		target_code, target_baud = baud_to_code(target_baud=args.target_baud, code=args.code)
+		validated_name = validate_name(args.name)
 		terminator = _terminator_bytes(args.terminator)
-		configure_hc06_baudrate(
+		configure_hc06_name(
 			port=args.port,
 			current_baud=args.current_baud,
-			target_code=target_code,
-			target_baud=target_baud,
+			new_name=validated_name,
 			terminator=terminator,
 			timeout_s=args.timeout,
 			response_window_s=args.response_window,
 			inter_command_delay_s=args.inter_command_delay,
-			verify=not args.no_verify,
 		)
 	except Exception as exc:
 		print(f"Failed: {exc}", file=sys.stderr)
 		return 1
 
-	print(f"Success: set {args.port} to baudrate {target_baud} (code {target_code}).")
+	print(f"\nSuccess: HC-06 name changed to '{validated_name}'.")
+	print("Note: Power cycle the module for the new name to take effect.")
 	return 0
 
 
