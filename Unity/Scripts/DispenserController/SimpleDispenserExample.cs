@@ -12,10 +12,14 @@ public class SimpleDispenserExample : MonoBehaviour
     [SerializeField] private InputField macAddressInput; // MAC地址输入框
     [SerializeField] private Slider servoAngleSlider;
     [SerializeField] private Text servoValueText; // 显示当前值的文本（可选）
+    [SerializeField] private Slider motorSpeedSlider; // 电机转盘速度滑动条
+    [SerializeField] private Text motorSpeedText; // 显示当前电机速度的文本（可选）
 
     private DispenserController controller;
     private float pendingServoAngle = -1f;
     private bool isSliderDragging = false;
+    private float pendingMotorSpeed = -1f;
+    private bool isMotorSliderDragging = false;
     
     void Start()
     {
@@ -44,7 +48,7 @@ public class SimpleDispenserExample : MonoBehaviour
         // 设置滑动条
         if (servoAngleSlider != null)
         {
-            servoAngleSlider.minValue = 0f;
+            servoAngleSlider.minValue = 0.1f;
             servoAngleSlider.maxValue = 1.0f;
             servoAngleSlider.value = 0.5f;
             
@@ -69,6 +73,36 @@ public class SimpleDispenserExample : MonoBehaviour
             pointerUpEntry.eventID = EventTriggerType.PointerUp;
             pointerUpEntry.callback.AddListener((data) => { OnSliderPointerUp(); });
             trigger.triggers.Add(pointerUpEntry);
+        }
+
+        // 设置电机转盘速度滑动条
+        if (motorSpeedSlider != null)
+        {
+            motorSpeedSlider.minValue = 0.1f;
+            motorSpeedSlider.maxValue = 1.4f;
+            motorSpeedSlider.value = 0.5f;
+            
+            // 监听滑动条值改变（仅用于显示）
+            motorSpeedSlider.onValueChanged.AddListener(OnMotorSpeedSliderValueChanged);
+            
+            // 添加事件触发器以检测拖动结束
+            EventTrigger motorTrigger = motorSpeedSlider.gameObject.GetComponent<EventTrigger>();
+            if (motorTrigger == null)
+            {
+                motorTrigger = motorSpeedSlider.gameObject.AddComponent<EventTrigger>();
+            }
+            
+            // 添加 PointerDown 事件（开始拖动）
+            EventTrigger.Entry motorPointerDownEntry = new EventTrigger.Entry();
+            motorPointerDownEntry.eventID = EventTriggerType.PointerDown;
+            motorPointerDownEntry.callback.AddListener((data) => { OnMotorSliderPointerDown(); });
+            motorTrigger.triggers.Add(motorPointerDownEntry);
+            
+            // 添加 PointerUp 事件（停止拖动）
+            EventTrigger.Entry motorPointerUpEntry = new EventTrigger.Entry();
+            motorPointerUpEntry.eventID = EventTriggerType.PointerUp;
+            motorPointerUpEntry.callback.AddListener((data) => { OnMotorSliderPointerUp(); });
+            motorTrigger.triggers.Add(motorPointerUpEntry);
         }
     }
     
@@ -110,10 +144,10 @@ public class SimpleDispenserExample : MonoBehaviour
     /// <summary>
     /// 示例4：发送简单的药片矩阵
     /// </summary>
-    [ContextMenu("4. 发送简单药片矩阵")]
+    [ContextMenu("4. 发送3*3药片矩阵")]
     public void Example4_SendSimpleMatrix()
     {
-        // 创建一个简单的矩阵：前3天每天早中晚各1片
+        // 创建一个简单的矩阵
         byte[,] matrix = new byte[4, 7]
         {
             { 1, 1, 1, 0, 0, 0, 0 }, // 晚上
@@ -123,8 +157,8 @@ public class SimpleDispenserExample : MonoBehaviour
         };
         
         // 设置参数并发送
-        controller.SetTurntableSpeed(150f, (s1) => {
-            controller.SetServoAngle(45f, (s2) => {
+        controller.SetTurntableSpeed(0.5f, (s1) => {
+            controller.SetServoAngle(0.5f, (s2) => {
                 controller.SendPillMatrix(matrix, (s3) => {
                     Debug.Log(s3 ? $"✓ 矩阵已发送 (共{controller.TotalPills}片)" : "✗ 发送失败");
                 });
@@ -135,57 +169,26 @@ public class SimpleDispenserExample : MonoBehaviour
     /// <summary>
     /// 示例5：完整分药流程
     /// </summary>
-    [ContextMenu("5. 执行完整分药流程")]
+    [ContextMenu("5.  发送2*4药片矩阵")]
     public void Example5_FullProcess()
     {
-        StartCoroutine(FullProcessCoroutine());
-    }
-    
-    System.Collections.IEnumerator FullProcessCoroutine()
-    {
-        Debug.Log("=== 开始分药流程 ===");
-        
-        // 步骤1：复位
-        Debug.Log("步骤1: 复位机器");
-        bool resetDone = false;
-        controller.ResetDispenser((s) => resetDone = s);
-        yield return new WaitUntil(() => resetDone);
-        
-        // 步骤2：设置参数
-        Debug.Log("步骤2: 设置参数");
-        bool paramDone = false;
-        controller.SetTurntableSpeed(150f, (s1) => {
-            controller.SetServoAngle(45f, (s2) => {
-                paramDone = s1 && s2;
-            });
-        });
-        yield return new WaitUntil(() => paramDone);
-        
-        // 步骤3：发送矩阵
-        Debug.Log("步骤3: 发送药片矩阵");
+        // 创建一个简单的矩阵
         byte[,] matrix = new byte[4, 7]
         {
-            { 1, 1, 0, 0, 0, 0, 0 },
-            { 1, 1, 0, 0, 0, 0, 0 },
-            { 1, 1, 0, 0, 0, 0, 0 },
-            { 0, 0, 0, 0, 0, 0, 0 }
+            { 0, 0, 0, 0, 0, 0, 0 }, // 晚上
+            { 1, 1, 1, 1, 0, 0, 0 }, // 中午
+            { 1, 1, 1, 1, 0, 0, 0 }, // 早上
+            { 0, 0, 0, 0, 0, 0, 0 }  // 预留
         };
         
-        bool matrixDone = false;
-        controller.SendPillMatrix(matrix, (s) => matrixDone = s);
-        yield return new WaitUntil(() => matrixDone);
-        
-        // 步骤4：开始分药
-        Debug.Log("步骤4: 关闭舱门，开始分药");
-        bool closeDone = false;
-        controller.CloseTray((s) => closeDone = s);
-        yield return new WaitUntil(() => closeDone);
-        
-        // 步骤5：等待完成
-        Debug.Log("步骤5: 等待分药完成");
-        yield return new WaitUntil(() => controller.MachineState == 3);
-        
-        Debug.Log("=== 分药流程完成 ===");
+        // 设置参数并发送
+        controller.SetTurntableSpeed(0.5f, (s1) => {
+            controller.SetServoAngle(0.5f, (s2) => {
+                controller.SendPillMatrix(matrix, (s3) => {
+                    Debug.Log(s3 ? $"✓ 矩阵已发送 (共{controller.TotalPills}片)" : "✗ 发送失败");
+                });
+            });
+        });
     }
     
     /// <summary>
@@ -270,6 +273,61 @@ public class SimpleDispenserExample : MonoBehaviour
         if (isSliderDragging)
         {
             Debug.Log($"滑动中: {value:F2}（未发送）");
+        }
+    }
+
+    /// <summary>
+    /// 电机转盘速度滑动条开始拖动
+    /// </summary>
+    private void OnMotorSliderPointerDown()
+    {
+        isMotorSliderDragging = true;
+        Debug.Log("开始拖动电机转盘速度滑动条");
+    }
+    
+    /// <summary>
+    /// 电机转盘速度滑动条停止拖动（发送命令）
+    /// </summary>
+    private void OnMotorSliderPointerUp()
+    {
+        isMotorSliderDragging = false;
+        Debug.Log("停止拖动电机转盘速度滑动条");
+        
+        if (motorSpeedSlider != null && pendingMotorSpeed >= 0)
+        {
+            float speed = pendingMotorSpeed;
+            Debug.Log($"发送电机转盘速度命令: {speed:F2}");
+            
+            controller.SetTurntableSpeed(speed, (success) => {
+                if (success)
+                {
+                    Debug.Log($"✓ 电机转盘速度已设置为 {speed:F2}");
+                }
+                else
+                {
+                    Debug.LogWarning("✗ 电机转盘速度设置失败");
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// 电机转盘速度滑动条值改变（仅更新显示）
+    /// </summary>
+    private void OnMotorSpeedSliderValueChanged(float value)
+    {
+        pendingMotorSpeed = value;
+        
+        // 更新显示文本
+        if (motorSpeedText != null)
+        {
+            motorSpeedText.text = $"电机速度: {value:F2}";
+        }
+        
+        // 如果正在拖动，不发送命令
+        if (isMotorSliderDragging)
+        {
+            Debug.Log($"电机速度滑动中: {value:F2}（未发送）");
         }
     }
 }

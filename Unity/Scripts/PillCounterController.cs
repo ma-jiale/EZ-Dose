@@ -51,7 +51,7 @@ namespace EZDose.PillCounter
             }
             catch (Exception e)
             {
-                HandleError($"初始化失败: {e.Message}");
+                HandleError($"Initialization failed: {e.Message}");
             }
         }
         
@@ -75,7 +75,7 @@ namespace EZDose.PillCounter
                 resetBackgroundButton.onClick.AddListener(OnResetBackgroundClicked);
             }
             
-            UpdateStatus("正在初始化...");
+            UpdateStatus("Initializing...");
         }
         
         /// <summary>
@@ -87,18 +87,18 @@ namespace EZDose.PillCounter
             
             if (devices.Length == 0)
             {
-                throw new Exception("未找到可用的摄像头设备");
+                throw new Exception("No available camera device found");
             }
             
             // 选择摄像头
             if (cameraIndex >= devices.Length)
             {
-                Debug.LogWarning($"摄像头索引 {cameraIndex} 超出范围，使用默认摄像头");
+                Debug.LogWarning($"Camera index {cameraIndex} out of range, using default camera");
                 cameraIndex = 0;
             }
             
             string deviceName = devices[cameraIndex].name;
-            Debug.Log($"使用摄像头: {deviceName}");
+            Debug.Log($"Using camera: {deviceName}");
             
             // 创建WebCamTexture
             webCamTexture = new WebCamTexture(deviceName, requestedWidth, requestedHeight, requestedFPS);
@@ -124,7 +124,7 @@ namespace EZDose.PillCounter
             
             if (!webCamTexture.didUpdateThisFrame)
             {
-                HandleError("摄像头启动超时");
+                HandleError("Camera startup timeout");
                 yield break;
             }
             
@@ -141,8 +141,8 @@ namespace EZDose.PillCounter
                 displayImage.texture = displayTexture;
             }
             
-            UpdateStatus("摄像头已启动，等待捕捉背景...");
-            Debug.Log($"摄像头分辨率: {width}x{height}");
+            UpdateStatus("Camera started, waiting to capture background...");
+            Debug.Log($"Camera resolution: {width}x{height}");
         }
         
         /// <summary>
@@ -151,7 +151,7 @@ namespace EZDose.PillCounter
         private void InitializePillCounter()
         {
             pillCounter = new PillCounter();
-            Debug.Log("药片计数器已初始化");
+            Debug.Log("Pill counter initialized");
         }
         
         void Update()
@@ -166,7 +166,7 @@ namespace EZDose.PillCounter
             }
             catch (Exception e)
             {
-                HandleError($"处理帧失败: {e.Message}");
+                HandleError($"Frame processing failed: {e.Message}");
             }
             finally
             {
@@ -190,21 +190,23 @@ namespace EZDose.PillCounter
             
             if (!pillCounter.IsBackgroundCaptured)
             {
-                // Detect edges and check if scene is stable enough
+                // Detect edges and check focus quality
                 var (edgeCount, edges) = pillCounter.DetectEdges(frameMat);
                 edges.Dispose();
                 
-                if (pillCounter.IsSceneStable(edgeCount))
+                double focusScore = pillCounter.CheckFocusQuality(frameMat);
+                
+                if (pillCounter.IsSceneStable(edgeCount, focusScore))
                 {
-                    // Auto-capture background when stable
+                    // Auto-capture background when both stable and focused
                     pillCounter.CaptureBackground(frameMat);
-                    UpdateStatus("背景已自动捕捉，开始计数");
+                    UpdateStatus("Background auto-captured, counting started");
                 }
                 else
                 {
-                    // Show waiting state - always update preview
+                    // Show waiting state with focus stability info
                     frameMat.copyTo(displayMat);
-                    UpdateStatus($"等待场景稳定... (边缘数: {edgeCount})");
+                    UpdateStatus($"Waiting... Edge:{edgeCount} Focus:{focusScore:F1} Stabilizing");
                 }
                 
                 // Always display preview at 30Hz
@@ -273,12 +275,12 @@ namespace EZDose.PillCounter
                 if (frameMat != null)
                 {
                     pillCounter.CaptureBackground(frameMat);
-                    UpdateStatus("背景已手动捕捉");
+                    UpdateStatus("Background manually captured");
                 }
             }
             catch (Exception e)
             {
-                HandleError($"捕捉背景失败: {e.Message}");
+                HandleError($"Capture background failed: {e.Message}");
             }
         }
         
@@ -293,11 +295,11 @@ namespace EZDose.PillCounter
                 currentPillCount = 0;
                 lastCountTime = 0f;
                 UpdatePillCount(0);
-                UpdateStatus("背景已重置，等待捕捉新背景...");
+                UpdateStatus("Background reset, waiting to capture new background...");
             }
             catch (Exception e)
             {
-                HandleError($"重置背景失败: {e.Message}");
+                HandleError($"Reset background failed: {e.Message}");
             }
         }
         
@@ -330,7 +332,7 @@ namespace EZDose.PillCounter
         private void HandleError(string errorMessage)
         {
             Debug.LogError($"[PillCounter Error] {errorMessage}");
-            UpdateStatus($"错误: {errorMessage}");
+            UpdateStatus($"Error: {errorMessage}");
         }
         
         /// <summary>
@@ -369,7 +371,7 @@ namespace EZDose.PillCounter
                 pillCounter = null;
             }
             
-            Debug.Log("药片计数器资源已清理");
+            Debug.Log("Pill counter resources cleaned up");
         }
         
         /// <summary>
@@ -379,6 +381,11 @@ namespace EZDose.PillCounter
         {
             return currentPillCount;
         }
+        
+        /// <summary>
+        /// 获取显示纹理（供校准对话框等外部组件使用）
+        /// </summary>
+        public Texture DisplayTexture => displayTexture;
         
         /// <summary>
         /// 检查背景是否已捕捉（供外部调用）
@@ -402,6 +409,42 @@ namespace EZDose.PillCounter
         public void ResetBackground()
         {
             OnResetBackgroundClicked();
+        }
+        
+        /// <summary>
+        /// Try to calibrate using a single pill on the counting tray.
+        /// Returns the detected pixel area if exactly one pill is found.
+        /// Used for pill size calibration before dispensing uncalibrated medicines.
+        /// </summary>
+        /// <returns>
+        /// Tuple of (success, pixelArea, message):
+        /// - success: true if exactly one pill was detected
+        /// - pixelArea: detected area in pixels (use PillCalibrationManager to convert to mm²)
+        /// - message: status message for UI display
+        /// </returns>
+        public (bool success, float pixelArea, string message) TryCalibrateSinglePill()
+        {
+            if (pillCounter == null)
+            {
+                return (false, 0f, "计数器未初始化");
+            }
+            
+            if (frameMat == null || frameMat.IsDisposed)
+            {
+                return (false, 0f, "摄像头未就绪");
+            }
+            
+            // Use current frame for calibration
+            return pillCounter.TryCalibrateSinglePill(frameMat);
+        }
+        
+        /// <summary>
+        /// Get the current camera frame's Mat for external processing.
+        /// Returns null if camera is not ready.
+        /// </summary>
+        public Mat GetCurrentFrameMat()
+        {
+            return (frameMat != null && !frameMat.IsDisposed) ? frameMat : null;
         }
     }
 }

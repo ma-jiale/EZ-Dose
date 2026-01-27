@@ -24,6 +24,13 @@ namespace EZDose.PillCounter
         private readonly int stableFramesNeeded = 15;
         private int stableCount = 0;
         
+        // Focus detection parameters (stability-based, for low-texture surfaces)
+        // Instead of requiring a minimum focus value, we detect when focus STOPS changing
+        private readonly double focusStabilityThreshold = 0.5; // Max coefficient of variation for stable focus
+        private readonly Queue<double> recentFocusScores = new Queue<double>(10);
+        private readonly int stableFocusFramesNeeded = 10;
+        private int stableFocusCount = 0;
+        
         // 画面裁切参数
         private readonly int cropMargin = 50;
         
@@ -80,10 +87,79 @@ namespace EZDose.PillCounter
         }
         
         /// <summary>
-        /// 判断场景是否稳定（适合作为背景）
+        /// Calculate focus quality using Laplacian variance method.
+        /// Higher variance indicates sharper/more focused image.
         /// </summary>
-        public bool IsSceneStable(int edgeCount)
+        public double CheckFocusQuality(Mat frame)
         {
+            using (Mat cropped = CropFrame(frame))
+            using (Mat gray = new Mat())
+            using (Mat laplacian = new Mat())
+            {
+                Imgproc.cvtColor(cropped, gray, Imgproc.COLOR_BGR2GRAY);
+                Imgproc.Laplacian(gray, laplacian, CvType.CV_64F);
+                
+                // Calculate variance of Laplacian
+                MatOfDouble mean = new MatOfDouble();
+                MatOfDouble stddev = new MatOfDouble();
+                Core.meanStdDev(laplacian, mean, stddev);
+                
+                double variance = Math.Pow(stddev.toArray()[0], 2);
+                
+                mean.Dispose();
+                stddev.Dispose();
+                
+                return variance;
+            }
+        }
+        
+        /// <summary>
+        /// Check if focus is stable (not changing) for required number of frames.
+        /// Works for low-texture surfaces where absolute focus values are low.
+        /// Uses coefficient of variation to detect stability regardless of absolute value.
+        /// </summary>
+        public bool IsFocusStable(double focusScore)
+        {
+            recentFocusScores.Enqueue(focusScore);
+            if (recentFocusScores.Count > 10)
+                recentFocusScores.Dequeue();
+            
+            if (recentFocusScores.Count < 10)
+                return false;
+            
+            // Calculate coefficient of variation (stddev/mean) to detect stability
+            // This works regardless of whether absolute values are high or low
+            double mean = recentFocusScores.Average();
+            if (mean < 0.1) mean = 0.1; // Avoid division by near-zero
+            
+            double variance = recentFocusScores.Average(s => Math.Pow(s - mean, 2));
+            double stddev = Math.Sqrt(variance);
+            double coefficientOfVariation = stddev / mean;
+            
+            // Focus is stable when coefficient of variation is low (values not fluctuating much)
+            bool isStable = coefficientOfVariation < focusStabilityThreshold;
+            
+            if (isStable)
+            {
+                stableFocusCount++;
+                return stableFocusCount >= stableFocusFramesNeeded;
+            }
+            else
+            {
+                stableFocusCount = 0;
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 判断场景是否稳定（适合作为背景）
+        /// Now requires both edge stability AND focus stability.
+        /// </summary>
+        public bool IsSceneStable(int edgeCount, double focusScore)
+        {
+            // Check focus stability first
+            bool focusStable = IsFocusStable(focusScore);
+            
             recentEdgeCounts.Enqueue(edgeCount);
             if (recentEdgeCounts.Count > 10)
                 recentEdgeCounts.Dequeue();
@@ -95,8 +171,10 @@ namespace EZDose.PillCounter
             double mean = recentEdgeCounts.Average();
             double variance = recentEdgeCounts.Average(e => Math.Pow(e - mean, 2));
             
-            // 场景稳定判断
-            if (variance < 8000 && mean < edgeThreshold)
+            // 场景稳定判断 - now requires BOTH edge stability AND focus stability
+            bool edgeStable = variance < 8000 && mean < edgeThreshold;
+            
+            if (edgeStable && focusStable)
             {
                 stableCount++;
                 return stableCount >= stableFramesNeeded;
@@ -107,6 +185,11 @@ namespace EZDose.PillCounter
                 return false;
             }
         }
+        
+        /// <summary>
+        /// Get current focus stability threshold for debugging.
+        /// </summary>
+        public double GetFocusThreshold() => focusStabilityThreshold;
         
         /// <summary>
         /// 捕捉背景图像
@@ -139,7 +222,9 @@ namespace EZDose.PillCounter
         {
             backgroundCaptured = false;
             stableCount = 0;
+            stableFocusCount = 0;
             recentEdgeCounts.Clear();
+            recentFocusScores.Clear();
             if (background != null)
             {
                 background.Dispose();
@@ -455,6 +540,51 @@ namespace EZDose.PillCounter
             {
                 Debug.LogError($"计数失败: {e.Message}");
                 return (0, frame.clone(), new CountingDebugInfo());
+            }
+        }
+        
+        /// <summary>
+        /// Try to detect a single pill for calibration purposes.
+        /// Returns success and detected pixel area if exactly one pill is found.
+        /// Used to establish pixel-to-mm² conversion ratio.
+        /// </summary>
+        /// <param name="frame">Camera frame to analyze</param>
+        /// <returns>Tuple of (success, pixelArea) - success is true if exactly 1 pill detected</returns>
+        public (bool success, float pixelArea, string message) TryCalibrateSinglePill(Mat frame)
+        {
+            if (!backgroundCaptured)
+            {
+                return (false, 0f, "请先捕捉背景");
+            }
+            
+            try
+            {
+                var (pillCount, resultFrame, debugInfo) = CountPills(frame);
+                resultFrame.Dispose();
+                
+                if (pillCount == 0)
+                {
+                    return (false, 0f, "未检测到药片，请放置一颗药片");
+                }
+                
+                if (pillCount > 1)
+                {
+                    return (false, 0f, $"检测到{pillCount}颗药片，请只放置一颗");
+                }
+                
+                // Exactly one pill found
+                if (debugInfo.ReferenceArea <= 0)
+                {
+                    return (false, 0f, "无法获取药片面积");
+                }
+                
+                Debug.Log($"[PillCounter] Single pill calibration: area = {debugInfo.ReferenceArea:.1f} pixels");
+                return (true, (float)debugInfo.ReferenceArea, $"检测成功: {debugInfo.ReferenceArea:.1f} 像素");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[PillCounter] Calibration failed: {e.Message}");
+                return (false, 0f, $"校准失败: {e.Message}");
             }
         }
         

@@ -9,6 +9,7 @@ using UnityEngine.UI;
 using EZDose.MainFlow;
 using EZDose.CheckPillBox;
 using EZDose.PillCounter;
+using EZDose.Hardware;
 
 namespace EZDose.UI
 {
@@ -43,9 +44,20 @@ namespace EZDose.UI
         [Header("Device Management")]
         [Tooltip("Button to open device management dialog")]
         [SerializeField] private Button manageDevicesButton;
+
+        [Header("Device Button Visuals")]
+        [SerializeField] private Image connectedIcon;
+        [SerializeField] private Image disconnectedIcon;
+        [SerializeField] private Text manageDevicesButtonText;
         
         [Tooltip("Reference to DeviceManagerUI component")]
         [SerializeField] private DeviceManagerUI deviceManagerUI;
+
+        [Header("Dispenser Connection Check")]
+        [Tooltip("Dialog shown when clicking patient card and dispenser is not connected")]
+        [SerializeField] private GameObject connectDispenserDialog;
+        [Tooltip("Confirm button in the connection required dialog")]
+        [SerializeField] private Button connectDialogConfirmButton;
 
         [Header("Home Sub-Pages (Right Panel)")]
         [Tooltip("Reference to the PatientCard sub-page container. This page shows patient information.")]
@@ -96,6 +108,8 @@ namespace EZDose.UI
         [SerializeField] private Text medicineNameText;
         [SerializeField] private Text patientNameText;
         [SerializeField] private Text progressPercentText;
+        [Tooltip("进度条填充图片，需设置 Image Type 为 Filled")]
+        [SerializeField] private Image progressFillImage;
         [SerializeField] private RawImage pillPreview;
         [SerializeField] private Button captureBackgroundButton;
         [SerializeField] private GameObject plateSwitchDialog;
@@ -103,9 +117,16 @@ namespace EZDose.UI
         [SerializeField] private GameObject completeDialog;
         [SerializeField] private Button completeDialogConfirmButton;
         [SerializeField] private PillCounterController pillCounterController;
+        
+        [Tooltip("药片校准对话框")]
+        [SerializeField] private PillCalibrationDialog pillCalibrationDialog;
 
         private readonly List<GameObject> spawnedPatientButtons = new List<GameObject>();
         private Coroutine lightBarRoutine;
+
+        // Progress bar smooth animation
+        private float targetProgressValue;
+        private Coroutine progressAnimRoutine;
 
         // Currently active sub-page in Home scene
         private HomeSubPage currentSubPage;
@@ -171,10 +192,28 @@ namespace EZDose.UI
                 manageDevicesButton.onClick.AddListener(OpenDeviceManagementDialog);
             }
 
+            // Setup connection required dialog confirm button
+            if (connectDialogConfirmButton != null)
+            {
+                connectDialogConfirmButton.onClick.AddListener(() =>
+                {
+                    if (connectDispenserDialog != null) connectDispenserDialog.SetActive(false);
+                    OpenDeviceManagementDialog();
+                });
+            }
+
             // Initialize device manager UI if present
             if (deviceManagerUI == null)
             {
                 deviceManagerUI = FindObjectOfType<DeviceManagerUI>();
+            }
+
+            // [NEW] Subscribe to connection events
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser != null)
+            {
+                dispenser.OnConnectionStateChanged += OnDispenserConnectionChanged;
+                UpdateDeviceButtonState(dispenser.IsConnected);
             }
 
             // Initialize sub-page switching system
@@ -440,6 +479,31 @@ namespace EZDose.UI
             return null;
         }
 
+        private void OnDispenserConnectionChanged(string state)
+        {
+            // state is "Connected", "Disconnected", "Connecting"
+            bool isConnected = (state == "Connected");
+            UpdateDeviceButtonState(isConnected);
+        }
+
+        private void UpdateDeviceButtonState(bool isConnected)
+        {
+            if (manageDevicesButtonText != null)
+            {
+                manageDevicesButtonText.text = isConnected ? "分药机已连接" : "分药机未连接";
+            }
+
+            if (connectedIcon != null)
+            {
+                connectedIcon.gameObject.SetActive(isConnected);
+            }
+
+            if (disconnectedIcon != null)
+            {
+                disconnectedIcon.gameObject.SetActive(!isConnected);
+            }
+        }
+
         #endregion
 
         private async Task RefreshPatientsAsync()
@@ -476,7 +540,12 @@ namespace EZDose.UI
                 {
                     if (textComponent.name.Contains("Name") || textComponent == texts[0])
                     {
-                        textComponent.text = patient.PatientName;
+                        string displayName = patient.PatientName;
+                        if (!string.IsNullOrEmpty(patient.BedNumber))
+                        {
+                            displayName += $" {patient.BedNumber}床";
+                        }
+                        textComponent.text = displayName;
                     }
                     else if (textComponent.name.Contains("Medicine") || textComponent.name.Contains("Count"))
                     {
@@ -526,6 +595,18 @@ namespace EZDose.UI
             var main = MainController.Instance;
             if (main == null)
             {
+                return;
+            }
+
+            // Check if dispenser is connected before proceeding
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser == null || !dispenser.IsConnected)
+            {
+                Debug.LogWarning("[UIManager] Dispenser not connected. Showing prompt.");
+                if (connectDispenserDialog != null)
+                {
+                    connectDispenserDialog.SetActive(true);
+                }
                 return;
             }
 
@@ -678,7 +759,7 @@ namespace EZDose.UI
             if (main != null)
             {
                 await main.PreparePlanAsync();
-                await main.CloseTrayAsync();
+                // await main.CloseTrayAsync();
             }
 
             await LoadSceneAsyncSafe(dispenseSceneName);
@@ -697,6 +778,7 @@ namespace EZDose.UI
                 main.DispensingError += ShowDispenseError;
                 main.DispensingCompleted += OnDispenseCompleted;
                 main.PlateSwitchRequired += OnPlateSwitchRequired;
+                main.PillCalibrationRequired += OnPillCalibrationRequired;
             }
 
             if (captureBackgroundButton != null && pillCounterController != null)
@@ -707,6 +789,23 @@ namespace EZDose.UI
             if (main != null)
             {
                 FireAndForget(main.StartDispensingAsync());
+            }
+        }
+
+        /// <summary>
+        /// MainController 触发校准事件时，直接调用对话框
+        /// </summary>
+        private void OnPillCalibrationRequired(EZDose.Prescriptions.DispensingMedicine medicine)
+        {
+            Debug.Log($"[UIManager] Calibration required for: {medicine.MedicineName}");
+            
+            if (pillCalibrationDialog != null)
+            {
+                pillCalibrationDialog.Show(medicine.MedicineName, medicine.PatientName, medicine.BedNumber);
+            }
+            else
+            {
+                Debug.LogError("[UIManager] PillCalibrationDialog is not assigned!");
             }
         }
 
@@ -739,6 +838,44 @@ namespace EZDose.UI
                 var percent = Mathf.RoundToInt(info.Progress * 100f);
                 progressPercentText.text = $"{percent}%";
             }
+
+            // Update progress bar with smooth animation
+            if (progressFillImage != null)
+            {
+                targetProgressValue = info.Progress;
+                if (progressAnimRoutine == null)
+                {
+                    progressAnimRoutine = StartCoroutine(AnimateProgressBar());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Smoothly animates the progress bar towards the target value.
+        /// </summary>
+        private IEnumerator AnimateProgressBar()
+        {
+            const float smoothSpeed = 5f; // Adjust for faster/slower animation
+            
+            while (progressFillImage != null)
+            {
+                float current = progressFillImage.fillAmount;
+                float target = targetProgressValue;
+                
+                // If close enough to target, snap to it
+                if (Mathf.Abs(target - current) < 0.001f)
+                {
+                    progressFillImage.fillAmount = target;
+                    yield return null;
+                    continue;
+                }
+                
+                // Smoothly interpolate towards target
+                progressFillImage.fillAmount = Mathf.Lerp(current, target, Time.deltaTime * smoothSpeed);
+                yield return null;
+            }
+            
+            progressAnimRoutine = null;
         }
 
         private void OnPlateSwitchRequired(int plateNumber)
@@ -823,6 +960,7 @@ namespace EZDose.UI
                 main.DispensingError -= ShowDispenseError;
                 main.DispensingCompleted -= OnDispenseCompleted;
                 main.PlateSwitchRequired -= OnPlateSwitchRequired;
+                main.PillCalibrationRequired -= OnPillCalibrationRequired;
             }
 
             if (scanner != null)
@@ -830,6 +968,12 @@ namespace EZDose.UI
                 scanner.OnBoxVerified -= OnBoxVerified;
                 scanner.OnBoxMismatch -= OnBoxMismatch;
                 scanner.OnScanError -= OnScanError;
+            }
+
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser != null)
+            {
+                dispenser.OnConnectionStateChanged -= OnDispenserConnectionChanged;
             }
 
             if (lightBarRoutine != null)

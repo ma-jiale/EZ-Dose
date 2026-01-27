@@ -18,11 +18,7 @@ namespace EZDose.UI
         [Tooltip("Text displaying MAC address")]
         [SerializeField] private Text macAddressText;
 
-        [Tooltip("Text displaying signal strength")]
-        [SerializeField] private Text signalStrengthText;
 
-        [Tooltip("Image showing signal strength icon")]
-        [SerializeField] private Image signalStrengthIcon;
 
         [Tooltip("Button to connect to this device")]
         [SerializeField] private Button connectButton;
@@ -30,19 +26,7 @@ namespace EZDose.UI
         [Tooltip("Button to disconnect from this device")]
         [SerializeField] private Button disconnectButton;
 
-        [Header("Visual States")]
-        [Tooltip("Color for connected state background")]
-        [SerializeField] private Color connectedColor = new Color(0.4f, 0.8f, 0.4f, 0.3f);
 
-        [Tooltip("Color for disconnected state background")]
-        [SerializeField] private Color disconnectedColor = new Color(1f, 1f, 1f, 0.1f);
-
-        [Tooltip("Background image to colorize based on connection state")]
-        [SerializeField] private Image backgroundImage;
-
-        [Header("Paired Device Indicator")]
-        [Tooltip("Icon or badge shown for paired devices")]
-        [SerializeField] private GameObject pairedBadge;
 
         // Device data
         private BluetoothDeviceInfo deviceInfo;
@@ -112,73 +96,9 @@ namespace EZDose.UI
             {
                 macAddressText.text = deviceInfo.MacAddress;
             }
-
-            // Update signal strength
-            if (showSignal && signalStrengthText != null)
-            {
-                if (deviceInfo.SignalStrength == -1)
-                {
-                    signalStrengthText.text = "N/A";
-                }
-                else
-                {
-                    signalStrengthText.text = $"{deviceInfo.GetSignalStrengthPercent()}%";
-                }
-            }
-            else if (signalStrengthText != null)
-            {
-                signalStrengthText.gameObject.SetActive(false);
-            }
-
-            // Update signal strength icon
-            if (showSignal && signalStrengthIcon != null)
-            {
-                UpdateSignalStrengthIcon();
-            }
-            else if (signalStrengthIcon != null)
-            {
-                signalStrengthIcon.gameObject.SetActive(false);
-            }
-
-            // Show paired badge if device is paired
-            if (pairedBadge != null)
-            {
-                pairedBadge.SetActive(deviceInfo.IsPaired);
-            }
         }
 
-        /// <summary>
-        /// Update signal strength icon based on signal quality
-        /// </summary>
-        private void UpdateSignalStrengthIcon()
-        {
-            if (signalStrengthIcon == null)
-            {
-                return;
-            }
 
-            int percent = deviceInfo.GetSignalStrengthPercent();
-            Color iconColor;
-
-            if (percent >= 70)
-            {
-                iconColor = Color.green; // Strong signal
-            }
-            else if (percent >= 40)
-            {
-                iconColor = Color.yellow; // Medium signal
-            }
-            else if (percent > 0)
-            {
-                iconColor = Color.red; // Weak signal
-            }
-            else
-            {
-                iconColor = Color.gray; // No signal data
-            }
-
-            signalStrengthIcon.color = iconColor;
-        }
 
         /// <summary>
         /// Update connection state (show/hide connect/disconnect buttons)
@@ -198,11 +118,7 @@ namespace EZDose.UI
                 disconnectButton.gameObject.SetActive(connected);
             }
 
-            // Update background color
-            if (backgroundImage != null)
-            {
-                backgroundImage.color = connected ? connectedColor : disconnectedColor;
-            }
+
 
             Debug.Log($"[DeviceCardUI] Updated connection state for {deviceInfo.MacAddress}: {(connected ? "Connected" : "Disconnected")}");
         }
@@ -263,13 +179,7 @@ namespace EZDose.UI
         /// </summary>
         public void SetHighlighted(bool highlighted)
         {
-            if (backgroundImage != null)
-            {
-                Color baseColor = isConnected ? connectedColor : disconnectedColor;
-                backgroundImage.color = highlighted 
-                    ? new Color(baseColor.r * 1.2f, baseColor.g * 1.2f, baseColor.b * 1.2f, baseColor.a)
-                    : baseColor;
-            }
+
         }
 
         #endregion

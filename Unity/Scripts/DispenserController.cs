@@ -15,10 +15,10 @@ namespace EZDose.Hardware
     {
         [Header("蓝牙配置")]
         [SerializeField] private string deviceMacAddress = "00:00:00:00:00:00";
+        [Header("分药机配置")]
         [SerializeField] private int maxRetryCount = 5;
         [SerializeField] private float ackTimeout = 0.2f;
-        [SerializeField] private float doneTimeout = 10f;
-        [SerializeField] private float discoveryTimeout = 10f;
+        [SerializeField] private float resetDoneTimeout = 10f;
 
         // 蓝牙通信对象
         private AndroidJavaObject bluetoothSerial;
@@ -50,12 +50,14 @@ namespace EZDose.Hardware
         // 接收缓冲区
         private StringBuilder receiveBuffer = new StringBuilder();
         
-        // 事件回调
-        public event Action OnMachineInit;
+        // events
+        public event Action OnMachineInit; // unused
         public event Action OnDispensingComplete;
         public event Action OnCountError;
+        public event Action<string> OnBTError; 
+        public event Action<string> OnError; 
         public event Action<int> OnPillCountUpdate;
-        public event Action<string> OnError;
+
         
         // Bluetooth device discovery events
         public event Action<List<BluetoothDeviceInfo>> OnDevicesFound;
@@ -81,24 +83,23 @@ namespace EZDose.Hardware
                 deviceMacAddress = macAddress;
             }
 
-            Debug.Log($"[DispenserController] 开始初始化，MAC地址: {deviceMacAddress}");
+            Debug.Log($"[DispenserController] Initialization started, MAC address: {deviceMacAddress}");
 
             try
             {
                 if (!ConnectBluetooth())
                 {
-                    Debug.LogError("[DispenserController] 蓝牙连接失败");
+                    Debug.LogError("[DispenserController] Bluetooth connection failed");
                     return false;
                 }
 
                 StartReceiving();
-                Debug.Log("[DispenserController] 初始化成功");
+                Debug.Log("[DispenserController] Initialization succeeded");
                 return true;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[DispenserController] 初始化异常: {e.Message}");
-                OnError?.Invoke($"初始化失败: {e.Message}");
+                Debug.LogError($"[DispenserController] Initialization exception: {e.Message}");
                 return false;
             }
         }
@@ -121,14 +122,14 @@ namespace EZDose.Hardware
                 bool isAvailable = bluetoothSerial.Call<bool>("isBluetoothAvailable");
                 if (!isAvailable)
                 {
-                    Debug.LogError("[DispenserController] 设备不支持蓝牙");
+                    Debug.LogError("[DispenserController] Device does not support Bluetooth");
                     return false;
                 }
 
                 bool isEnabled = bluetoothSerial.Call<bool>("isBluetoothEnabled");
                 if (!isEnabled)
                 {
-                    Debug.LogError("[DispenserController] 蓝牙未启用");
+                    Debug.LogError("[DispenserController] Bluetooth is not enabled");
                     return false;
                 }
 
@@ -136,23 +137,23 @@ namespace EZDose.Hardware
                 if (connected)
                 {
                     isConnected = true;
-                    Debug.Log($"[DispenserController] 已连接到设备: {deviceMacAddress}");
+                    Debug.Log($"[DispenserController] Connected to device: {deviceMacAddress}");
                     return true;
                 }
                 else
                 {
-                    Debug.LogError($"[DispenserController] 连接失败: {deviceMacAddress}");
+                    Debug.LogError($"[DispenserController] Connection failed: {deviceMacAddress}");
                     return false;
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[DispenserController] 蓝牙连接异常: {e.Message}");
+                Debug.LogError($"[DispenserController] Bluetooth connection exception: {e.Message}");
                 return false;
             }
 #else
             // 编辑器模式模拟连接
-            Debug.Log("[DispenserController] 编辑器模式 - 模拟连接成功");
+            Debug.Log("[DispenserController] Editor mode - Simulated connection succeeded");
             isConnected = true;
             return true;
 #endif
@@ -171,12 +172,12 @@ namespace EZDose.Hardware
                 if (bluetoothSerial != null && isConnected)
                 {
                     bluetoothSerial.Call("disconnect");
-                    Debug.Log("[DispenserController] 已断开蓝牙连接");
+                    Debug.Log("[DispenserController] Bluetooth disconnected");
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[DispenserController] 断开连接异常: {e.Message}");
+                Debug.LogError($"[DispenserController] Disconnect exception: {e.Message}");
             }
 #endif
 
@@ -222,7 +223,7 @@ namespace EZDose.Hardware
                 if (!isAvailable)
                 {
                     Debug.LogError("[DispenserController] Bluetooth not available on this device");
-                    OnError?.Invoke("蓝牙不可用");
+                    OnBTError?.Invoke("蓝牙不可用");
                     return;
                 }
 
@@ -230,7 +231,7 @@ namespace EZDose.Hardware
                 if (!isEnabled)
                 {
                     Debug.LogError("[DispenserController] Bluetooth is not enabled");
-                    OnError?.Invoke("请先启用蓝牙");
+                    OnBTError?.Invoke("请先打开蓝牙");
                     return;
                 }
 
@@ -243,7 +244,7 @@ namespace EZDose.Hardware
             catch (Exception e)
             {
                 Debug.LogError($"[DispenserController] Discovery error: {e.Message}");
-                OnError?.Invoke($"搜索失败: {e.Message}");
+                OnBTError?.Invoke($"Discovery failed: {e.Message}");
             }
 #else
             // Editor mode - simulate discovery
@@ -286,7 +287,7 @@ namespace EZDose.Hardware
             {
                 discoveryException = e;
                 Debug.LogError($"[DispenserController] Discovery exception: {e.Message}");
-                OnError?.Invoke($"搜索异常: {e.Message}");
+                OnBTError?.Invoke($"搜索异常: {e.Message}");
                 OnDiscoveryCompleted?.Invoke();
             }
 
@@ -373,7 +374,7 @@ namespace EZDose.Hardware
             else
             {
                 OnConnectionStateChanged?.Invoke("Disconnected");
-                OnError?.Invoke("连接失败");
+                OnBTError?.Invoke("连接失败");
                 Debug.LogError($"[DispenserController] Failed to connect to {macAddress}");
             }
         }
@@ -443,7 +444,7 @@ namespace EZDose.Hardware
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning($"[DispenserController] 接收数据异常: {e.Message}");
+                    Debug.LogWarning($"[DispenserController] Receive data exception: {e.Message}");
                 }
 #endif
                 yield return new WaitForSeconds(0.05f); // 20Hz 接收频率
@@ -493,7 +494,7 @@ namespace EZDose.Hardware
         {
             if (string.IsNullOrEmpty(message)) return;
 
-            Debug.Log($"[DispenserController] 收到消息: {message}");
+            Debug.Log($"[DispenserController] Received message: {message}");
 
             var feedback = SerialProtocol.FeedbackParser.Parse(message);
             if (feedback == null) return;
@@ -502,39 +503,39 @@ namespace EZDose.Hardware
             {
                 case FeedbackType.ACK:
                     ackReceived = true;
-                    Debug.Log("[DispenserController] 收到ACK确认");
+                    Debug.Log("[DispenserController] ACK received");
                     break;
 
                 case FeedbackType.DONE:
                     doneReceived = true;
-                    Debug.Log("[DispenserController] 收到DONE信号");
+                    Debug.Log("[DispenserController] DONE signal received");
                     break;
 
                 case FeedbackType.MachineInit:
-                    Debug.Log("[DispenserController] 机器初始化检测");
+                    Debug.Log("[DispenserController] Machine initialization detected");
                     OnMachineInit?.Invoke();
                     break;
 
                 case FeedbackType.StateFinish:
                     machineState = 3;
-                    Debug.Log("[DispenserController] 分药完成");
+                    Debug.Log("[DispenserController] Dispensing completed");
                     OnDispensingComplete?.Invoke();
                     break;
 
                 case FeedbackType.StateCountError:
                     errorCode = 2;
-                    Debug.LogWarning("[DispenserController] 计数错误");
+                    Debug.LogWarning("[DispenserController] Count error");
                     OnCountError?.Invoke();
                     break;
 
                 case FeedbackType.PillsOut:
                     pillRemain = totalPills - feedback.PillCount;
-                    Debug.Log($"[DispenserController] 已出药: {feedback.PillCount}, 剩余: {pillRemain}");
+                    Debug.Log($"[DispenserController] Pills dispensed: {feedback.PillCount}, remaining: {pillRemain}");
                     OnPillCountUpdate?.Invoke(feedback.PillCount);
                     break;
 
                 case FeedbackType.Unknown:
-                    Debug.LogWarning($"[DispenserController] 未知消息: {feedback.RawMessage}");
+                    Debug.LogWarning($"[DispenserController] Unknown message: {feedback.RawMessage}");
                     break;
             }
         }
@@ -550,14 +551,14 @@ namespace EZDose.Hardware
         {
             if (!isConnected)
             {
-                Debug.LogError("[DispenserController] 未连接，无法发送数据");
+                Debug.LogError("[DispenserController] Not connected, cannot send data");
                 callback?.Invoke(false);
                 yield break;
             }
 
             if (isSendingPackage)
             {
-                Debug.LogWarning("[DispenserController] 上一个发送未完成");
+                Debug.LogWarning("[DispenserController] Previous send not finished");
                 callback?.Invoke(false);
                 yield break;
             }
@@ -571,13 +572,13 @@ namespace EZDose.Hardware
             {
                 if (attempt > 0)
                 {
-                    Debug.Log($"[DispenserController] 重试发送 ({attempt}/{retryCount})");
+                    Debug.Log($"[DispenserController] Retrying send ({attempt}/{retryCount})");
                 }
 
                 // 发送数据
                 if (!SendBytes(package))
                 {
-                    Debug.LogError("[DispenserController] 发送失败");
+                    Debug.LogError("[DispenserController] Send failed");
                     continue;
                 }
 
@@ -591,7 +592,7 @@ namespace EZDose.Hardware
 
                 if (ackReceived)
                 {
-                    Debug.Log("[DispenserController] 发送成功，收到ACK");
+                    Debug.Log("[DispenserController] Send succeeded, ACK received");
                     success = true;
                     break;
                 }
@@ -599,7 +600,7 @@ namespace EZDose.Hardware
 
             if (!success)
             {
-                Debug.LogError($"[DispenserController] 发送失败，重试{retryCount}次后未收到ACK");
+                Debug.LogError($"[DispenserController] Send failed, no ACK after {retryCount} retries");
                 errorCode = 1;
             }
 
@@ -622,29 +623,29 @@ namespace EZDose.Hardware
             
             if (success)
             {
-                Debug.Log($"[DispenserController] 成功发送 {data.Length} 字节: [{string.Join(" ", data.Select(b => $"0x{b:X2}"))}]");
+                Debug.Log($"[DispenserController] Sent {data.Length} bytes successfully: [{string.Join(" ", data.Select(b => $"0x{b:X2}"))}]");
             }
             else
             {
-                Debug.LogError("[DispenserController] writeBytes 返回 false");
+                Debug.LogError("[DispenserController] writeBytes returned false");
             }
             
             return success;
         }
         else
         {
-            Debug.LogError("[DispenserController] bluetoothSerial 为 null");
+            Debug.LogError("[DispenserController] bluetoothSerial is null");
             return false;
         }
     }
     catch (Exception e)
     {
-        Debug.LogError($"[DispenserController] 发送数据异常: {e.Message}");
-        Debug.LogError($"[DispenserController] 堆栈跟踪: {e.StackTrace}");
+        Debug.LogError($"[DispenserController] Send data exception: {e.Message}");
+        Debug.LogError($"[DispenserController] Stack trace: {e.StackTrace}");
         return false;
     }
 #else
-    Debug.Log($"[DispenserController] 编辑器模式 - 模拟发送: {BitConverter.ToString(data)}");
+    Debug.Log($"[DispenserController] Editor mode - Simulated send: {BitConverter.ToString(data)}");
     return true;
 #endif
 }
@@ -677,7 +678,7 @@ namespace EZDose.Hardware
         {
             if (matrix.GetLength(0) != 4 || matrix.GetLength(1) != 7)
             {
-                Debug.LogError("[DispenserController] 药片矩阵必须是4x7");
+                Debug.LogError("[DispenserController] Pill matrix must be 4x7");
                 callback?.Invoke(false);
                 return;
             }
@@ -700,7 +701,7 @@ namespace EZDose.Hardware
             }
             pillRemain = totalPills;
 
-            Debug.Log($"[DispenserController] 发送药片矩阵，总药片数: {totalPills}");
+            Debug.Log($"[DispenserController] Sending pill matrix, total pills: {totalPills}");
 
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.SEND_PILL_MATRIX, matrixData);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, callback));
@@ -711,7 +712,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void OpenTray(Action<bool> callback = null)
         {
-            Debug.Log("[DispenserController] 打开舱门");
+            Debug.Log("[DispenserController] Opening tray");
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.OPEN_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
@@ -725,7 +726,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void CloseTray(Action<bool> callback = null)
         {
-            Debug.Log("[DispenserController] 关闭舱门");
+            Debug.Log("[DispenserController] Closing tray");
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.CLOSE_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
@@ -739,7 +740,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void PauseDispenser(Action<bool> callback = null)
         {
-            Debug.Log("[DispenserController] 暂停分药");
+            Debug.Log("[DispenserController] Pausing dispenser");
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.PAUSE_DISPENSER);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
@@ -753,7 +754,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void ResetDispenser(Action<bool> callback = null)
         {
-            Debug.Log("[DispenserController] 复位分药机");
+            Debug.Log("[DispenserController] Resetting dispenser");
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.RESET_DISPENSER);
             
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (ackSuccess) =>
@@ -765,15 +766,15 @@ namespace EZDose.Hardware
                 }
 
                 // 等待DONE信号
-                StartCoroutine(WaitForDone(doneTimeout, (doneSuccess) =>
+                StartCoroutine(WaitForDone(resetDoneTimeout, (doneSuccess) =>
                 {
                     if (doneSuccess)
                     {
-                        Debug.Log("[DispenserController] 复位完成");
+                        Debug.Log("[DispenserController] Reset completed");
                     }
                     else
                     {
-                        Debug.LogWarning("[DispenserController] 复位超时");
+                        Debug.LogWarning("[DispenserController] Reset timed out");
                     }
                     callback?.Invoke(doneSuccess);
                 }));
@@ -785,7 +786,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void SetTurntableSpeed(float speed, Action<bool> callback = null)
         {
-            Debug.Log($"[DispenserController] 设置转盘速度: {speed}");
+            Debug.Log($"[DispenserController] Setting turntable speed: {speed}");
             byte[] data = new byte[5];
             data[0] = SerialProtocol.DeviceID.TURNTABLE_MOTOR;
             byte[] speedBytes = SerialProtocol.FloatToBytes(speed);
@@ -800,7 +801,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void SetServoAngle(float angle, Action<bool> callback = null)
         {
-            Debug.Log($"[DispenserController] 设置舵机角度: {angle}");
+            Debug.Log($"[DispenserController] Setting servo angle: {angle}");
             byte[] data = new byte[5];
             data[0] = SerialProtocol.DeviceID.SERVO_MOTOR;
             byte[] angleBytes = SerialProtocol.FloatToBytes(angle);
@@ -815,7 +816,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void SetCleanSpeed(float speed, Action<bool> callback = null)
         {
-            Debug.Log($"[DispenserController] 设置清洁速度: {speed}");
+            Debug.Log($"[DispenserController] Setting clean speed: {speed}");
             byte[] data = SerialProtocol.FloatToBytes(speed);
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.SET_CLEAN_SPEED, data);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, callback));
@@ -826,7 +827,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void SetCleanDelay(uint delayMs, Action<bool> callback = null)
         {
-            Debug.Log($"[DispenserController] 设置清洁延迟: {delayMs}ms");
+            Debug.Log($"[DispenserController] Setting clean delay: {delayMs}ms");
             byte[] data = SerialProtocol.UInt32ToBytes(delayMs);
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.SET_CLEAN_DELAY, data);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, callback));

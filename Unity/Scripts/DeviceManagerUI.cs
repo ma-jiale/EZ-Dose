@@ -33,22 +33,15 @@ namespace EZDose.UI
         [Tooltip("Text showing current scanning status")]
         [SerializeField] private Text statusText;
 
-        [Tooltip("Loading indicator shown during device scan")]
-        [SerializeField] private GameObject loadingIndicator;
 
-        [Header("Empty State")]
-        [Tooltip("GameObject shown when no devices are found")]
-        [SerializeField] private GameObject emptyStatePanel;
 
-        [Tooltip("Text on empty state panel")]
-        [SerializeField] private Text emptyStateText;
+
 
         [Header("Settings")]
         [Tooltip("Automatically start discovery when dialog opens")]
         [SerializeField] private bool autoScanOnOpen = true;
 
-        [Tooltip("Show device signal strength")]
-        [SerializeField] private bool showSignalStrength = true;
+
 
         // Reference to dispenser controller
         private DispenserController dispenserController;
@@ -81,8 +74,6 @@ namespace EZDose.UI
             // Setup button listeners
             SetupButtons();
 
-            // Hide dialog by default
-            HideDialog();
         }
 
         private void OnDestroy()
@@ -111,7 +102,7 @@ namespace EZDose.UI
             dispenserController.OnDevicesFound += OnDevicesFound;
             dispenserController.OnDiscoveryCompleted += OnDiscoveryCompleted;
             dispenserController.OnConnectionStateChanged += OnConnectionStateChanged;
-            dispenserController.OnError += OnDispenserError;
+            dispenserController.OnBTError += OnDispenserError;
         }
 
         private void UnsubscribeFromEvents()
@@ -122,7 +113,7 @@ namespace EZDose.UI
             dispenserController.OnDevicesFound -= OnDevicesFound;
             dispenserController.OnDiscoveryCompleted -= OnDiscoveryCompleted;
             dispenserController.OnConnectionStateChanged -= OnConnectionStateChanged;
-            dispenserController.OnError -= OnDispenserError;
+            dispenserController.OnBTError -= OnDispenserError;
         }
 
         #endregion
@@ -191,6 +182,17 @@ namespace EZDose.UI
         /// </summary>
         public void StartDeviceScan()
         {
+            // Try to find DispenserController if not already cached (it may be in DontDestroyOnLoad)
+            if (dispenserController == null)
+            {
+                dispenserController = FindObjectOfType<DispenserController>();
+                if (dispenserController != null)
+                {
+                    SubscribeToEvents();
+                    Debug.Log("[DeviceManagerUI] Found DispenserController (late binding)");
+                }
+            }
+
             if (dispenserController == null)
             {
                 Debug.LogError("[DeviceManagerUI] DispenserController is null");
@@ -201,7 +203,7 @@ namespace EZDose.UI
             Debug.Log("[DeviceManagerUI] Starting device scan...");
             ClearDeviceList();
             ShowLoadingState(true);
-            UpdateStatusText("Scanning for devices...", Color.yellow);
+            UpdateStatusText("正在扫描附近的设备...", Color.yellow);
 
             dispenserController.StartDeviceDiscovery();
         }
@@ -213,8 +215,7 @@ namespace EZDose.UI
         {
             Debug.Log("[DeviceManagerUI] Discovery started");
             ShowLoadingState(true);
-            UpdateStatusText("Scanning for devices...", Color.yellow);
-            ShowEmptyState(false);
+            UpdateStatusText("正在扫描附近的设备...", Color.yellow);
         }
 
         /// <summary>
@@ -244,7 +245,7 @@ namespace EZDose.UI
                 CreateDeviceCard(device);
             }
 
-            UpdateStatusText($"Found {devices.Count} device(s)", Color.green);
+            UpdateStatusText($"发现 {devices.Count} 台设备", Color.green);
         }
 
         /// <summary>
@@ -257,12 +258,11 @@ namespace EZDose.UI
 
             if (spawnedCards.Count == 0)
             {
-                ShowEmptyState(true);
-                UpdateStatusText("No devices found", Color.gray);
+                UpdateStatusText("没有发现设备", Color.gray);
             }
             else
             {
-                UpdateStatusText($"Found {spawnedCards.Count} device(s)", Color.green);
+                UpdateStatusText($"发现 {spawnedCards.Count} 台设备", Color.green);
             }
         }
 
@@ -297,7 +297,7 @@ namespace EZDose.UI
                                deviceInfo.MacAddress == connectedDeviceMac;
 
             // Initialize card with device data
-            card.Initialize(deviceInfo, isConnected, showSignalStrength);
+            card.Initialize(deviceInfo, isConnected, false);
 
             // Subscribe to card events
             card.OnConnectClicked += () => HandleConnectDevice(deviceInfo);
@@ -343,7 +343,7 @@ namespace EZDose.UI
 
             Debug.Log($"[DeviceManagerUI] Attempting to connect to {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
             isConnecting = true;
-            UpdateStatusText($"Connecting to {deviceInfo.DeviceName}...", Color.yellow);
+            UpdateStatusText($"正在连接 {deviceInfo.DeviceName}...", Color.yellow);
 
             dispenserController.ConnectToDevice(deviceInfo.MacAddress, deviceInfo.DeviceName);
         }
@@ -359,7 +359,7 @@ namespace EZDose.UI
             }
 
             Debug.Log($"[DeviceManagerUI] Disconnecting from {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
-            UpdateStatusText($"Disconnecting from {deviceInfo.DeviceName}...", Color.yellow);
+            UpdateStatusText($"正在从{deviceInfo.DeviceName}断开连接...", Color.yellow);
 
             dispenserController.DisconnectCurrentDevice();
         }
@@ -379,20 +379,20 @@ namespace EZDose.UI
                     if (connectedDevice != null)
                     {
                         connectedDeviceMac = connectedDevice.MacAddress;
-                        UpdateStatusText($"Connected to {connectedDevice.DeviceName}", Color.green);
+                        UpdateStatusText($"连接到 {connectedDevice.DeviceName}", Color.green);
                         RefreshConnectionState();
                     }
                     break;
 
                 case "Disconnected":
                     connectedDeviceMac = null;
-                    UpdateStatusText("Disconnected", Color.gray);
+                    UpdateStatusText("已经断开连接", Color.gray);
                     RefreshConnectionState();
                     break;
 
                 case "Connecting":
                     isConnecting = true;
-                    UpdateStatusText("Connecting...", Color.yellow);
+                    UpdateStatusText("连接中...", Color.yellow);
                     break;
 
                 default:
@@ -425,31 +425,17 @@ namespace EZDose.UI
         #region UI State Management
 
         /// <summary>
-        /// Show or hide loading indicator
+        /// Update UI state during scanning
         /// </summary>
         private void ShowLoadingState(bool show)
         {
-            if (loadingIndicator != null)
-            {
-                loadingIndicator.SetActive(show);
-            }
-
             if (refreshButton != null)
             {
                 refreshButton.interactable = !show;
             }
         }
 
-        /// <summary>
-        /// Show or hide empty state panel
-        /// </summary>
-        private void ShowEmptyState(bool show)
-        {
-            if (emptyStatePanel != null)
-            {
-                emptyStatePanel.SetActive(show);
-            }
-        }
+
 
         /// <summary>
         /// Update status text with color
@@ -469,7 +455,7 @@ namespace EZDose.UI
         private void OnDispenserError(string errorMessage)
         {
             Debug.LogError($"[DeviceManagerUI] Dispenser error: {errorMessage}");
-            UpdateStatusText($"Error: {errorMessage}", Color.red);
+            UpdateStatusText($"错误: {errorMessage}", Color.red);
             ShowLoadingState(false);
             isConnecting = false;
         }
@@ -502,13 +488,7 @@ namespace EZDose.UI
             autoScanOnOpen = enabled;
         }
 
-        /// <summary>
-        /// Enable or disable signal strength display
-        /// </summary>
-        public void SetShowSignalStrength(bool show)
-        {
-            showSignalStrength = show;
-        }
+
 
         #endregion
     }

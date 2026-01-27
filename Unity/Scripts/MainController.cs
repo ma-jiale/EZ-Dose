@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EZDose.Prescriptions;
 using EZDose.Hardware;
+using EZDose.Calibration;
 
 namespace EZDose.MainFlow
 {
@@ -17,10 +18,10 @@ namespace EZDose.MainFlow
     {
         public static MainController Instance { get; private set; }
 
-        [Header("Server")]
-        [SerializeField] private string serverUrl = "http://127.0.0.1:5000";
-        [SerializeField] private int maxDispensingDays = 7;
-        [SerializeField] private int expiryDaysThreshold = 2;
+        // Dispensing settings are now read from AppConfig for consistency
+        // and to allow runtime configuration via the settings UI
+        private int maxDispensingDays => AppConfig.Instance.MaxDispensingDays;
+        private int expiryDaysThreshold => AppConfig.Instance.ExpiryDaysThreshold;
 
         [Header("Auto Refresh")]
         [Tooltip("Enable automatic refresh of patient list from server.")]
@@ -34,6 +35,7 @@ namespace EZDose.MainFlow
 
         [Header("Hardware")]
         [SerializeField] private DispenserController dispenserController;
+        [SerializeField] private PillCalibrationManager calibrationManager;
 
         // Patient list updates
         public event Action<List<PatientStatus>> PatientsUpdated;
@@ -43,6 +45,13 @@ namespace EZDose.MainFlow
         public event Action<string> DispensingError;
         public event Action DispensingCompleted;
         public event Action<int> PlateSwitchRequired;
+        
+        // Event to trigger the manual error resolution dialog in UI
+        public event Action<string> ErrorResolutionRequired;
+        
+        // Pill size calibration events
+        public event Action<DispensingMedicine> PillCalibrationRequired;  // Medicine needs calibration
+        public event Action<float> PillCalibrationCompleted;              // Calibration done, area in mm²
 
         private PrescriptionManager prescriptionManager;
         private readonly Dictionary<string, PatientStatus> patientStatus = new Dictionary<string, PatientStatus>(StringComparer.OrdinalIgnoreCase);
@@ -61,6 +70,15 @@ namespace EZDose.MainFlow
         // Flag to indicate we're actively waiting for a pill matrix dispensing to complete
         // This prevents false completion triggers from configuration command responses
         private bool isWaitingForDispensingComplete;
+        
+        // Flag to tracking if the current dispensing failure was due to a specific count error
+        private bool hasCountError;
+        
+        // Task for waiting for user to confirm manual error resolution
+        private TaskCompletionSource<bool> errorResolutionTcs;
+        
+        // Task for waiting for pill calibration to complete
+        private TaskCompletionSource<float> pillCalibrationTcs;
 
         private string currentMedicineName = string.Empty;
         private int currentPlate = 1;
@@ -86,7 +104,7 @@ namespace EZDose.MainFlow
 
         private void Start()
         {
-            prescriptionManager = new PrescriptionManager(serverUrl);
+            prescriptionManager = new PrescriptionManager(AppConfig.Instance.ServerUrl);
 
             if (dispenserController == null)
             {
@@ -94,10 +112,9 @@ namespace EZDose.MainFlow
             }
 
             BindDispenserEvents(true);
-            ConnectDispenser();
+            // ConnectDispenser();
 
             FireAndForget(RefreshPatientsAsync());
-
             // Start automatic refresh if enabled
             StartAutoRefresh();
         }
@@ -135,25 +152,25 @@ namespace EZDose.MainFlow
             }
         }
 
-        /// <summary>
-        /// Try to connect to the dispenser as soon as the app opens.
-        /// </summary>
-        private void ConnectDispenser()
-        {
-            if (dispenserController == null)
-            {
-                Debug.LogWarning("[MainController] DispenserController is missing in the scene");
-                return;
-            }
+        // /// <summary>
+        // /// Try to connect to the dispenser as soon as the app opens.
+        // /// </summary>
+        // private void ConnectDispenser()
+        // {
+        //     if (dispenserController == null)
+        //     {
+        //         Debug.LogWarning("[MainController] DispenserController is missing in the scene");
+        //         return;
+        //     }
 
-            var ok = dispenserController.Initialize();
-            if (!ok)
-            {
-                Debug.LogWarning("[MainController] Failed to initialize dispenser. Will retry on next command.");
-            }
-        }
+        //     var ok = dispenserController.Initialize();
+        //     if (!ok)
+        //     {
+        //         Debug.LogWarning("[MainController] Failed to initialize dispenser. Will retry on next command.");
+        //     }
+        // }
 
-        #region Auto Refresh
+        #region 从服务器轮询处方信息
 
         /// <summary>
         /// Starts the automatic refresh coroutine if enabled.
@@ -227,6 +244,7 @@ namespace EZDose.MainFlow
             }
         }
 
+        
         /// <summary>
         /// Updates the auto-refresh interval and restarts the coroutine with the new timing.
         /// </summary>
@@ -269,8 +287,6 @@ namespace EZDose.MainFlow
             }
         }
 
-        #endregion
-
         /// <summary>
         /// Refresh patient list from the server.
         /// Only includes patients who need dispensing today (medicines expiring within threshold).
@@ -302,7 +318,8 @@ namespace EZDose.MainFlow
                 .Select(g => new PatientInfo
                 {
                     PatientId = g.Key,
-                    PatientName = g.First().patient_name
+                    PatientName = g.First().patient_name,
+                    BedNumber = g.First().bed_number
                 })
                 .OrderBy(p => p.PatientName);
 
@@ -358,27 +375,43 @@ namespace EZDose.MainFlow
                     continue;
                 }
 
-                // If last_dispensed_expiry_date is empty/null, the medicine has never been dispensed
-                // and definitely needs dispensing now
-                if (string.IsNullOrWhiteSpace(medicine.LastDispensedExpiryDate))
+                // Parse StartDate first as it's required for both new and old medicines
+                if (!DateTime.TryParse(medicine.StartDate, out var startDate))
                 {
-                    count++;
+                    count++; // Data error, assume needs dispensing to be safe
                     continue;
                 }
 
-                // If we can parse the expiry date, check if it's within threshold
-                if (DateTime.TryParse(medicine.LastDispensedExpiryDate, out var expiryDate))
+                DateTime expiryDate;
+                if (string.IsNullOrWhiteSpace(medicine.LastDispensedExpiryDate))
                 {
-                    var daysUntilExpiry = (expiryDate.Date - today).Days;
-
-                    if (daysUntilExpiry <= thresholdDays)
-                    {
-                        count++;
-                    }
+                    // [NEW] For new medicines, treat "last expiry" as the day before start date
+                    expiryDate = startDate.Date.AddDays(-1);
                 }
-                else
+                else if (!DateTime.TryParse(medicine.LastDispensedExpiryDate, out expiryDate))
                 {
-                    // If date parsing fails, treat as needing dispensing (data issue, be safe)
+                    count++; // Parse error on existing expiry, assume needs dispensing
+                    continue;
+                }
+
+                // Remaining prescription days = (StartDate + Duration) - Today
+                var endOfPrescription = startDate.Date.AddDays(medicine.DurationDays);
+                var remainingNeeded = (endOfPrescription - today).Days;
+                
+                // Days of pills currently held = LastDispensedExpiryDate - Today
+                var daysUntilExpiry = (expiryDate.Date - today).Days + 1;
+
+                // If we already have enough pills to last until the end of the prescription, skip
+                // Or if the prescription period has already passed (remainingNeeded <= 0)
+                if (daysUntilExpiry >= remainingNeeded || remainingNeeded <= 0)
+                {
+                    continue;
+                }
+
+                // Check if pills are running low (within threshold)
+                // New medicines (expiry = startDate - 1) will typically trigger this if startDate is soon
+                if (daysUntilExpiry <= thresholdDays)
+                {
                     count++;
                 }
             }
@@ -420,16 +453,38 @@ namespace EZDose.MainFlow
                     continue; // Skip inactive medicines
                 }
 
-                // Parse expiry date
-                if (DateTime.TryParse(medicine.LastDispensedExpiryDate, out var expiryDate))
+                // Parse StartDate first
+                if (!DateTime.TryParse(medicine.StartDate, out var startDate))
                 {
-                    var daysUntilExpiry = (expiryDate.Date - today).Days;
+                    return true; // Data error, assume needs dispensing
+                }
 
-                    // If medicine expires within threshold, patient needs dispensing
-                    if (daysUntilExpiry <= thresholdDays)
-                    {
-                        return true;
-                    }
+                DateTime expiryDate;
+                if (string.IsNullOrWhiteSpace(medicine.LastDispensedExpiryDate))
+                {
+                    // [NEW] For new medicines, treat "last expiry" as the day before start date
+                    expiryDate = startDate.Date.AddDays(-1);
+                }
+                else if (!DateTime.TryParse(medicine.LastDispensedExpiryDate, out expiryDate))
+                {
+                    return true; // Parse error on existing expiry
+                }
+
+                // [NEW] Check if we already have enough pills to cover the rest of the prescription
+                var endOfPrescription = startDate.Date.AddDays(medicine.DurationDays);
+                var remainingNeeded = (endOfPrescription - today).Days;
+                var daysUntilExpiry = (expiryDate.Date - today).Days + 1;
+
+                // Skip if held pills >= remaining needed, or if prescription is already over
+                if (daysUntilExpiry >= remainingNeeded || remainingNeeded <= 0)
+                {
+                    continue;
+                }
+
+                // If medicine expires within threshold, patient needs dispensing
+                if (daysUntilExpiry <= thresholdDays)
+                {
+                    return true;
                 }
             }
 
@@ -490,7 +545,7 @@ namespace EZDose.MainFlow
                 return Task.FromResult(false);
             }
 
-            if (!prescriptionManager.TryGenerateDispensingPlan(currentPatient.PatientId, maxDispensingDays, out var plan))
+            if (!prescriptionManager.TryGenerateDispensingPlan(currentPatient.PatientId, maxDispensingDays, expiryDaysThreshold, out var plan))
             {
                 DispensingError?.Invoke("无法生成分药计划，请检查处方数据");
                 return Task.FromResult(false);
@@ -500,6 +555,8 @@ namespace EZDose.MainFlow
             return Task.FromResult(true);
         }
 
+
+        #region 分药过程逻辑，包含换盘和错误处理逻辑
         /// <summary>
         /// Start the dispensing routine. This runs plate by plate.
         /// </summary>
@@ -570,13 +627,13 @@ namespace EZDose.MainFlow
             }
 
             // All medicines dispensed successfully
-            // Pause the turntable motor to stop rotation
-            Debug.Log("[MainController] All medicines dispensed, pausing turntable motor");
-            await PauseAsync();
-            
             // Open tray for user to collect pills
             Debug.Log("[MainController] Opening tray for pill collection");
             await OpenTrayAsync();
+            
+            // Pause the turntable motor to stop rotation
+            Debug.Log("[MainController] All medicines dispensed, pausing turntable motor");
+            await PauseAsync();
             
             // Update server and mark patient complete
             await prescriptionManager.PushAllChangesAsync();
@@ -597,6 +654,14 @@ namespace EZDose.MainFlow
             plateReadyTcs?.TrySetResult(true);
         }
 
+        /// <summary>
+        /// Called by UI when user confirms they have fixed the count error.
+        /// </summary>
+        public void ConfirmErrorResolution()
+        {
+            errorResolutionTcs?.TrySetResult(true);
+        }
+
         private async Task<bool> DispenseMedicineAsync(DispensingMedicine med, int plate)
         {
             if (med == null)
@@ -604,13 +669,54 @@ namespace EZDose.MainFlow
                 return false;
             }
 
-            // Configure dispenser hardware based on pill size before dispensing
-            // This adjusts servo angle and motor speed to match pill dimensions
-            Debug.Log($"[MainController] Configuring dispenser for pill size: {med.PillSize}");
-            var configured = await ConfigureDispenserForPillSize(med.PillSize);
+            // Check if medicine needs calibration before dispensing
+            if (med.NeedsCalibration)
+            {
+                Debug.Log($"[MainController] Medicine '{med.MedicineName}' needs calibration");
+                
+                // Trigger calibration dialog in UI
+                PillCalibrationRequired?.Invoke(med);
+                
+                // Wait for calibration to complete (UI calls CompletePillCalibration)
+                pillCalibrationTcs = new TaskCompletionSource<float>();
+                float calibratedAreaMm2 = await pillCalibrationTcs.Task;
+                
+                if (calibratedAreaMm2 <= 0)
+                {
+                    Debug.LogError("[MainController] Calibration failed or was cancelled");
+                    DispensingError?.Invoke("药片校准失败，请重试");
+                    return false;
+                }
+                
+                // Update medicine with calibrated area
+                med.PillSizeArea = calibratedAreaMm2;
+                
+                // Update server with new pill size (find calibration manager at runtime)
+                var calibrationMgr = calibrationManager ?? FindObjectOfType<PillCalibrationManager>();
+                if (calibrationMgr != null)
+                {
+                    var serverUpdated = await calibrationMgr.UpdatePillSizeOnServerAsync(med.PrescriptionId, calibratedAreaMm2);
+                    if (!serverUpdated)
+                    {
+                        Debug.LogWarning("[MainController] Failed to update pill size on server, but continuing...");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[MainController] No calibration manager found, cannot update server");
+                }
+                
+                // Notify UI that calibration is complete
+                PillCalibrationCompleted?.Invoke(calibratedAreaMm2);
+                Debug.Log($"[MainController] Calibration complete: {calibratedAreaMm2:.1f}mm²");
+            }
+
+            // Configure dispenser hardware based on pill area
+            Debug.Log($"[MainController] Configuring dispenser for pill area: {med.PillSizeArea:.1f}mm²");
+            var configured = await ConfigureDispenserForPillArea(med.PillSizeArea);
             if (!configured)
             {
-                Debug.LogWarning($"[MainController] Failed to configure for pill size {med.PillSize}, continuing anyway...");
+                Debug.LogWarning($"[MainController] Failed to configure for pill area {med.PillSizeArea:.1f}mm², continuing anyway...");
             }
 
             var matrix = ToByteMatrix(med.PillMatrix);
@@ -629,7 +735,36 @@ namespace EZDose.MainFlow
             };
             DispensingProgressChanged?.Invoke(progress);
 
+            // Reset error flag before starting
+            hasCountError = false;
+
             var success = await SendMatrixAndWaitAsync(matrix);
+            
+            // If failed specifically due to count error, initiate interactive recovery
+            if (!success && hasCountError)
+            {
+                Debug.LogWarning($"[MainController] Count error detected for {med.MedicineName}. Initiating recovery flow.");
+                
+                // 1. Eject tray for user access
+                await OpenTrayAsync();
+                
+                // 2. Request user intervention via UI
+                ErrorResolutionRequired?.Invoke($"药物 {med.MedicineName} 分发计数错误。\n请手动核对药盘图案，完成后点击确认。");
+                
+                // 3. Wait for user confirmation (ConfirmErrorResolution called by UI)
+                errorResolutionTcs = new TaskCompletionSource<bool>();
+                await errorResolutionTcs.Task;
+                
+                // Note: We intentionally do NOT close the tray here.
+                // - For single medicine: tray stays open until user confirms completion dialog
+                // - For multiple medicines: hardware handles next medicine with tray open (via pill matrix)
+                
+                // 4. Treat as success (manual fix) and continue
+                Debug.Log("[MainController] Error resolution confirmed by user. Continuing dispensing.");
+                prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                return true; 
+            }
+            
             if (success)
             {
                 prescriptionManager.ApplyDispensingResult(med.MedicineName);
@@ -637,43 +772,47 @@ namespace EZDose.MainFlow
 
             return success;
         }
+        
+        /// <summary>
+        /// Called by UI when pill calibration is complete.
+        /// </summary>
+        /// <param name="calibratedAreaMm2">The calibrated pill area in mm², or 0 if cancelled</param>
+        public void CompletePillCalibration(float calibratedAreaMm2)
+        {
+            pillCalibrationTcs?.TrySetResult(calibratedAreaMm2);
+        }
 
         /// <summary>
-        /// Configure dispenser motor speed and servo angle for different pill sizes.
-        /// Small pills need slower speed and smaller opening.
-        /// Large pills need faster speed and bigger opening.
+        /// Configure dispenser motor speed and servo angle based on pill area.
+        /// Uses calibration manager to calculate settings from actual pill dimensions.
         /// </summary>
-        private async Task<bool> ConfigureDispenserForPillSize(string pillSize)
+        private async Task<bool> ConfigureDispenserForPillArea(float pillAreaMm2)
         {
             if (dispenserController == null)
             {
                 return false;
             }
 
-            // Default to Medium if pill size is not recognized
+            // Calculate motor speed and servo angle based on pill area
             float motorSpeed;
             float servoAngle;
-
-            switch (pillSize?.ToUpper())
+            
+            // Find calibration manager at runtime (it may be in a different scene)
+            var calibrationMgr = calibrationManager ?? FindObjectOfType<PillCalibrationManager>();
+            
+            if (calibrationMgr != null)
             {
-                case "S": // Small pills: gentle and slow
-                    motorSpeed = 0.3f;
-                    servoAngle = 0.8f;
-                    break;
-                    
-                case "L": // Large pills: fast with wide opening
-                    motorSpeed = 0.8f;
-                    servoAngle = 0.2f;
-                    break;
-                    
-                case "M": // Medium pills: balanced settings
-                default:
-                    motorSpeed = 0.5f;
-                    servoAngle = 0.5f;
-                    break;
+                (motorSpeed, servoAngle) = calibrationMgr.CalculateDispenserSettings(pillAreaMm2);
+            }
+            else
+            {
+                // Fallback to default Medium settings if no calibration manager
+                Debug.LogWarning("[MainController] No calibration manager found, using default Medium settings");
+                motorSpeed = 0.5f;
+                servoAngle = 0.5f;
             }
 
-            Debug.Log($"[MainController] Configuring dispenser for pill size: {pillSize}");
+            Debug.Log($"[MainController] Pill area {pillAreaMm2:.1f}mm² → motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
 
             // CRITICAL: Temporarily unsubscribe from completion event during configuration
             // Configuration commands also send machine_state:FINISH which should NOT trigger dispensing completion
@@ -713,6 +852,7 @@ namespace EZDose.MainFlow
                 dispenserController.OnDispensingComplete += OnMachineDispensingComplete;
             }
         }
+        #endregion
 
         private static int CountPills(byte[,] matrix)
         {
@@ -775,6 +915,7 @@ namespace EZDose.MainFlow
 
             return await WaitWithTimeout(dispenseTcs.Task, TimeSpan.FromSeconds(600));
         }
+        #endregion
 
         private async Task<bool> WaitWithTimeout(Task<bool> task, TimeSpan timeout)
         {
@@ -814,9 +955,13 @@ namespace EZDose.MainFlow
                 return;
             }
 
+            Debug.LogWarning("[MainController] Machine reported count error!");
+            hasCountError = true;
             isWaitingForDispensingComplete = false;
             dispenseTcs?.TrySetResult(false);
-            DispensingError?.Invoke("计数错误，请重新检查药品放置");
+            
+            // Note: We do NOT trigger DispensingError event here anymore.
+            // The recovery logic in DispenseMedicineAsync will handle the UI prompt.
         }
 
         private void OnMachinePillCountUpdate(int dispensed)
@@ -941,6 +1086,7 @@ namespace EZDose.MainFlow
         // Note: RFID removed - patients identified by 6-digit ID only
         public string PatientName;
         public string PatientId;        // 6-digit zero-padded format (e.g., "000001")
+        public string BedNumber;
         public bool IsCompleted;        // Whether dispensing is done for this patient
         public int MedicineCount;       // Number of medicines needing dispensing
 
@@ -950,6 +1096,7 @@ namespace EZDose.MainFlow
         {
             PatientName = info.PatientName;
             PatientId = info.PatientId;
+            BedNumber = info.BedNumber;
             IsCompleted = completed;
             MedicineCount = medicineCount;
         }
@@ -963,6 +1110,7 @@ namespace EZDose.MainFlow
             {
                 PatientName = PatientName,
                 PatientId = PatientId,
+                BedNumber = BedNumber,
                 IsCompleted = IsCompleted,
                 MedicineCount = MedicineCount
             };
