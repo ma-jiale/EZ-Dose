@@ -573,6 +573,92 @@ def update_prescription_pill_size(prescription_id):
         }), 500
 
 
+@app.route('/packer/prescription/<int:prescription_id>/calibration', methods=['POST'])
+def update_prescription_calibration(prescription_id):
+    """
+    API endpoint to update pill calibration data including optional image upload.
+    Accepts multipart/form-data with:
+        - pill_size_area: Calibrated pill area in mm² (required)
+        - pill_image: Optional JPG image file
+    
+    Returns:
+        JSON response with success status and image_resource_id if image was uploaded
+    """
+    try:
+        # Get pill_size_area from form data
+        pill_size_area_str = request.form.get('pill_size_area')
+        if not pill_size_area_str:
+            return jsonify({
+                "success": False,
+                "message": "pill_size_area is required"
+            }), 400
+        
+        pill_size_area = float(pill_size_area_str)
+        image_resource_id = None
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if prescription exists
+        prescription = cursor.execute(
+            'SELECT id, medicine_name FROM prescriptions WHERE id = ?', 
+            (prescription_id,)
+        ).fetchone()
+        
+        if not prescription:
+            conn.close()
+            return jsonify({
+                "success": False,
+                "message": f"Prescription {prescription_id} not found"
+            }), 404
+        
+        # Handle image upload if provided
+        if 'pill_image' in request.files:
+            image_file = request.files['pill_image']
+            if image_file and image_file.filename:
+                # Generate unique filename: pill_{prescription_id}_{timestamp}.jpg
+                filename = f"pill_{prescription_id}_{int(time.time())}.jpg"
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                
+                # Ensure upload folder exists
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                
+                # Save image file
+                image_file.save(filepath)
+                image_resource_id = filename
+                logger.info(f"Saved pill image: {filename}")
+        
+        # Update database with pill_size_area and image_resource_id
+        if image_resource_id:
+            cursor.execute(
+                'UPDATE prescriptions SET pill_size_area = ?, image_resource_id = ? WHERE id = ?',
+                (pill_size_area, image_resource_id, prescription_id)
+            )
+        else:
+            cursor.execute(
+                'UPDATE prescriptions SET pill_size_area = ? WHERE id = ?',
+                (pill_size_area, prescription_id)
+            )
+        
+        conn.commit()
+        
+        logger.info(f"Updated calibration for prescription {prescription_id} ({prescription['medicine_name']}): "
+                    f"area={pill_size_area:.2f}mm², image={image_resource_id or 'none'}")
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Calibration updated successfully",
+            "image_resource_id": image_resource_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating calibration: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error updating calibration: {str(e)}"
+        }), 500
+
 # ========================================
 # Medicine Dispenser API Endpoints
 # ========================================
@@ -725,6 +811,10 @@ def upload_prescriptions_for_dispensing():
                 client_pill_size = rx.get('pill_size_area')
                 client_pill_size_value = float(client_pill_size) if client_pill_size and float(client_pill_size) > 0 else None
                 
+                # Preserve image_resource_id if client sends empty/null (same as pill_size_area)
+                client_image_id = rx.get('image_resource_id')
+                client_image_id_value = client_image_id if client_image_id else None
+                
                 cursor.execute('''
                     UPDATE prescriptions SET
                         patient_id = ?, medicine_name = ?, morning_dosage = ?, 
@@ -732,7 +822,7 @@ def upload_prescriptions_for_dispensing():
                         start_date = ?, duration_days = ?, last_dispensed_expiry_date = ?,
                         is_active = ?, 
                         pill_size_area = COALESCE(?, pill_size_area),
-                        image_resource_id = ?
+                        image_resource_id = COALESCE(?, image_resource_id)
                     WHERE id = ?
                 ''', (
                     patient_id,
@@ -746,7 +836,7 @@ def upload_prescriptions_for_dispensing():
                     rx.get('last_dispensed_expiry_date'),
                     int(rx.get('is_active', 1)),
                     client_pill_size_value,  # NULL preserves existing value via COALESCE
-                    rx.get('image_resource_id', ''),
+                    client_image_id_value,   # NULL preserves existing value via COALESCE
                     rx_id
                 ))
             else:

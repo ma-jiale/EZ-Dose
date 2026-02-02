@@ -138,9 +138,9 @@ const JCPrinterAdapter = (function () {
             elements.push({
                 type: 'barCode',
                 json: {
-                    x: 15.0,                   // Positioned to the right of text elements
-                    y: 2.0,                    // Top margin aligned
-                    height: 16.0,              // Barcode height in mm (fits within 20mm label)
+                    x: 13.0,                   // Positioned to the right of text elements (moved 1pt left)
+                    y: 2.8,                    // Top margin aligned
+                    height: 15.0,              // Barcode height in mm (fits within 20mm label)
                     width: 33.0,               // Barcode width in mm (x + width = 48 < 50mm)
                     value: String(labelData.patientId),  // Patient ID as barcode content
                     codeType: config.BARCODE_TYPE ? config.BARCODE_TYPE.CODE128 : 20,  // Code128 format
