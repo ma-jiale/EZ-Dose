@@ -223,3 +223,5 @@ cython_debug/
 *.zip
 
 .vscode/
+
+unity/Assets/OpenCVForUnity
