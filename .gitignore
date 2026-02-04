@@ -1,3 +1,57 @@
+# Unity 自动生成的文件夹
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+.utmp/
+
+# Visual Studio 缓存
+.vs/
+*.csproj
+*.sln
+*.slnx
+*.userprefs
+
+# Rider
+.idea/
+
+# macOS
+.DS_Store
+
+# 构建输出
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics
+crashlytics-build.properties
+
+# Profiler 数据
+*.data
+*.raw
+
+# Android 相关
+*.keystore
+!*.keystore.meta
+
+# TextMesh Pro
+Assets/TextMesh Pro/Examples/
+
+# 其他
+Recordings/
+*.pidb
+*.suo
+*.user
+*.tmp
+*.log
+
+python
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
