@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: d7dc8f33c4ffa2c4788402c5b2df1530
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Shared/RuntimeV2/Scripts/DAConstants.cs
+  uploadId: 771831

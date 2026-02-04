@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 57d418bae814862419a46781870b2af5
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Shared/Runtime/Scripts/Tools/Enums/CsvSeparator.cs
+  uploadId: 771831

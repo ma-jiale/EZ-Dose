@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 0
+    path: Assets/Scenes/SampleScene.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 0
+    path: Assets/Scenes/Test/BTModuleTest.unity
+    guid: 90eba82b08c028f4997b6765a3101bf8
+  - enabled: 0
+    path: Assets/Scenes/Test/PillCounterTest.unity
+    guid: de442dce2261ecc48b3226f1b6b4dd56
+  - enabled: 0
+    path: Assets/Scenes/DispenserDebugger.unity
+    guid: 2ff2f59fd5a30ec4b9c504e27df47ebc
+  - enabled: 1
+    path: Assets/Scenes/Home.unity
+    guid: 7bc33cf47c7018f4fae2b6c200bd8abf
+  - enabled: 1
+    path: Assets/Scenes/Scan.unity
+    guid: af5abb70e917da74bac066043f723ff1
+  - enabled: 1
+    path: Assets/Scenes/Dispense.unity
+    guid: 6732a105950c0d140ba9d41630e55653
+  m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0

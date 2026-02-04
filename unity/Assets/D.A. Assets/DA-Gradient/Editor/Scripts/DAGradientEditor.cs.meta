@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: 4a688ca46f4d0494a9f522e6f39b84fd
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Gradient/Editor/Scripts/DAGradientEditor.cs
+  uploadId: 771831
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - gui: {fileID: 11400000, guid: a44df56cea3f6824785751338c356dd1, type: 2}
+  - uitk: {fileID: 11400000, guid: 6aa927d48ae2bfb41b8a62e60ef3e8cb, type: 2}
+  - assetLogo: {fileID: 2800000, guid: 70270961f75ccc8479b28b4de3d622aa, type: 3}
+  - monoBeh: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

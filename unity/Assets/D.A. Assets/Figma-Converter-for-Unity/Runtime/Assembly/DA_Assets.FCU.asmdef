@@ -1,0 +1,14 @@
+{
+    "name": "DA_Assets.FCU",
+    "rootNamespace": "DA_Assets.FCU",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

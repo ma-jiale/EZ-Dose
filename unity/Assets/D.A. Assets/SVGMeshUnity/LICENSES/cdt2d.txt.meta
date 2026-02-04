@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 90d113c990aa0db4990c9edb659d2eb7
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/cdt2d.txt
+  uploadId: 771831

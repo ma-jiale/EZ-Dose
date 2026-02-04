@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a44df56cea3f6824785751338c356dd1
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Shared/Editor/Resources/DAInspector.asset
+  uploadId: 771831

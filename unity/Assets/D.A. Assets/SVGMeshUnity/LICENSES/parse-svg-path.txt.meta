@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: c1a4780bb7cfe334e80bd676b35a9646
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/parse-svg-path.txt
+  uploadId: 771831

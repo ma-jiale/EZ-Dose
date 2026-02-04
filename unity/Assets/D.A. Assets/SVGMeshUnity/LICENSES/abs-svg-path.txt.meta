@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: bce8eafaf56c7c3408c99182ce13cf46
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/abs-svg-path.txt
+  uploadId: 771831

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 1b74e700d4693d342a6732b0ca624858
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Shared/Runtime/DA_Assets.Shared.asmdef
+  uploadId: 771831

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 25a533ee82731294197c62a7b4068af4
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/normalize-svg-path.txt
+  uploadId: 771831

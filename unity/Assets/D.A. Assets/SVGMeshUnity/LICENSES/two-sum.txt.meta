@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5e7a04d3c32b4434f91cb1ad2a8ae9d4
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/two-sum.txt
+  uploadId: 771831

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: d3beb88e61f88ca4393acdefb005fa70
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/DA-Corner-Rounder/Runtime/Shaders/CornerRounder.shader
+  uploadId: 771831

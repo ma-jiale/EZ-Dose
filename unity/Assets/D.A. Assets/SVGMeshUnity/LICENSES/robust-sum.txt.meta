@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6acbd044513dcb046ad452216898aaf2
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/robust-sum.txt
+  uploadId: 771831

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 02f41ba2eacf22c40b748e00a62156e7
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/robust-scale.txt
+  uploadId: 771831

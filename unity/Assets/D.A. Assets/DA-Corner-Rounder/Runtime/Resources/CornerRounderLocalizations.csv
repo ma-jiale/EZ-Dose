@@ -1,0 +1,2 @@
+key,en-US,ja-JP,ko-KR,zh-CN,es-ES,de-DE,fr-FR
+log_shader_load_failed,"Failed to load shader '{0}'.","シェーダー '{0}' の読み込みに失敗しました。","셰이더 '{0}'을(를) 불러오지 못했습니다.","无法加载着色器“{0}”。","No se pudo cargar el sombreado '{0}'.","Shader '{0}' konnte nicht geladen werden.","Échec du chargement du shader « {0} »."

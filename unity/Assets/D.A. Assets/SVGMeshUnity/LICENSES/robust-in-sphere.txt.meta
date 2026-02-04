@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 2142f66657efe4d47a78f8dce8b161dd
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/robust-in-sphere.txt
+  uploadId: 771831

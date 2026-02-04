@@ -1,0 +1,1220 @@
+﻿key,en-US,ja-JP,ko-KR,zh-CN,es-ES,de-DE,fr-FR
+log_added_total,Added: {0}\nTotal: {1},追加済み: {0}\n合計: {1},추가됨: {0}\n총계: {1},已添加: {0}\n总计: {1},Añadido: {0}\nTotal: {1},Hinzugefügt: {0}\nGesamt: {1},Ajouté : {0}\nTotal : {1}
+log_api_waiting,Figma API timeout. {0} seconds remaining...,Figma API のタイムアウト。残り {0} 秒…,Figma API 시간 초과. {0}초 남음...,Figma API 超时。剩余 {0} 秒...,Tiempo de espera de la API de Figma. Quedan {0} segundos...,Figma API-Timeout. {0} Sekunden verbleiben...,Délai d’attente de l’API Figma. {0} secondes restantes...
+log_auth_complete,Auth complete!,認証が完了しました!,인증 완료!,授权完成！,¡Autenticación completada!,Authentifizierung abgeschlossen!,Authentification terminée !
+log_cant_auth,"Can't auth.
+Status: {0}
+Message: {1}
+Exception: {2}","認証できません。
+ステータス: {0}
+メッセージ: {1}
+例外: {2}","인증할 수 없습니다.
+상태: {0}
+메시지: {1}
+예외: {2}","无法授权。
+状态: {0}
+消息: {1}
+异常: {2}","No se puede autenticar.
+Estado: {0}
+Mensaje: {1}
+Excepción: {2}","Kann nicht authentifizieren.
+Status: {0}
+Nachricht: {1}
+Ausnahme: {2}","Impossible de s’authentifier.
+Statut : {0}
+Message : {1}
+Exception : {2}"
+log_cant_draw_object,Can't draw '{0}' object.,'{0}' オブジェクトを描画できません。,'{0}' 객체를 그릴 수 없습니다.,无法绘制“{0}”对象。,No se puede dibujar el objeto '{0}'.,Kann das Objekt '{0}' nicht zeichnen.,Impossible de dessiner l’objet '{0}'.
+log_cant_find_package,"The package '{0}' is not found, required for the asset to work. To install the package:
+1. Open the Unity Package Manager;
+2. Click on the PLUS button in the upper left corner of the window;
+3. Select 'Add package from git URL' menu item and enter the package name '{0}';
+4. Click on the Install button;
+5. The package is installed, now you can use the asset.","アセットを動作させるために必要なパッケージ '{0}' が見つかりません。パッケージをインストールするには:
+1. Unity Package Manager を開きます;
+2. ウィンドウ左上の PLUS ボタンをクリックします;
+3. 'Add package from git URL' メニュー項目を選択し、パッケージ名 '{0}' を入力します;
+4. Install ボタンをクリックします;
+5. パッケージがインストールされ、アセットを使用できるようになります。","에셋이 작동하는 데 필요한 패키지 '{0}'을（를） 찾을 수 없습니다. 패키지를 설치하려면:
+1. Unity 패키지 매니저를 엽니다;
+2. 창 왼쪽 상단의 PLUS 버튼을 클릭합니다;
+3. 'git URL에서 패키지 추가' 메뉴 항목을 선택하고 패키지 이름 '{0}'을（를） 입력합니다;
+4. 설치 버튼을 클릭합니다;
+5. 패키지가 설치되면 이제 에셋을 사용할 수 있습니다.","未找到软件包“{0}”，这是资源正常工作所需的。要安装此软件包：
+1. 打开 Unity Package Manager；
+2. 点击窗口左上角的加号按钮；
+3. 选择“从 git URL 添加软件包”并输入软件包名称“{0}”；
+4. 点击安装按钮；
+5. 软件包安装完成后，您即可使用该资源。","El paquete '{0}' no se encuentra, es necesario para que el asset funcione. Para instalar el paquete:
+1. Abre el Unity Package Manager;
+2. Haz clic en el botón MÁS en la esquina superior izquierda de la ventana;
+3. Selecciona la opción 'Add package from git URL' e introduce el nombre del paquete '{0}';
+4. Haz clic en el botón Instalar;
+5. El paquete está instalado, ahora puedes usar el asset.","Das Paket '{0}' wurde nicht gefunden, ist jedoch für die Funktion des Assets erforderlich. Um das Paket zu installieren:
+1. Öffnen Sie den Unity Package Manager;
+2. Klicken Sie auf die PLUS-Schaltfläche in der oberen linken Ecke des Fensters;
+3. Wählen Sie das Menüelement 'Add package from git URL' und geben Sie den Paketnamen '{0}' ein;
+4. Klicken Sie auf die Schaltfläche Installieren;
+5. Das Paket ist installiert, nun können Sie das Asset verwenden.","Le package '{0}' est introuvable, requis pour que l’actif fonctionne. Pour installer le package :
+1. Ouvrez le Gestionnaire de packages Unity ;
+2. Cliquez sur le bouton PLUS dans le coin supérieur gauche de la fenêtre ;
+3. Sélectionnez l’option « Ajouter un package depuis une URL git » et saisissez le nom du package '{0}' ;
+4. Cliquez sur le bouton Installer ;
+5. Le package est installé, vous pouvez maintenant utiliser l’actif."
+log_cant_get_part_of_frames,"Can't get part of frames.
+Error: {0}
+Status: {1}","フレームの一部を取得できません。
+エラー: {0}
+ステータス: {1}","프레임 일부를 가져올 수 없습니다.
+오류: {0}
+상태: {1}","无法获取部分画框。
+错误: {0}
+状态: {1}","No se puede obtener parte de los marcos.
+Error: {0}
+Estado: {1}","Kann Teil der Frames nicht abrufen.
+Fehler: {0}
+Status: {1}","Impossible d’obtenir une partie des images.
+Erreur : {0}
+Statut : {1}"
+log_cant_execute_because_no_backup,Unable to perform this action due to the inability to create a scene backup. Perhaps your scene was created for the first time and does not yet have a saved scene file?,シーンのバックアップを作成できないため、この操作を実行できません。シーンを初めて作成したばかりで、まだ保存済みのシーンファイルが存在しない可能性があります。,씬 백업을 생성할 수 없어서 이 작업을 수행할 수 없습니다. 아마도 씬이 처음 생성되어 아직 저장된 씬 파일이 없을 수 있습니다.,由于无法创建场景备份，无法执行此操作。可能是您的场景首次创建，还没有保存的场景文件？,No se puede realizar esta acción porque no fue posible crear una copia de seguridad de la escena. Es posible que sea la primera vez que creas esta escena y aún no tengas un archivo guardado.,"Diese Aktion kann nicht ausgeführt werden, da kein Szenen-Backup erstellt werden konnte. Vielleicht wurde Ihre Szene gerade erst erstellt und hat noch keine gespeicherte Szenendatei?",Impossible d’effectuer cette action en raison de l’impossibilité de créer une sauvegarde de la scène. Peut-être que votre scène a été créée pour la première fois et qu’elle n’a pas encore de fichier de scène enregistré ?
+log_component_not_selected_in_hierarchy,{0}'s gameobject not selected in hierarchy.,{0} の GameObject がヒエラルキーで選択されていません。,{0}의 게임오브젝트가 계층 구조에서 선택되지 않았습니다。,未在层级中选择 {0} 的游戏对象。,El GameObject de {0} no está seleccionado en la jerarquía.,Das GameObject von {0} ist in der Hierarchie nicht ausgewählt.,Le GameObject de {0} n’est pas sélectionné dans la hiérarchie.
+log_current_canvas_metas_destroy,FCU {0}: {1} '{2}.cs' scripts destroyed.,FCU {0}: {1} '{2}.cs' スクリプトを削除しました。,FCU {0}: {1} '{2}.cs' 스크립트가 삭제되었습니다.,FCU {0}: {1} “{2}.cs” 脚本已销毁。,FCU {0}: {1} scripts '{2}.cs' destruidos.,FCU {0}: {1} '{2}.cs'-Skripte zerstört.,FCU {0} : {1} scripts '{2}.cs' détruits.
+log_dev_function_enabled,"You have enabled the '{0}' function.
+In current version of the asset this function is under development and may work with errors.","'{0}' 機能を有効化しました。
+現在のアセットのバージョンではこの機能は開発中であり、エラーが発生する可能性があります。","'{0}' 기능을 활성화했습니다.
+현재 버전의 에셋에서는 이 기능이 개발 중이며 오류가 있을 수 있습니다.","您已启用“{0}”功能。
+在当前版本的资源中，该功能仍在开发中，可能会出现错误。","Has habilitado la función '{0}'.
+En la versión actual del asset, esta función está en desarrollo y puede funcionar con errores.","Sie haben die Funktion '{0}' aktiviert.
+In der aktuellen Version des Assets befindet sich diese Funktion in der Entwicklung und kann fehlerhaft arbeiten.","Vous avez activé la fonction '{0}'.
+Dans la version actuelle de l’actif, cette fonction est en développement et peut comporter des erreurs."
+log_downloading_fonts,Downloading fonts: {0} of {1},フォントをダウンロード中: {0} / {1},폰트 다운로드 중: {0}/{1},正在下载字体: {0}/{1},Descargando fuentes: {0} de {1},Schriftarten werden heruntergeladen: {0} von {1},Téléchargement des polices : {0} sur {1}
+log_downloading_images,Downloading images: {0} of {1},画像をダウンロード中: {0} / {1},이미지 다운로드 중: {0}/{1},正在下载图像: {0}/{1},Descargando imágenes: {0} de {1},Bilder werden heruntergeladen: {0} von {1},Téléchargement des images : {0} sur {1}
+log_drawn_count,Drawing '{0}' components: {1} of {2},'{0}' コンポーネントを描画中: {1} / {2},'{0}' 컴포넌트 그리기: {1}/{2},正在绘制“{0}”组件: {1}/{2},Dibujando componentes '{0}': {1} de {2},Zeichne '{0}'-Komponenten: {1} von {2},Dessin des composants '{0}' : {1} sur {2}
+log_enable_http_project_settings,"Unity doesn't allow establishing an HTTP connection.
+To proceed with the import, open Project Settings > Player > Configuration, and switch the 'Allow downloads over HTTP' option to 'Always allowed'.","Unity が HTTP 接続を確立できません。
+インポートを続行するには、Project Settings > Player > Configuration を開き、'Allow downloads over HTTP' を 'Always allowed' に切り替えてください。","Unity에서 HTTP 연결을 허용하지 않습니다.
+가져오기를 계속하려면 Project Settings > Player > Configuration으로 이동하여 'Allow downloads over HTTP' 옵션을 'Always allowed'로 변경하세요.","Unity 不允许建立 HTTP 连接。
+要继续导入，请打开 Project Settings > Player > Configuration，并将“Allow downloads over HTTP”选项切换为“Always allowed”。","Unity no permite establecer una conexión HTTP.
+Para continuar con la importación, abre Ajustes del proyecto > Player > Configuration y cambia la opción 'Permitir descargas vía HTTP' (Allow downloads over HTTP) a 'Siempre permitido' (Always allowed).","Unity erlaubt keine HTTP-Verbindung.
+Öffnen Sie zum Fortfahren Projekt-Einstellungen > Player > Konfiguration und stellen Sie die Option 'Downloads über HTTP zulassen' (Allow downloads over HTTP) auf 'Immer zulassen' (Always allowed).","Unity n’autorise pas la création d’une connexion HTTP.
+Pour continuer l’import, ouvrez Paramètres du projet > Joueur > Configuration et passez l’option 'Autoriser les téléchargements via HTTP' (Allow downloads over HTTP) sur 'Toujours autorisé' (Always allowed)."
+log_fcu_assigned,{0} {1}'s ({2}) assigned.,{0} {1} （{2}） が割り当てられました。,{0} {1}（{2}） 할당됨.,{0} {1} （{2}） 已分配。,Asignado {0} {1} ({2}).,{0} {1} ({2}) wurde zugewiesen.,{0} {1} ({2}) assigné.
+log_generating_sprites,Generating sprites:  {0} of {1},スプライトを生成中: {0} / {1},스프라이트 생성 중: {0}/{1},正在生成精灵: {0}/{1},Generando sprites: {0} de {1},Sprites werden generiert: {0} von {1},Génération des sprites : {0} sur {1}
+log_generating_tmp_fonts,Generating TMP fonts: {0} of {1},TMP フォントを生成中: {0} / {1},TMP 폰트 생성 중: {0}/{1},正在生成 TMP 字体: {0}/{1},Generando fuentes TMP: {0} de {1},TMP-Schriften werden generiert: {0} von {1},Génération des polices TMP : {0} sur {1}
+log_getting_frames,Getting frames: {0} of {1},フレームを取得中: {0} / {1},프레임 가져오기: {0}/{1},正在获取画框: {0}/{1},Obteniendo marcos: {0} de {1},Frames werden abgerufen: {0} von {1},Récupération des images : {0} sur {1}
+log_getting_links,Getting links to download images: {0} of {1},画像をダウンロードするリンクを取得中: {0} / {1},이미지 다운로드 링크 가져오기: {0}/{1},正在获取下载图像的链接: {0}/{1},Obteniendo enlaces para descargar imágenes: {0} de {1},Links zum Herunterladen von Bildern werden abgerufen: {0} von {1},Récupération des liens pour télécharger des images : {0} sur {1}
+log_import_complete,Import complete!,インポートが完了しました!,가져오기 완료!,导入完成！,¡Importación completada!,Import abgeschlossen!,Importation terminée !
+log_import_task_canceled,Import task was canceled.,インポート処理がキャンセルされました。,가져오기 작업이 취소되었습니다.,导入任务已被取消。,La tarea de importación se canceló.,Der Importvorgang wurde abgebrochen.,La tâche d’importation a été annulée.
+log_instantiate_game_objects,Instantiating GameObjects...,GameObjects をインスタンス化中…,게임오브젝트 인스턴스화 중...,正在实例化游戏对象...,Instanciando GameObjects...,GameObjects werden instanziiert...,Instanciation des GameObjects...
+log_local_prefabs_found,{0} prefabs found.,{0} 個のプレハブが見つかりました。,프리팹 {0}개 발견됨.,找到 {0} 个预制体。,Se encontraron {0} prefabs.,{0} Prefabs gefunden.,{0} prefabs trouvés.
+log_malformed_url,"For some of your components ({0}), download links for images were not found. Possible reasons:
+1. You are importing frames that have a large size in pixels. Try reducing the Image Scale in the Main Settings of the asset;
+2. You need to reauthorize in your Figma account within the asset;
+3. You have exceeded the request limit to the Figma API, and you need to wait some time before attempting another import;
+4. Your component is hidden, has zero, or negative size.
+
+If the advice from points 1, 2, or 3 did not help, please contact the developer.
+Also, you can try using an asset for procedural image generation instead of the standard one, for example, the free Shapes2D asset. You can read more about this in the ""Manual for developers"" attached to the asset.
+
+List of these components:
+{1}","一部のコンポーネント （{0}） に対し、画像のダウンロードリンクが見つかりませんでした。考えられる原因:
+1. ピクセルサイズが大きいフレームをインポートしています。アセットのメイン設定で Image Scale を小さくしてみてください;
+2. アセット内で Figma アカウントの再認証が必要です;
+3. Figma API のリクエスト制限を超えており、再試行する前にしばらく待つ必要があります;
+4. コンポーネントが非表示、またはゼロもしくは負のサイズになっています。
+
+1, 2, 3 の対処法で解決しない場合は、開発者にお問い合わせください。
+また、標準の代わりに手続き型の画像生成用アセット （例: 無料の Shapes2D アセット） を試すこともできます。詳細はアセットに添付の「開発者向けマニュアル」をご参照ください。
+
+これらのコンポーネント一覧:
+{1}","일부 컴포넌트（{0}）에 대한 이미지 다운로드 링크를 찾을 수 없습니다. 가능한 이유:
+1. 픽셀 크기가 큰 프레임을 가져오고 있습니다. 에셋 메인 설정에서 이미지 크기를 줄여 보세요;
+2. 에셋 내에서 Figma 계정을 다시 인증해야 합니다;
+3. Figma API 요청 한도를 초과했으므로 다시 가져오기 전에 잠시 기다려야 합니다;
+4. 컴포넌트가 숨겨져 있거나 크기가 0 또는 음수입니다.
+
+1, 2, 3번 조치가 도움이 되지 않는 경우 개발자에게 문의하세요.
+또한 표준 에셋 대신 절차적 이미지 생성용 에셋을 사용할 수 있습니다. 예: 무료 Shapes2D 에셋. 이에 대한 자세한 내용은 에셋에 첨부된 ""개발자 매뉴얼""에서 확인할 수 있습니다.
+
+이 컴포넌트 목록:
+{1}","部分组件 （{0}） 未找到图像下载链接。可能原因：
+1. 您正在导入的画框像素尺寸过大。请尝试在资源的 Main Settings 中减小 Image Scale；
+2. 您需要在资源中重新登录 Figma 账户；
+3. 您已超过 Figma API 请求限制，需要等待一段时间再尝试导入；
+4. 您的组件被隐藏、大小为零或负数。
+
+如果 1、2 或 3 的建议无效，请联系开发人员。
+您还可以尝试使用程序化图像生成功能替代标准方法，例如免费的 Shapes2D 资源。关于此内容，可在资源附带的《开发者手册》中阅读。
+
+这些组件的列表：
+{1}","Para algunos de tus componentes ({0}), no se encontraron enlaces de descarga de imágenes. Posibles razones:
+1. Estás importando marcos que tienen un tamaño grande en píxeles. Intenta reducir la escala de imagen en la Configuración Principal del asset;
+2. Debes volver a autorizar tu cuenta de Figma dentro del asset;
+3. Has excedido el límite de solicitudes a la API de Figma y necesitas esperar un tiempo antes de intentar otra importación;
+4. Tu componente está oculto, tiene tamaño cero o negativo.
+
+Si los consejos de los puntos 1, 2 o 3 no ayudaron, por favor contacta al desarrollador.
+También puedes intentar usar un asset de generación de imágenes procedimental en lugar del estándar, por ejemplo, el asset gratuito Shapes2D. Puedes leer más sobre esto en el ""Manual para desarrolladores"" adjunto al asset.
+
+Lista de estos componentes:
+{1}","Für einige Ihrer Komponenten ({0}) wurden keine Download-Links für Bilder gefunden. Mögliche Gründe:
+1. Sie importieren Frames mit einer großen Pixelgröße. Versuchen Sie, den Image Scale in den Haupteinstellungen des Assets zu reduzieren;
+2. Sie müssen sich in Ihrem Figma-Konto innerhalb des Assets erneut autorisieren;
+3. Sie haben das Anfrage-Limit an die Figma API überschritten und müssen eine Weile warten, bevor Sie einen weiteren Import versuchen;
+4. Ihre Komponente ist ausgeblendet, hat null oder negative Größe.
+
+Wenn die Ratschläge aus den Punkten 1, 2 oder 3 nicht helfen, wenden Sie sich bitte an den Entwickler.
+Sie können auch versuchen, ein Asset zur prozeduralen Bildgenerierung anstelle des Standard-Assets zu verwenden, zum Beispiel das kostenlose Shapes2D-Asset. Mehr dazu finden Sie im ""Manual for developers"", das dem Asset beiliegt.
+
+Liste dieser Komponenten:
+{1}","Pour certains de vos composants ({0}), les liens de téléchargement des images n’ont pas été trouvés. Raisons possibles :
+1. Vous importez des images avec une grande taille en pixels. Essayez de réduire l’échelle d’image dans les paramètres principaux de l’actif ;
+2. Vous devez vous réauthentifier dans votre compte Figma au sein de l’actif ;
+3. Vous avez dépassé la limite de requêtes vers l’API Figma et devez attendre un certain temps avant de réessayer ;
+4. Votre composant est masqué, a une taille nulle ou négative.
+
+Si les conseils des points 1, 2 ou 3 n’ont pas aidé, contactez le développeur.
+Vous pouvez également essayer d’utiliser un actif de génération d’images procédurales plutôt que l’actif standard, par exemple l’actif gratuit Shapes2D. Vous trouverez plus d’informations à ce sujet dans le « Manuel pour développeurs » joint à l’actif.
+
+Liste de ces composants :
+{1}"
+log_mark_as_sprite,Assigning  'Sprite' type to the downloaded images:  {0} of {1},ダウンロードした画像に 'Sprite' タイプを割り当て中: {0} / {1},다운로드된 이미지에 'Sprite' 유형을 할당 중: {0}/{1},将已下载图像分配为“Sprite”类型: {0}/{1},Asignando tipo 'Sprite' a las imágenes descargadas: {0} de {1},Heruntergeladenen Bildern wird der Typ 'Sprite' zugewiesen: {0} von {1},Attribution du type 'Sprite' aux images téléchargées : {0} sur {1}
+log_need_auth,Import stopped. Reauthorization required.,インポートが停止しました。再認証が必要です。,가져오기가 중단되었습니다. 다시 인증이 필요합니다.,导入已停止。需要重新授权。,Importación detenida. Se requiere volver a autorizar.,Import gestoppt. Erneute Autorisierung erforderlich.,Importation arrêtée. Réauthentification requise.
+log_no_google_fonts_api_key,Google Fonts API key is missing; fonts cannot be downloaded.,Google Fonts API キーがないため、フォントをダウンロードできません。,Google Fonts API 키가 없어 폰트를 다운로드할 수 없습니다.,缺少 Google Fonts API 密钥，无法下载字体。,Falta la clave de la API de Google Fonts; no se pueden descargar las fuentes.,"Der Google-Fonts-API-Schlüssel fehlt, daher können keine Schriftarten heruntergeladen werden.",La clé d’API Google Fonts est absente ; impossible de télécharger les polices.
+log_nothing_to_import,Nothing to import. Select at least one frame in Figma.,インポートするものがありません。Figma で少なくとも 1 つのフレームを選択してください。,가져올 항목이 없습니다. Figma에서 최소 한 개의 프레임을 선택하세요.,没有可导入的内容。请在 Figma 中至少选择一个画框。,No hay nada que importar. Selecciona al menos un frame en Figma.,Nichts zu importieren. Wähle mindestens einen Frame in Figma aus.,Rien à importer. Sélectionnez au moins un cadre dans Figma.
+log_open_auth_page,Opening authorization page in the web browser…,ブラウザで認証ページを開いています…,웹 브라우저에서 인증 페이지 열기…,正在通过浏览器打开授权页面…,Abriendo página de autorización en el navegador web…,Autorisierungsseite im Webbrowser öffnen…,Ouverture de la page d’autorisation dans le navigateur web…
+log_prefabs_created,{0} prefabs created.,{0} 個のプレハブを作成しました。,프리팹 {0}개 생성됨.,已创建 {0} 个预制体。,{0} prefabs creados.,{0} Prefabs erstellt.,{0} prefabs créés.
+log_project_downloaded,The project has been downloaded. Select the page you want to get frames from.,プロジェクトがダウンロードされました。フレームを取得したいページを選択してください。,프로젝트가 다운로드되었습니다. 프레임을 가져올 페이지를 선택하세요.,项目已下载。请选择要获取画框的页面。,El proyecto ha sido descargado. Selecciona la página de la que deseas obtener marcos.,"Das Projekt wurde heruntergeladen. Wählen Sie die Seite, von der Sie Frames erhalten möchten.",Le projet a été téléchargé. Sélectionnez la page à partir de laquelle vous souhaitez obtenir les images.
+log_project_empty,Project is empty.,プロジェクトは空です。,프로젝트가 비어 있습니다.,项目为空。,El proyecto está vacío.,Projekt ist leer.,Le projet est vide.
+log_project_not_found,"Either this file doesn't exist or you don't have permission to view it. Ask the file owner to verify the link and/or update permissions. If you are using a team project, read the 'Teamwork' section in 'Manual for designers.pdf'.",このファイルが存在しないか、閲覧する権限がありません。ファイル所有者にリンクを確認/権限を更新してもらってください。チームプロジェクトを使用している場合は、『Manual for designers.pdf』の『Teamwork』セクションを参照してください。,"이 파일이 존재하지 않거나 볼 수 있는 권한이 없습니다. 파일 소유자에게 링크와 권한을 확인하도록 요청하세요. 팀 프로젝트를 사용하는 경우, 'Manual for designers.pdf'의 'Teamwork' 섹션을 참고하세요.",该文件不存在或您无权查看。请让文件所有者验证链接或更新权限。如果您使用的是团队项目，请阅读《Manual for designers.pdf》中的“Teamwork”部分。,"Este archivo no existe o no tienes permiso para verlo. Pide al propietario del archivo que verifique el enlace y/o actualice los permisos. Si estás utilizando un proyecto de equipo, lee la sección 'Trabajo en equipo' en 'Manual for designers.pdf'.","Entweder existiert diese Datei nicht oder Sie haben keine Berechtigung zur Anzeige. Bitten Sie den Dateibesitzer, den Link zu überprüfen und/oder die Berechtigungen zu aktualisieren. Wenn Sie ein Teamprojekt verwenden, lesen Sie den Abschnitt 'Teamwork' in 'Manual for designers.pdf'.","Soit ce fichier n’existe pas, soit vous n’avez pas la permission de le consulter. Demandez au propriétaire du fichier de vérifier le lien et/ou de mettre à jour les autorisations. Si vous utilisez un projet d’équipe, lisez la section « Travail en équipe » dans « Manual for designers.pdf »."
+log_search_local_prefabs,Searching prefabs…,プレハブを検索中…,프리팹 검색 중…,正在搜索预制体…,Buscando prefabs…,Prefabs werden gesucht…,Recherche de prefabs…
+log_set_anchors,Setting anchors: {0} of {1},アンカーを設定中: {0} / {1},앵커 설정 중: {0}/{1},正在设置锚点: {0}/{1},Estableciendo anclas: {0} de {1},Anker setzen: {0} von {1},Définition des ancres : {0} sur {1}
+log_ssl_error,"Turn off HTTPS in Main Settings.
+Error: {0}
+Status: {1}","メイン設定で HTTPS をオフにしてください。
+エラー: {0}
+ステータス: {1}","메인 설정에서 HTTPS를 끄세요.
+오류: {0}
+상태: {1}","请在主设置中关闭 HTTPS。
+错误: {0}
+状态: {1}","Desactiva HTTPS en Configuración Principal.
+Error: {0}
+Estado: {1}","Deaktivieren Sie HTTPS in den Haupteinstellungen.
+Fehler: {0}
+Status: {1}","Désactivez HTTPS dans les paramètres principaux.
+Erreur : {0}
+Statut : {1}"
+log_start_adding_to_fonts_list,Start adding fonts to the list...,フォントをリストに追加し始めています…,폰트를 목록에 추가 시작...,开始将字体添加到列表...,Iniciando la adición de fuentes a la lista...,Beginne mit dem Hinzufügen von Schriftarten zur Liste...,Début de l’ajout des polices à la liste...
+log_start_creating_prefabs,Start creating prefabs...,プレハブの作成を開始…,프리팹 생성 시작...,开始创建预制体...,Iniciando la creación de prefabs...,Beginne mit dem Erstellen von Prefabs...,Début de la création des prefabs...
+log_start_download_images,Start downloading images...,画像のダウンロードを開始…,이미지 다운로드 시작...,开始下载图像...,Iniciando la descarga de imágenes...,Beginne mit dem Herunterladen von Bildern...,Début du téléchargement des images...
+log_tagging,Tagging in progress. Processed items: {0},タグ付けを実行中。処理済みアイテム: {0},태깅 진행 중. 처리된 항목: {0},标签处理中。已处理项目: {0},Etiquetado en progreso. Elementos procesados: {0},Tagging läuft. Verarbeitete Elemente: {0},Étiquetage en cours. Éléments traités : {0}
+log_tagging_by_parts,Tagging in progress. Part {0}...,タグ付けを実行中。パート {0}…,태깅 진행 중. {0} 부분...,标签处理中。第 {0} 部分...,Etiquetado en progreso. Parte {0}...,Tagging läuft. Teil {0}...,Étiquetage en cours. Partie {0}...
+log_unknown_aligment,"Unable to recognize alignment.
+Aligment: {0}
+Component: {1}
+Please report this error to the developer.","アライメントを認識できません。
+アライメント: {0}
+コンポーネント: {1}
+このエラーを開発者に報告してください。","정렬을 인식할 수 없습니다.
+정렬: {0}
+컴포넌트: {1}
+이 오류를 개발자에게 보고하세요.","无法识别对齐方式。
+对齐方式: {0}
+组件: {1}
+请将此错误报告给开发人员。","No se puede reconocer la alineación.
+Alineación: {0}
+Componente: {1}
+Por favor, informa de este error al desarrollador.","Ausrichtung konnte nicht erkannt werden.
+Ausrichtung: {0}
+Komponente: {1}
+Bitte melden Sie diesen Fehler dem Entwickler.","Impossible de reconnaître l’alignement.
+Alignement : {0}
+Composant : {1}
+Veuillez signaler cette erreur au développeur."
+log_unknown_error,"Unknown error:
+Status: {1}
+Error: {0}
+Exception: {2}","不明なエラー:
+ステータス: {1}
+エラー: {0}
+例外: {2}","알 수 없는 오류:
+상태: {1}
+오류: {0}
+예외: {2}","未知错误:
+状态: {1}
+错误: {0}
+异常: {2}","Error desconocido:
+Estado: {1}
+Error: {0}
+Excepción: {2}","Unbekannter Fehler:
+Status: {1}
+Fehler: {0}
+Ausnahme: {2}","Erreur inconnue :
+Statut : {1}
+Erreur : {0}
+Exception : {2}"
+log_not_authorized,Not authorized. Please sign in to Figma before running this action.,認証されていません。操作する前に Figma にサインインしてください。,인증되지 않았습니다. 이 작업을 실행하기 전에 Figma에 로그인하세요.,未授权。请先登录 Figma 后再执行此操作。,No estás autorizado. Inicia sesión en Figma antes de ejecutar esta acción.,Nicht autorisiert. Melde dich vor diesem Vorgang bei Figma an.,Non autorisé. Connectez-vous à Figma avant d’exécuter cette action.
+log_incorrent_project_url,Incorrect project url.,プロジェクトURLが正しくありません。,잘못된 프로젝트 URL입니다.,项目 URL 不正确。,URL de proyecto incorrecta.,Falsche Projekt-URL.,URL du projet incorrecte.
+log_name_linking_not_recommended,"You switched the '{0}' to '{1}'.
+This mode is not recommended for use because objects with the same names can get confused during linking.
+Please refer to the manual included with the 'UITK Element Linker' asset to learn more about this in detail.","'{0}' を '{1}' に切り替えました。
+このモードは、同じ名前のオブジェクトがリンク時に混乱する可能性があるため、使用は推奨されません。
+詳細については、'UITK Element Linker' アセットに含まれるマニュアルをご参照ください。","'{0}'을（를） '{1}'로 전환했습니다.  
+이 모드는 동일한 이름을 가진 객체가 연결 중 혼동될 수 있으므로 사용을 권장하지 않습니다.  
+자세한 내용은 'UITK Element Linker' 에셋에 포함된 설명서를 참고하십시오.","您已将“{0}”切换为“{1}”。
+此模式不建议使用，因为具有相同名称的对象在链接过程中可能会混淆。
+请参阅随“UITK Element Linker”资源附带的手册以了解更多详细信息。","Has cambiado '{0}' a '{1}'.
+Este modo no se recomienda para su uso porque los objetos con los mismos nombres pueden confundirse durante la vinculación.
+Por favor, consulta el manual incluido con el recurso 'UITK Element Linker' para aprender más sobre esto en detalle.","Sie haben '{0}' auf '{1}' umgeschaltet.  
+Dieser Modus wird nicht zur Verwendung empfohlen, da Objekte mit denselben Namen beim Verknüpfen verwechselt werden können.  
+Bitte lesen Sie das Handbuch, das dem 'UITK Element Linker'-Asset beiliegt, um mehr darüber zu erfahren.","Vous avez changé le '{0}' en '{1}'.
+Ce mode n'est pas recommandé car des objets portant les mêmes noms peuvent être confondus lors du lien.
+Veuillez vous référer au manuel inclus avec l'asset 'UITK Element Linker' pour en savoir plus en détail."
+log_svg_scale_1,SVG scale reset to 1.0 to keep the shapes accurate.,図形を正しく保つため、SVG のスケールを 1.0 にリセットしました。,도형 정확도를 위해 SVG 스케일을 1.0으로 재설정했습니다.,为保持图形准确，SVG 缩放已重置为 1.0。,"La escala SVG se restableció a 1,0 para mantener las formas correctas.","SVG-Skalierung auf 1,0 zurückgesetzt, um die Formen korrekt zu halten.","L’échelle SVG a été réinitialisée à 1,0 pour préserver la justesse des formes."
+loading_google_fonts,Loading '{0}' fonts data from Google repository...,Google リポジトリから '{0}' フォントデータを読み込み中...,Google 저장소에서 '{0}' 폰트 데이터를 불러오는 중...,正在从 Google 仓库加载“{0}”字体数据...,Cargando datos de fuentes '{0}' desde el repositorio de Google...,Lade '{0}' Schriftartdaten aus dem Google-Repository...,Chargement des données de polices '{0}' depuis le dépôt Google...
+cant_download_fonts,"Failed to download {0} fonts, you need to add them to the project manually: {1}",{0} 個のフォントのダウンロードに失敗しました。{1} を手動でプロジェクトに追加する必要があります。,{0} 폰트를 다운로드하지 못했습니다. 수동으로 프로젝트에 추가해야 합니다: {1},下载 {0} 字体失败，您需要将它们手动添加到项目中：{1},"Error al descargar {0} fuentes, necesitas añadirlas manualmente al proyecto: {1}","Fehler beim Herunterladen von {0} Schriftarten, Sie müssen diese manuell dem Projekt hinzufügen: {1}","Échec du téléchargement des polices {0}, vous devez les ajouter manuellement au projet : {1}"
+cant_generate_fonts,"Failed to generate {0} fonts, you need to generate them manually: {1}",{0} 個のフォントの生成に失敗しました。{1} を手動で生成する必要があります。,{0} 폰트를 생성하지 못했습니다. 수동으로 생성해야 합니다: {1},生成 {0} 字体失败，您需要手动生成它们：{1},"Error al generar {0} fuentes, necesitas generarlas manualmente: {1}","Fehler beim Generieren von {0} Schriftarten, Sie müssen diese manuell generieren: {1}","Échec de la génération des polices {0}, vous devez les générer manuellement : {1}"
+cant_load_sprites,"Sprites for some of your components ({0}) cannot be loaded.  
+List of components:  
+{1}","一部のコンポーネント （{0}） のスプライトを読み込めません。
+コンポーネント一覧:  
+{1}","일부 컴포넌트（{0}）의 스프라이트를 불러올 수 없습니다.  
+컴포넌트 목록:  
+{1}","某些组件 （{0}） 的精灵无法加载。  
+组件列表：  
+{1}","No se pueden cargar los sprites de algunos de tus componentes ({0}).  
+Lista de componentes:  
+{1}","Sprites für einige Ihrer Komponenten ({0}) können nicht geladen werden.  
+Liste der Komponenten:  
+{1}","Les sprites de certains de vos composants ({0}) ne peuvent pas être chargés.  
+Liste des composants :  
+{1}"
+label_add_tmp_fonts_from_folder,Add from current folder,現在のフォルダーから追加,현재 폴더에서 추가,从当前文件夹添加,Añadir desde carpeta actual,Aus aktuellem Ordner hinzufügen,Ajouter depuis le dossier actuel
+tooltip_add_fonts_from_folder,Add every supported font found in the selected folder to the list.,選択したフォルダー内の対応フォントをすべてリストに追加します。,선택한 폴더에서 지원되는 모든 폰트를 목록에 추가합니다.,将选定文件夹中所有受支持的字体添加到列表。,Agrega todas las fuentes compatibles de la carpeta seleccionada a la lista.,Fügt alle unterstützten Schriften aus dem ausgewählten Ordner zur Liste hinzu.,Ajoute toutes les polices compatibles du dossier sélectionné à la liste.
+label_add_ttf_fonts_from_folder,Add from current folder,現在のフォルダーから追加,현재 폴더에서 추가,从当前文件夹添加,Añadir desde carpeta actual,Aus aktuellem Ordner hinzufügen,Ajouter depuis le dossier actuel
+tooltip_add_ttf_fonts_from_folder,Add only .ttf fonts from the current folder to the list.,現在のフォルダーにある .ttf フォントのみをリストに追加します。,현재 폴더의 .ttf 폰트만 목록에 추가합니다.,仅将当前文件夹中的 .ttf 字体添加到列表。,Añade solo las fuentes .ttf de la carpeta actual a la lista.,Fügt nur .ttf-Schriften aus dem aktuellen Ordner zur Liste hinzu.,Ajoute uniquement les polices .ttf du dossier actuel à la liste.
+label_asset,HOME,ホーム,홈,主页,INICIO,STARTSEITE,ACCUEIL
+tooltip_asset,Configure the asset’s global behavior and status.,アセット全体の動作とステータスを設定します。,에셋의 전역 동작과 상태를 구성합니다.,配置此资源的全局行为和状态。,Configura el comportamiento global y el estado del asset.,Konfiguriert das globale Verhalten und den Status des Assets.,Configure le comportement global et l’état de l’asset.
+label_asset_creator_settings,FONT ASSET CREATOR SETTINGS,フォントアセット作成設定,폰트 에셋 생성기 설정,字体资源创建器设置,AJUSTES DEL CREADOR DE FUENTES,FONT ASSET CREATOR EINSTELLUNGEN,PARAMÈTRES DE CRÉATION DE POLICE
+tooltip_asset_creator_settings,"TextMeshPro font generation settings, identical to the settings of the 'Font Asset Creator' utility.",TextMeshPro フォント生成の設定で、'Font Asset Creator' ユーティリティの設定と同一です。,"TextMeshPro 폰트 생성 설정으로, 'Font Asset Creator' 유틸리티의 설정과 동일합니다.",TextMeshPro 字体生成设置，与“Font Asset Creator”工具的设置相同。,"Configuraciones de generación de fuentes de TextMeshPro, idénticas a los ajustes de la utilidad 'Font Asset Creator'.","TextMeshPro-Schriftgenerierungseinstellungen, identisch mit den Einstellungen des 'Font Asset Creator'-Tools.","Paramètres de génération de polices TextMeshPro, identiques à ceux de l'utilitaire 'Font Asset Creator'."
+label_atlas_padding,Atlas Padding,アトラスのパディング,아틀라스 패딩,图集填充,Relleno del atlas,Atlas-Abstand,Marge de l'atlas
+tooltip_atlas_padding,"Specify the space, in pixels, between characters in the font texture.
+
+Padding provides the space required to render character separately, and to generate the SDF gradient (See the documentation on Font Assets for details).
+
+The larger the padding, the smoother the transition, which allows for higher-quality rendering and larger effects, like thick outlines.
+
+A padding of 5 is often fine for a 512x512 texture.","フォントテクスチャ内で文字間に設けるスペース（ピクセル単位）を指定します。
+
+パディングは、文字を別々に描画するために必要なスペースを提供し、SDFグラデーションを生成するために使用されます（詳細はフォントアセットのドキュメントを参照してください）。
+
+パディングが大きいほど遷移が滑らかになり、高品質なレンダリングや太いアウトラインなどの大きな効果を実現できます。
+
+512x512のテクスチャでは、パディング5程度で十分な場合が多いです。","폰트 텍스처에서 문자 간의 간격을 픽셀 단위로 지정합니다.  
+
+패딩은 문자를 개별적으로 렌더링하고 SDF 그라데이션을 생성하는 데 필요한 공간을 제공합니다 （자세한 내용은 폰트 에셋 문서를 참조하십시오）.  
+
+패딩이 클수록 전환이 부드러워져 더 고품질의 렌더링과 두꺼운 외곽선 같은 큰 효과를 얻을 수 있습니다.  
+
+512x512 텍스처의 경우 패딩 5 정도가 일반적으로 적절합니다.","指定字体纹理中字形之间的像素间距。
+
+填充提供将字符单独渲染以及生成 SDF 渐变所需的空间（有关详细信息，请参阅 Font Assets 文档）。
+
+填充越大，过渡越平滑，从而实现更高质量的渲染和更大的效果，如粗描边。
+
+对于 512x512 的纹理，填充为 5 通常就足够了。","Especifica el espacio, en píxeles, entre los caracteres en la textura de la fuente.
+
+El relleno proporciona el espacio necesario para renderizar el carácter por separado y para generar el degradado SDF (consulta la documentación de recursos de fuentes para más detalles).
+
+Cuanto mayor sea el relleno, más suave será la transición, lo que permite un renderizado de mayor calidad y efectos más grandes, como contornos gruesos.
+
+Un relleno de 5 suele estar bien para una textura de 512x512.","Geben Sie den Abstand in Pixeln zwischen Zeichen in der Schrifttextur an.  
+
+Der Abstand bietet den notwendigen Raum, um Zeichen getrennt darzustellen und den SDF-Gradienten zu erzeugen (siehe Dokumentation zu Schrift-Assets für Details).  
+
+Je größer der Abstand, desto weicher der Übergang, was eine höhere Darstellungsqualität und größere Effekte wie dicke Umrandungen ermöglicht.  
+
+Ein Abstand von 5 ist für eine 512x512-Textur oft ausreichend.","Spécifiez l'espace, en pixels, entre les caractères dans la texture de police.
+
+La marge fournit l'espace nécessaire pour afficher les caractères séparément et pour générer le dégradé SDF (voir la documentation sur les polices pour plus de détails).
+
+Plus la marge est grande, plus la transition est fluide, ce qui permet un rendu de meilleure qualité et des effets plus importants, comme des contours épais.
+
+Une marge de 5 est souvent suffisante pour une texture de 512x512."
+label_atlas_population_mode,Atlas Population Mode,アトラス生成モード,아틀라스 채우기 모드,图集填充模式,Modo de población del atlas,Atlas-Populationsmodus,Mode de peuplement de l'atlas
+tooltip_atlas_population_mode,,,,,,,
+label_atlas_resolution,Atlas Resolution,アトラス解像度,아틀라스 해상도,图集分辨率,Resolución del atlas,Atlas-Auflösung,Résolution de l'atlas
+tooltip_atlas_resolution,"Set the size width and height of the font texture, in pixels.
+
+A resolution of 512 x 512 is fine for most fonts, as long as you are only including ASCII characters. Fonts with more characters may require larger resolutions, or multiple atlases.
+
+When using an SDF font, a higher resolution produces finer gradients, and therefore higher quality text.","フォントテクスチャの幅と高さをピクセル単位で設定します。
+
+ASCII文字のみを含む場合、512 x 512 の解像度で十分です。文字数が多いフォントでは、より大きな解像度や複数のアトラスが必要になる場合があります。
+
+SDFフォントを使用する場合、解像度を高くするとグラデーションがより滑らかになり、より高品質なテキストが生成されます。","폰트 텍스처의 가로 및 세로 크기를 픽셀 단위로 설정합니다.  
+
+ASCII 문자만 포함한다면 해상도 512 x 512로 충분합니다. 더 많은 문자가 필요하다면 더 큰 해상도나 여러 개의 아틀라스가 필요할 수 있습니다.  
+
+SDF 폰트를 사용할 경우, 해상도가 높을수록 그라데이션이 섬세해져 더 높은 품질의 텍스트가 생성됩니다.","设置字体纹理的宽度和高度（以像素为单位）。
+
+对于大多数仅包含 ASCII 字符的字体，512 x 512 的分辨率已经足够。包含更多字符的字体可能需要更高分辨率或多个图集。
+
+使用 SDF 字体时，更高的分辨率会产生更细腻的渐变，因此获得更高质量的文本。","Establece el tamaño de ancho y alto de la textura de la fuente, en píxeles.
+
+Una resolución de 512 x 512 es suficiente para la mayoría de fuentes, siempre que solo incluyas caracteres ASCII. Fuentes con más caracteres pueden requerir resoluciones mayores o múltiples atlas.
+
+Al usar una fuente SDF, una resolución más alta produce degradados más finos y, por lo tanto, texto de mayor calidad.","Legen Sie die Breite und Höhe der Schrifttextur in Pixeln fest.  
+
+Eine Auflösung von 512 x 512 reicht für die meisten Schriftarten aus, solange nur ASCII-Zeichen enthalten sind. Schriftarten mit mehr Zeichen können größere Auflösungen oder mehrere Atlanten erfordern.  
+
+Bei einer SDF-Schrift liefert eine höhere Auflösung feinere Verläufe und dadurch eine höhere Textqualität.","Définissez la largeur et la hauteur de la texture de police, en pixels.
+
+Une résolution de 512 x 512 convient à la plupart des polices, tant que vous incluez uniquement des caractères ASCII. Les polices avec plus de caractères peuvent nécessiter des résolutions plus grandes ou plusieurs atlas.
+
+Lors de l'utilisation d'une police SDF, une résolution supérieure produit des dégradés plus fins et donc un texte de meilleure qualité."
+label_auto_size,Auto Size,自動サイズ,자동 크기 조정,自动调整大小,Tamaño automático,Automatische Größe,Taille automatique
+tooltip_auto_size,Auto sizes the text to fit the available space.,利用可能なスペースに合わせてテキストサイズを自動調整します。,텍스트를 사용 가능한 공간에 맞게 자동으로 크기를 조정합니다.,自动调整文本大小以适应可用空间。,Ajusta automáticamente el texto para que encaje en el espacio disponible.,Passt die Textgröße automatisch dem verfügbaren Platz an.,Ajuste automatiquement la taille du texte à l'espace disponible.
+label_best_fit,Best Fit,最適フィット,최적 맞춤,最佳适配,Ajuste óptimo,Optimale Anpassung,Ajustement optimal
+tooltip_best_fit,Should Unity ignore the size properties and simply try to fit the text to the control's rectangle?,Unity がサイズのプロパティを無視し、テキストをコントロールの矩形に収まるように調整するようにしますか？,Unity가 크기 속성을 무시하고 텍스트를 컨트롤 사각형에 맞추려 할까요?,Unity 是否应忽略大小属性，仅尝试将文本适配到控件的矩形中？,¿Debe Unity ignorar las propiedades de tamaño y simplemente intentar ajustar el texto al rectángulo del control?,"Soll Unity die Größeneigenschaften ignorieren und einfach versuchen, den Text an das Rechteck des Steuerelements anzupassen?",Unity doit-il ignorer les propriétés de taille et simplement essayer d'adapter le texte au rectangle du contrôle ?
+label_beta_version,"This is the beta version.
+If you encounter bugs, please
+contact the developer,
+and your problem will be solved
+as soon as possible.","これはベータ版です。
+バグが発生した場合は
+開発者に連絡してください。
+できるだけ早く問題を解決いたします。","이것은 베타 버전입니다.  
+버그가 발생할 경우 개발자에게 연락하면  
+가능한 한 빨리 문제를 해결해 드리겠습니다.","这是测试版。  
+如果您遇到 bug，请  
+联系开发人员，  
+您的问题将尽快得到解决。","Esta es la versión beta.
+Si encuentras errores, por favor
+contacta al desarrollador,
+y tu problema será resuelto
+lo antes posible.","Dies ist die Beta-Version.  
+Wenn Sie auf Fehler stoßen, wenden Sie sich bitte  
+an den Entwickler,  
+und Ihr Problem wird so schnell wie möglich gelöst.","Ceci est la version bêta.
+Si vous rencontrez des bugs, veuillez
+contacter le développeur,
+et votre problème sera résolu
+dès que possible."
+tooltip_beta_version,,,,,,,
+label_buggy_version,This version contains bugs that have been fixed in the next versions.,このバージョンには、次のバージョンで修正されたバグが含まれています。,이 버전에는 이후 버전에서 수정된 버그가 포함되어 있습니다.,此版本包含的错误已在后续版本中修复。,Esta versión contiene errores que fueron corregidos en las siguientes versiones.,"Diese Version enthält Fehler, die in den nächsten Versionen behoben wurden.",Cette version contient des bugs qui ont été corrigés dans les versions suivantes.
+tooltip_buggy_version,,,,,,,
+label_button_settings,UI.BUTTON SETTINGS,UI.ボタン設定,UI.버튼 설정,UI.按钮设置,AJUSTES DEL BOTÓN UI,UI.BUTTON EINSTELLUNGEN,PARAMÈTRES DU BOUTON UI
+tooltip_button_settings,,,,,,,
+label_button_type,Button Component,ボタンコンポーネント,버튼 컴포넌트,按钮组件,Componente botón,Button-Komponente,Composant Bouton
+tooltip_button_type,,,,,,,
+tooltip_changed_in_unity,"Components whose properties have been changed in the Unity Inspector.
+Currently, tracking of two properties is supported: color and size.","Unityインスペクターでプロパティが変更されたコンポーネント。
+現在、2つのプロパティの追跡がサポートされています: 色とサイズ。",Unity Inspector에서 속성이 변경된 컴포넌트입니다. 현재 색상과 크기 두 가지 속성 추적이 지원됩니다.,"在 Unity Inspector 中其属性已被更改的组件。
+目前支持跟踪两个属性：颜色和大小。","Componentes cuyas propiedades han sido cambiadas en el Inspector de Unity.
+Actualmente, se admite el seguimiento de dos propiedades: color y tamaño.","Komponenten, deren Eigenschaften im Unity Inspector geändert wurden.
+Derzeit wird die Verfolgung von zwei Eigenschaften unterstützt: Farbe und Größe.","Composants dont les propriétés ont été modifiées dans l’Inspecteur Unity. Actuellement, le suivi de deux propriétés est pris en charge : couleur et taille."
+label_compression_quality,Crunch Compression Quality,Crunch圧縮品質,Crunch 압축 품질,Crunch 压缩质量,Calidad de compresión Crunch,Crunch-Komprimierungsqualität,Qualité de compression Crunch
+tooltip_compression_quality,"When using Crunch Texture compression, use the slider to adjust the quality. A higher compression quality means larger Textures and longer compression times.
+
+Note: For Android platforms, the Compressor Quality values provide slightly different options. For more information, see Texture formats for platform-specific overrides.","Crunchテクスチャ圧縮を使用する場合、スライダーで品質を調整します。圧縮品質が高いほどテクスチャは大きくなり、圧縮時間も長くなります。
+
+注: Androidプラットフォームでは、圧縮品質値に少し異なるオプションが用意されています。詳細については、プラットフォーム固有のオーバーライド用のテクスチャ形式を参照してください。","Crunch Texture 압축을 사용할 경우, 슬라이더로 품질을 조정하세요. 압축 품질이 높을수록 Texture 크기가 커지고 압축 시간이 길어집니다.
+
+참고: Android 플랫폼에서는 압축기 품질 값이 조금 다른 옵션을 제공합니다. 자세한 내용은 플랫폼별 Texture 형식 문서를 참조하세요.","使用 Crunch 纹理压缩时，请使用滑块调整质量。更高的压缩质量意味着更大的纹理文件和更长的压缩时间。
+
+注意：对于 Android 平台，压缩质量的取值略有不同。更多信息请参阅特定平台的纹理格式。","Al usar la compresión de Textura Crunch, utiliza el control deslizante para ajustar la calidad. Una mayor calidad de compresión significa Texturas más grandes y tiempos de compresión más largos.
+
+Nota: Para las plataformas Android, los valores de Calidad de Compresor ofrecen opciones ligeramente diferentes. Para más información, consulta Formatos de textura para anulaciones específicas de la plataforma.","Wenn Crunch-Texturkomprimierung verwendet wird, benutzen Sie den Schieberegler, um die Qualität einzustellen. Höhere Komprimierungsqualität bedeutet größere Texturen und längere Komprimierungszeiten.
+
+Hinweis: Für Android-Plattformen bieten die Werte der Kompressorqualität leicht unterschiedliche Optionen. Für weitere Informationen siehe Texturformate für plattformspezifische Überschreibungen.","Lors de l’utilisation de la compression de texture Crunch, utilisez le curseur pour ajuster la qualité. Une qualité de compression plus élevée signifie des textures plus grandes et des temps de compression plus longs.  
+
+Remarque : pour les plateformes Android, les valeurs de qualité du compresseur offrent des options légèrement différentes. Pour plus d’informations, consultez les formats de texture pour les substitutions spécifiques à la plateforme."
+label_crunched_compression,Use Crunch Compression,Crunch圧縮を使用,Crunch 압축 사용,使用 Crunch 压缩,Usar compresión Crunch,Crunch-Komprimierung verwenden,Utiliser la compression Crunch
+tooltip_crunched_compression,"Use crunch compression, if applicable. Crunch is a lossy compression format on top of DXT or ETC Texture compression.
+
+Unity decompresses Textures to DXT or ETC on the CPU and then uploads them to the GPU at runtime. Crunch compression helps the Texture use the lowest possible amount of space on disk and for downloads.
+
+Crunch Textures can take a long time to compress, but decompression at runtime is very fast.","可能であればCrunch圧縮を使用します。CrunchはDXTまたはETCテクスチャ圧縮の上に成り立つ非可逆圧縮形式です。
+
+Unityはランタイム時にCPUでテクスチャをDXTまたはETCに解凍し、その後GPUにアップロードします。Crunch圧縮は、テクスチャがディスクやダウンロード時に占めるスペースを最小限に抑えるのに役立ちます。
+
+Crunchテクスチャは圧縮に時間がかかる場合がありますが、ランタイムでの解凍は非常に高速です。","적용 가능한 경우 Crunch 압축을 사용합니다. Crunch는 DXT 또는 ETC Texture 압축 위에서 작동하는 손실 압축 형식입니다.
+
+Unity는 Texture를 CPU에서 DXT 또는 ETC로 압축 해제한 후 런타임에 GPU로 업로드합니다. Crunch 압축은 디스크 공간과 다운로드 시 필요한 용량을 최소화하는 데 도움이 됩니다.
+
+Crunch Texture는 압축에 시간이 오래 걸릴 수 있지만, 런타임 압축 해제 속도는 매우 빠릅니다.","如适用，使用 Crunch 压缩。Crunch 是建立在 DXT 或 ETC 纹理压缩之上的有损压缩格式。
+
+Unity 在 CPU 上将纹理解压缩为 DXT 或 ETC，然后在运行时上传到 GPU。Crunch 压缩有助于纹理在磁盘和下载时占用尽可能少的空间。
+
+Crunch 纹理压缩时间可能较长，但运行时解压速度非常快。","Usar compresión Crunch, si es aplicable. Crunch es un formato de compresión con pérdida sobre la compresión de texturas DXT o ETC.
+
+Unity descomprime las Texturas a DXT o ETC en la CPU y luego las carga en la GPU en tiempo de ejecución. La compresión Crunch ayuda a que la Textura use la menor cantidad posible de espacio en disco y en descargas.
+
+Las Texturas Crunch pueden tardar mucho tiempo en comprimirse, pero la descompresión en tiempo de ejecución es muy rápida.","Crunch-Komprimierung verwenden, falls zutreffend. Crunch ist ein verlustbehaftetes Komprimierungsformat zusätzlich zu DXT- oder ETC-Texturkompression.
+
+Unity dekomprimiert Texturen zur Laufzeit auf der CPU zu DXT oder ETC und lädt sie dann in die GPU. Crunch-Komprimierung hilft der Textur, den kleinstmöglichen Speicherplatz auf der Festplatte und beim Download zu verwenden.
+
+Crunch-Texturen können lange zum Komprimieren benötigen, aber die Dekomprimierung zur Laufzeit ist sehr schnell.","Utiliser la compression Crunch, si applicable. Crunch est un format de compression avec pertes au-dessus de la compression de texture DXT ou ETC.  
+
+Unity décompresse les textures en DXT ou ETC sur le CPU, puis les charge sur le GPU au moment de l’exécution. La compression Crunch aide la texture à utiliser le moins d’espace possible sur le disque et lors des téléchargements.  
+
+Les textures Crunch peuvent prendre beaucoup de temps à compresser, mais la décompression à l’exécution est très rapide."
+label_csv_separator,Separator,区切り記号,구분자,分隔符,Separador,Trennzeichen,Séparateur
+tooltip_csv_separator,Character used to separate columns when exporting the localization CSV.,ローカライズ CSV を書き出す際に列を区切る文字です。,현지화 CSV를 내보낼 때 열을 구분하는 문자입니다.,导出本地化 CSV 时用于分隔列的字符。,Carácter que separa las columnas al exportar el CSV de localización.,"Zeichen, das beim Export der Lokalisierungs-CSV die Spalten trennt.",Caractère utilisé pour séparer les colonnes lors de l’export CSV.
+label_dabutton_settings,D.A. BUTTON SETTINGS,D.A. ボタン設定,D.A. 버튼 설정,D.A. 按钮设置,AJUSTES DEL BOTÓN D.A.,D.A. BUTTON EINSTELLUNGEN,PARAMÈTRES D.A. BUTTON
+tooltip_dabutton_settings,"Options specific to DAButton scaling, color, and sprite animations.",DAButton のスケールや色、スプライトアニメ専用のオプションです。,"DAButton의 스케일, 색상 및 스프라이트 애니메이션 전용 옵션입니다.",用于 DAButton 缩放、颜色和精灵动画的专用选项。,"Opciones específicas para la escala, color y animaciones de sprite de DAButton.","Optionen speziell für DAButton-Skalierung, Farben und Sprite-Animationen.","Options propres aux animations, couleurs et échelles de DAButton."
+label_debug_tools,DEBUG TOOLS,デバッグツール,디버그 도구,调试工具,HERRAMIENTAS DE DEPURACIÓN,DEBUG-WERKZEUGE,OUTILS DE DÉBOGAGE
+label_debug,DEBUG,デバッグ,디버그,调试,DEPURAR,DEBUG,DÉBOGAGE
+tooltip_debug_tools,"Used for debugging the asset.
+Parameters are applied globally to all instances of the asset.","アセットのデバッグに使用します。
+パラメータはアセットのすべてのインスタンスにグローバル適用されます。",에셋 디버깅에 사용됩니다. 매개변수는 모든 에셋 인스턴스에 전역으로 적용됩니다.,"用于调试资源。
+参数会全局应用于该资源的所有实例。","Usado para depurar el asset.
+Los parámetros se aplican globalmente a todas las instancias del asset.","Wird für das Debugging des Assets verwendet.
+Parameter werden global auf alle Instanzen des Assets angewendet.",Utilisé pour le débogage de l’actif. Les paramètres sont appliqués globalement à toutes les instances de l’actif.
+label_dont_remove_fcu_meta,Don't remove this script until you are done with the layout.,レイアウトが完了するまでこのスクリプトを削除しないでください。,레이아웃이 완료될 때까지 이 스크립트를 제거하지 마세요.,在完成布局之前不要移除此脚本。,No elimines este script hasta que termines con el diseño.,"Dieses Skript nicht entfernen, bis Sie mit dem Layout fertig sind.",Ne supprimez pas ce script tant que vous n’avez pas terminé la mise en page.
+tooltip_dont_remove_fcu_meta,,,,,,,
+label_download_fonts_from_project,Download '{0}' fonts from project,プロジェクトから'{0}'フォントをダウンロード,프로젝트에서 '{0}' 폰트 다운로드,从项目下载“{0}”字体,Descargar fuentes '{0}' del proyecto,'{0}'-Schriften aus dem Projekt herunterladen,Télécharger les polices « {0} » depuis le projet
+tooltip_download_fonts_from_project,Download every font referenced by the {0} text component in the current Figma file.,現在の Figma ファイルで {0} テキストコンポーネントが参照するフォントをすべてダウンロードします。,현재 Figma 파일에서 {0} 텍스트 컴포넌트가 사용하는 모든 폰트를 다운로드합니다.,下载当前 Figma 文件中 {0} 文本组件引用的所有字体。,Descarga todas las fuentes que usa el componente de texto {0} en el archivo de Figma actual.,"Lädt alle Schriften herunter, die die {0}-Textkomponente in der aktuellen Figma-Datei verwendet.",Télécharge toutes les polices référencées par le composant texte {0} dans le fichier Figma actuel.
+label_figma_auth,FIGMA AUTH,FIGMA認証,FIGMA 인증,FIGMA 授权,AUTENTICACIÓN FIGMA,FIGMA-AUTHENTIFIZIERUNG,AUTH FIGMA
+tooltip_figma_auth,,,,,,,
+label_figma_layout_culture,Layout Language,レイアウト言語,레이아웃 언어,布局语言,Idioma del diseño,Layout-Sprache,Langue de mise en page
+tooltip_figma_layout_culture,The language of your Figma project's text,Figmaプロジェクトのテキストの言語,Figma 프로젝트 텍스트의 언어,您的 Figma 项目中文本的语言,El idioma del texto de tu proyecto de Figma,Die Sprache des Textes Ihres Figma-Projekts,La langue du texte de votre projet Figma
+label_flip_x,Flip X,X 軸反転,X 뒤집기,翻转 X,Voltear X,Spiegeln X,Inverser X
+tooltip_flip_x,,,,,,,
+label_flip_y,Flip Y,Y 軸反転,Y 뒤집기,翻转 Y,Voltear Y,Spiegeln Y,Inverser Y
+tooltip_flip_y,,,,,,,
+label_font_settings,FONT SETTINGS,フォント設定,폰트 설정,字体设置,AJUSTES DE FUENTE,SCHRIFTEINSTELLUNGEN,PARAMÈTRES DE POLICE
+tooltip_font_settings,,,,,,,
+label_force_fix,Force Fix,強制修正,강제 수정,强制修复,Corrección forzada,Erzwingen Fix,Réparer de force
+tooltip_force_fix,,,,,,,
+label_frames_to_import,FRAMES TO IMPORT ({0}/{1}),インポートするフレーム （{0}/{1}）,가져올 프레임 （{0}/{1}）,要导入的帧 （{0}/{1}）,CUADROS A IMPORTAR ({0}/{1}),ZU IMPORTIERENDE FRAMES ({0}/{1}),IMAGES À IMPORTER ({0}/{1})
+tooltip_frames_to_import,Shows how many frames are selected ({0}) out of the total ({1}) for import.,選択中 {0} 件 / インポート対象 {1} 件を表示します。,선택된 프레임 {0}개 / 전체 {1}개를 표시합니다.,显示已选择的帧数量 ({0}) 及总数 ({1})。,Muestra cuántos frames hay seleccionados ({0}) del total ({1}) para importar.,"Zeigt, wie viele Frames ({0}) von insgesamt ({1}) für den Import ausgewählt sind.",Indique le nombre d'images sélectionnées ({0}) sur le total ({1}) à importer.
+label_horizontal_mapping,Horizontal Mapping,水平マッピング,수평 매핑,水平映射,Mapeo horizontal,Horizontales Mapping,Cartographie horizontale
+tooltip_horizontal_mapping,Horizontal UV mapping when using a shader with a texture face option.,テクスチャの面オプションを持つシェーダーを使用する際の水平 UV マッピング。,텍스처 면 옵션이 있는 셰이더를 사용할 때 수평 UV 매핑.,使用带有纹理面选项的着色器时的水平 UV 映射。,Mapeo UV horizontal al usar un sombreador con una opción de cara de textura.,Horizontales UV-Mapping bei Verwendung eines Shaders mit Texturflächenoption.,Cartographie UV horizontale lors de l'utilisation d'un shader avec une option de texture de face.
+label_horizontal_overflow,Horizontal Overflow,水平方向のオーバーフロー,수평 오버플로우,水平溢出,Desbordamiento horizontal,Horizontaler Überlauf,Débordement horizontal
+tooltip_horizontal_overflow,The method used to handle the situation where the text is too wide to fit in the rectangle. The options are Wrap and Overflow.,テキストが広すぎて矩形に収まらない場合の処理方法。オプションは「折り返し」と「オーバーフロー」です。,텍스트가 사각형에 맞기에는 너무 넓을 때 처리하는 방법입니다. 옵션은 줄바꿈과 오버플로우입니다.,用于处理文本过宽而无法适应矩形时的方法。选项为换行和溢出。,El método utilizado para manejar la situación en la que el texto es demasiado ancho para caber en el rectángulo. Las opciones son Ajustar y Desbordar.,"Die Methode, die verwendet wird, wenn der Text zu breit ist, um in das Rechteck zu passen. Die Optionen sind Umbruch und Überlauf.",La méthode utilisée pour gérer la situation où le texte est trop large pour s'adapter au rectangle. Les options sont Retour à la ligne et Débordement.
+label_https_setting,HTTPS,HTTPS,HTTPS,HTTPS,HTTPS,HTTPS,HTTPS
+tooltip_https_setting,Force FCU to use HTTPS when communicating with Figma.,Figma との通信に HTTPS を必ず使用します。,Figma와 통신할 때 FCU가 항상 HTTPS를 사용하도록 강제합니다.,强制 FCU 在与 Figma 通信时使用 HTTPS。,Obliga a FCU a usar HTTPS al comunicarse con Figma.,"Erzwingt, dass FCU bei der Kommunikation mit Figma HTTPS verwendet.",Force FCU à utiliser HTTPS lorsqu'il communique avec Figma.
+label_image_component,Image Component,画像コンポーネント,이미지 컴포넌트,图像组件,Componente de imagen,Bildkomponente,Composant image
+tooltip_image_component,Select which Image component implementation FCU should instantiate.,FCU が生成する Image コンポーネントの種類を選択します。,FCU가 생성할 Image 컴포넌트 구현을 선택합니다.,选择 FCU 应实例化的 Image 组件实现。,Selecciona qué implementación de Image debe instanciar FCU.,"Wähle, welche Image-Komponente FCU instanziieren soll.",Sélectionne quelle implémentation d'Image FCU doit instancier.
+label_image_type,Type,タイプ,유형,类型,Tipo,Typ,Type
+tooltip_image_type,,,,,,,
+label_import_events,IMPORT EVENTS,インポートイベント,이벤트 가져오기,导入事件,IMPORTAR EVENTOS,EREIGNISSE IMPORTIEREN,IMPORTER DES ÉVÉNEMENTS
+tooltip_import_events,Register callbacks invoked after the different import stages.,各インポート段階の後に呼び出されるコールバックを登録します。,각 가져오기 단계 후에 호출되는 콜백을 등록합니다.,注册在不同导入阶段后调用的回调。,Registra los callbacks que se ejecutan después de cada etapa de importación.,"Registriert Rückrufe, die nach den einzelnen Importstufen ausgelöst werden.",Enregistre les callbacks déclenchés après chaque étape d'importation.
+log_import_stoped_because_error,Import stoped because error.,エラーのためインポートが停止しました。,오류로 인해 가져오기가 중지되었습니다.,由于错误，导入已停止。,Importación detenida por error.,Import aufgrund eines Fehlers gestoppt.,Importation arrêtée à cause d'une erreur.
+tooltip_stop_import,Stop import,インポートを停止,가져오기 중지,停止导入,Detener importación,Import stoppen,Arrêter l'importation
+label_kerning,Kerning,カーニング,커닝,字偶间距,Kerning,Kerning,Crénage
+tooltip_kerning,Enables character specific spacing between pairs of characters.,文字の組み合わせごとに特定のスペース調整を有効にします。,문자 쌍 사이의 글자 간격을 문자별로 조정할 수 있습니다.,启用字符对之间的特定间距。,Permite el espaciado específico entre pares de caracteres.,Aktiviert zeichenspezifische Abstände zwischen Zeichenpaaren.,Active l'espacement spécifique entre les paires de caractères.
+tooltip_kilobytes,,,,,,,
+label_line_spacing,Line Spacing,行間隔,줄 간격,行间距,Espaciado entre líneas,Zeilenabstand,Interligne
+tooltip_line_spacing,The vertical separation between lines of text.,テキスト行間の垂直方向の間隔。,텍스트 줄 사이의 세로 간격입니다.,文本行之间的垂直间距。,La separación vertical entre líneas de texto.,Der vertikale Abstand zwischen Textzeilen.,La séparation verticale entre les lignes de texte.
+label_loc_case_type,Key Case,キーの大文字小文字,키 대소문자,键大小写,Tipo de mayúscula/minúscula de clave,Schlüssel-Schreibweise,Type de casse
+tooltip_loc_case_type,Choose the casing style applied to generated localization keys.,生成されるローカライズキーに適用する大文字小文字のスタイルを選択します。,생성된 로컬라이제이션 키에 적용할 대소문자 스타일을 선택합니다.,选择应用于生成的本地化键的大小写风格。,Elige el estilo de mayúsculas que se aplicará a las claves de localización generadas.,Wähle das Groß-/Kleinschreibungsformat für generierte Lokalisierungsschlüssel.,Choisissez le style de casse appliqué aux clés de localisation générées.
+label_loc_component,Localization Component,ローカリゼーションコンポーネント,로컬라이제이션 컴포넌트,本地化组件,Componente de localización,Lokalisierungskomponente,Composant de localisation
+tooltip_loc_component,Select which runtime component applies localized strings.,ローカライズ文字列を適用する実行時コンポーネントを選択します。,로컬라이즈된 문자열을 적용할 런타임 컴포넌트를 선택합니다.,选择用于应用本地化字符串的运行时组件。,Selecciona qué componente en tiempo de ejecución aplica las cadenas localizadas.,"Wähle die Laufzeitkomponente, die lokalisierte Zeichenketten anwendet.",Sélectionnez le composant d'exécution qui applique les chaînes localisées.
+label_localization_settings,LOCALIZATION,ローカリゼーション,로컬라이제이션,本地化,LOCALIZACIÓN,LOKALISIERUNG,LOCALISATION
+tooltip_localization_settings,Manage CSV export/import options for localization.,ローカライズ用 CSV のエクスポート/インポート設定を管理します。,로컬라이제이션 CSV 내보내기/가져오기 옵션을 관리합니다.,管理本地化 CSV 的导出/导入选项。,Gestiona las opciones de exportación/importación del CSV de localización.,Verwaltet die Export-/Importoptionen für die Lokalisierungs-CSV.,Gérez les options d'export/import du CSV de localisation.
+label_localizator,Localizator,ローカライザー,로컬라이저,本地化器,Localizador,Lokalisator,Localisateur
+tooltip_localizator,,,,,,,
+label_main_settings,MAIN SETTINGS,メイン設定,기본 설정,主要设置,AJUSTES PRINCIPALES,HAUPTEINSTELLUNGEN,PARAMÈTRES PRINCIPAUX
+tooltip_main_settings,,,,,,,
+label_mask_interaction,Mask Interaction,マスクの相互作用,마스크 상호작용,遮罩交互,Interacción de Máscara,Maskeninteraktion,Interaction du masque
+tooltip_mask_interaction,,,,,,,
+label_maskable,Maskable,マスク可能,마스크 가능,可遮罩,Enmascarable,Maskierbar,Masquable
+tooltip_maskable,,,,,,,
+label_mipmap_enabled,Generate Mip Maps,ミップマップを生成,밉맵 생성,生成 Mip 映射,Generar Mip Maps,Mip Maps erzeugen,Générer des Mip Maps
+tooltip_mipmap_enabled,Check this box to enable mipmap generation.,このボックスをオンにするとミップマップ生成が有効になります。,밉맵 생성을 활성화하려면 이 상자를 선택하세요.,选中此框以启用 mipmap 生成。,Marca esta casilla para habilitar la generación de mipmaps.,"Aktivieren Sie dieses Kontrollkästchen, um die Mipmap-Erzeugung zu aktivieren.",Cochez cette case pour activer la génération des mipmaps.
+label_namespace,Namespace,ネームスペース,네임스페이스,命名空间,Espacio de Nombres,Namensraum,Espace de noms
+tooltip_namespace,Namespace applied to generated scripts.,生成されるスクリプトに適用する名前空間です。,생성된 스크립트에 적용할 네임스페이스입니다.,应用于生成脚本的命名空间。,Namespace que se aplicará a los scripts generados.,"Namespace, der auf die generierten Skripte angewendet wird.",Espace de noms appliqué aux scripts générés.
+label_no_recent_projects,No recent projects found.,最近のプロジェクトが見つかりません。,최근 프로젝트를 찾을 수 없습니다.,未找到最近的项目。,No se encontraron proyectos recientes.,Keine aktuellen Projekte gefunden.,Aucun projet récent trouvé.
+tooltip_no_recent_projects,No cached projects yet—import once to populate this list.,最近のプロジェクトはまだありません。インポートすると表示されます。,최근 프로젝트가 없습니다. 한 번 가져오면 목록이 채워집니다.,暂无最近项目。执行一次导入即可填充列表。,Todavía no hay proyectos recientes; importa uno para llenar la lista.,"Noch keine zuletzt verwendeten Projekte. Führe einen Import aus, um die Liste zu füllen.",Aucun projet récent pour le moment ; lancez un import pour alimenter cette liste.
+label_override_tags,Override Tags,タグを上書き,태그 재정의,覆盖标签,Sobrescribir Etiquetas,Tags überschreiben,Remplacer les balises
+tooltip_override_tags,Whether the color settings override the <color> tag.,カラー設定が<color>タグを上書きするかどうか。,색상 설정이 <color> 태그를 재정의하는지 여부.,颜色设置是否覆盖 <color> 标签。,Si la configuración de color sobrescribe la etiqueta <color>.,Ob die Farbeinstellungen das <color>-Tag überschreiben.,Indique si les paramètres de couleur remplacent la balise <color>.
+label_parse_escape_characters,Parse Escape Characters,エスケープ文字を解析,이스케이프 문자 해석,解析转义字符,Analizar Caracteres de Escape,Escape-Zeichen parsen,Analyser les caractères d'échappement
+tooltip_parse_escape_characters,"Whether to display strings such as \""\\n\"" as is or replace them by the character they represent.",「\\n」などの文字列をそのまま表示するか、対応する文字に置き換えるか。,"문자열 \""\\n\""을 그대로 표시할지 또는 해당 문자가 나타내는 기호로 바꿀지 여부.","是否将字符串如 \""\\n\"" 原样显示或替换为其所代表的字符。","Si se muestran cadenas como \""\\n\"" tal cual o se reemplazan por el carácter que representan.","Ob Zeichenketten wie \""\\n\"" so angezeigt oder durch das entsprechende Zeichen ersetzt werden.","Indique s'il faut afficher les chaînes comme \""\\n\"" telles quelles ou les remplacer par le caractère qu'elles représentent."
+label_pixels_per_unit,Pixels Per Unit,1単位あたりのピクセル数,단위당 픽셀 수,每单位像素,Píxeles Por Unidad,Pixel pro Einheit,Pixels par unité
+tooltip_pixels_per_unit,How many pixels in the sprite correspond to one unit in the world.,スプライトのピクセルがワールド内で1単位に対応する数。,스프라이트의 몇 픽셀이 월드에서 한 단위에 해당하는지.,精灵中的像素对应于世界中的一个单位数量。,Cuántos píxeles en el sprite corresponden a una unidad en el mundo.,Wie viele Pixel im Sprite einer Einheit in der Welt entsprechen.,Combien de pixels dans le sprite correspondent à une unité dans le monde.
+label_positioning_mode,Positioning Mode,ポジショニングモード,배치 모드,定位模式,Modo de Posicionamiento,Positionierungsmodus,Mode de positionnement
+tooltip_positioning_mode,,,,,,,
+label_prefab_creator,PREFAB CREATOR,プレハブクリエーター,프리팹 생성기,预制件创建器,CREADOR DE PREFABS,PREFAB-ERSTELLER,CRÉATEUR DE PREFAB
+tooltip_prefab_creator,Create reusable prefabs from Figma nodes.,Figma ノードから再利用可能なプレハブを作成します。,Figma 노드에서 재사용 가능한 프리팹을 생성합니다.,从 Figma 节点创建可复用的预制体。,Crea prefabs reutilizables a partir de nodos de Figma.,Erstellt wiederverwendbare Prefabs aus Figma-Knoten.,Crée des prefabs réutilisables à partir des nœuds Figma.
+label_prefabs_path,Prefabs Path,プレハブパス,프리팹 경로,预制件路径,Ruta de Prefabs,Prefab-Pfad,Chemin des prefabs
+tooltip_prefabs_path,Folder where generated prefabs are saved.,生成されたプレハブを保存するフォルダーです。,생성된 프리팹이 저장되는 폴더입니다.,用于存储生成预制体的文件夹。,Carpeta en la que se guardan los prefabs generados.,"Ordner, in dem die generierten Prefabs gespeichert werden.",Dossier où sont enregistrés les prefabs générés.
+label_preserve_aspect,Preserve Aspect,アスペクト比を保持,종횡비 유지,保持纵横比,Conservar proporción,Seitenverhältnis beibehalten,Préserver les proportions
+tooltip_preserve_aspect,,,,,,,
+label_preserve_numbers,Preserve Numbers,数値を保持,숫자 유지,保留数字,Conservar números,Nummern beibehalten,Préserver les nombres
+tooltip_preserve_numbers,,,,,,,
+label_pui_falloff_distance,Falloff Distance,減衰距離,감쇠 거리,衰减距离,Distancia de atenuación,Abfall-Distanz,Distance de dégradé
+tooltip_pui_falloff_distance,,,,,,,
+label_rateme_desc,"Hello! 🙂
+
+For {0} days, I continue to release
+the updates of asset and
+provide support to users.
+
+If you like my asset, I will be grateful
+if you rate it in the Asset Store.","こんにちは！🙂
+
+{0}日間、私はアセットのアップデートを続け、
+ユーザーにサポートを提供しています。
+
+もし私のアセットを気に入っていただけたら、
+Asset Store で評価していただけると嬉しいです。","안녕하세요! 🙂
+
+{0}일 동안 저는 에셋의 업데이트를 계속 출시하고
+사용자에게 지원을 제공하고 있습니다.
+
+만약 제 에셋이 마음에 드신다면,
+Asset Store에서 평가를 남겨주시면 감사하겠습니다.","你好！🙂
+
+在过去的 {0} 天中，我持续发布
+资源的更新并
+为用户提供支持。
+
+如果你喜欢我的资源，
+我将非常感激你能在 Asset Store 中给我评分。","¡Hola! 🙂
+
+Durante {0} días, continúo publicando
+las actualizaciones del recurso y
+proporcionando soporte a los usuarios.
+
+Si te gusta mi recurso, estaré agradecido
+si lo calificas en la Asset Store.","Hallo! 🙂
+
+Seit {0} Tagen veröffentliche ich weiterhin
+Updates des Assets und
+biete Support für Benutzer an.
+
+Wenn dir mein Asset gefällt, wäre ich dir dankbar,
+wenn du es im Asset Store bewertest.","Bonjour ! 🙂
+
+Depuis {0} jours, je continue à publier
+des mises à jour de l’asset et à fournir 
+du support aux utilisateurs.
+
+Si vous aimez mon asset, je serai reconnaissant
+si vous l’évaluez dans l’Asset Store."
+tooltip_rateme_desc,,,,,,,
+label_raycast_padding,Raycast Padding,レイキャストパディング,레이캐스트 패딩,射线检测填充,Margen de raycast,Raycast-Abstand,Marge de raycast
+tooltip_raycast_padding,,,,,,,
+label_raycast_target,Raycast Target,レイキャストターゲット,레이캐스트 대상,射线检测目标,Destino de raycast,Raycast-Ziel,Cible de raycast
+tooltip_raycast_target,Whether the text blocks raycasts from the Graphic Raycaster.,テキストが Graphic Raycaster からのレイキャストをブロックするかどうか。,텍스트가 Graphic Raycaster에서의 레이캐스트를 차단하는지 여부.,文本是否会阻挡来自 Graphic Raycaster 的射线检测。,Indica si el texto bloquea raycasts del Graphic Raycaster.,Ob der Text Raycasts vom Graphic Raycaster blockiert.,Indique si le texte bloque les raycasts du Graphic Raycaster.
+label_redownload_sprites,Redownload Sprites,スプライトを再ダウンロード,스프라이트 다시 다운로드,重新下载精灵图,Descargar sprites de nuevo,Sprites erneut herunterladen,Retélécharger les sprites
+tooltip_redownload_sprites,"If enabled, the downloadable images will replace those that were downloaded earlier when old downloading.",有効にすると、再ダウンロード時に新しい画像が以前にダウンロードされた画像を置き換えます。,"이 옵션을 활성화하면, 다운로드 가능한 이미지가 이전에 다운로드된 이미지를 대체합니다.",如果启用，可下载的图片将会替换之前下载的旧图片。,"Si está activado, las imágenes descargables reemplazarán a las que se descargaron anteriormente en una descarga previa.","Wenn aktiviert, ersetzen die herunterladbaren Bilder diejenigen, die zuvor beim alten Herunterladen heruntergeladen wurden.","Si activé, les images téléchargeables remplaceront celles qui ont été téléchargées précédemment lors du téléchargement ancien."
+label_render_mode,Render Mode,レンダーモード,렌더 모드,渲染模式,Modo de renderizado,Render-Modus,Mode de rendu
+tooltip_render_mode,Specify the render mode to use when outputting the font atlas.,フォントアトラスを出力するときに使用するレンダーモードを指定します。,폰트 아틀라스를 출력할 때 사용할 렌더 모드를 지정합니다.,指定输出字体图集时使用的渲染模式。,Especifica el modo de renderizado que se usará al generar el atlas de fuentes.,"Gibt den Render-Modus an, der beim Ausgeben der Font-Atlas verwendet wird.",Spécifiez le mode de rendu à utiliser lors de la sortie de l’atlas de polices.
+label_rich_text,Rich Text,リッチテキスト,리치 텍스트,富文本,Texto enriquecido,Rich Text,Texte enrichi
+tooltip_rich_text,Enables the use of rich text tags such as <color> and <font>.,<color> や <font> などのリッチテキストタグの使用を有効にします。,"<color>, <font> 등의 리치 텍스트 태그 사용을 활성화합니다.",启用使用 <color> 和 <font> 等富文本标签。,Habilita el uso de etiquetas de texto enriquecido como <color> y <font>.,Ermöglicht die Verwendung von Rich-Text-Tags wie <color> und <font>.,Active l’utilisation des balises de texte enrichi telles que <color> et <font>.
+label_shadow_type,Shadow Type,シャドウタイプ,그림자 유형,阴影类型,Tipo de sombra,Schatten-Typ,Type d’ombre
+tooltip_shadow_type,"The type of shadow that is used when transferring the shadow effect from Figma. Currently the 'TrueShadow' asset is supported, you can also turn off the shadow.",Figma からシャドウ効果を転送するときに使用されるシャドウの種類。現在は 'TrueShadow' アセットがサポートされています。シャドウをオフにすることもできます。,"Figma에서 그림자 효과를 적용할 때 사용되는 그림자 유형입니다. 현재 'TrueShadow' 에셋이 지원되며, 그림자를 끌 수도 있습니다.",从 Figma 转移阴影效果时使用的阴影类型。目前支持 'TrueShadow' 资源，你也可以关闭阴影。,"El tipo de sombra que se utiliza al transferir el efecto de sombra desde Figma. Actualmente se admite el recurso 'TrueShadow', también puedes desactivar la sombra.","Der Schattentyp, der beim Übertragen des Schatteneffekts aus Figma verwendet wird. Derzeit wird das 'TrueShadow'-Asset unterstützt, du kannst den Schatten auch deaktivieren.","Le type d’ombre utilisé lors du transfert de l’effet d’ombre depuis Figma. Actuellement, l’asset 'TrueShadow' est pris en charge, vous pouvez aussi désactiver l’ombre."
+label_shadows_tab,SHADOWS,シャドウ,그림자,阴影,SOMBRAS,SCHATTEN,OMBRES
+tooltip_shadows_tab,,,,,,,
+label_sort_point,Sort Point,ソートポイント,정렬 지점,排序点,Punto de ordenación,Sortierpunkt,Point de tri
+tooltip_sort_point,,,,,,,
+label_sorting_layer,Sorting Layer,ソートレイヤー,정렬 레이어,排序图层,Capa de ordenación,Sortier-Ebene,Calque de tri
+tooltip_sorting_layer,,,,,,,
+label_sprite_import_mode,Sprite Import Mode,スプライトインポートモード,스프라이트 가져오기 모드,精灵图导入模式,Modo de importación de sprite,Sprite-Importmodus,Mode d’importation de sprite
+tooltip_sprite_import_mode,"Texture importer modes for Sprite import.
+
+None - Graphic is not a Sprite.
+
+Single - Sprite is a single image section extracted automatically from the texture.
+
+Multiple - Sprites are multiple image sections extracted from the texture.
+
+Polygon - Sprite has it own mesh outline defined.","スプライトインポート用のテクスチャインポーターモード。
+
+None - グラフィックはスプライトではありません。
+
+Single - スプライトはテクスチャから自動的に抽出される単一の画像断片です。
+
+Multiple - スプライトはテクスチャから抽出された複数の画像断片です。
+
+Polygon - スプライトは独自のメッシュアウトラインを持ちます。","스프라이트 가져오기를 위한 텍스처 임포터 모드.
+
+None - 그래픽은 스프라이트가 아님.
+
+Single - 스프라이트는 텍스처에서 자동으로 추출된 단일 이미지 섹션임.
+
+Multiple - 스프라이트는 텍스처에서 추출된 여러 이미지 섹션임.
+
+Polygon - 스프라이트는 자체 메쉬 외곽선을 가짐.","精灵图导入的纹理导入器模式。
+
+None - 图形不是精灵图。
+
+Single - 精灵图是从纹理中自动提取的单个图像部分。
+
+Multiple - 精灵图是从纹理中提取的多个图像部分。
+
+Polygon - 精灵图具有其自定义的网格轮廓。","Modos del importador de texturas para la importación de sprites.
+
+None - El gráfico no es un sprite.
+
+Single - El sprite es una única sección de imagen extraída automáticamente de la textura.
+
+Multiple - Los sprites son varias secciones de imagen extraídas de la textura.
+
+Polygon - El sprite tiene su propio contorno de malla definido.","Texturimporter-Modi für Sprite-Import.
+
+None - Grafik ist kein Sprite.
+
+Single - Sprite ist ein einzelner Bildausschnitt, der automatisch aus der Textur extrahiert wird.
+
+Multiple - Sprites sind mehrere Bildausschnitte, die aus der Textur extrahiert werden.
+
+Polygon - Sprite hat eine eigene definierte Mesh-Umrisslinie.","Modes de l’importateur de textures pour l’importation de sprites.
+
+None - Le graphique n’est pas un sprite.
+
+Single - Le sprite est une seule section d’image extraite automatiquement de la texture.
+
+Multiple - Les sprites sont plusieurs sections d’image extraites de la texture.
+
+Polygon - Le sprite a sa propre forme de maillage définie."
+label_svg_image_settings,SVG IMAGE SETTINGS,SVG 画像設定,SVG 이미지 설정,SVG 图像设置,CONFIGURACIÓN DE IMAGEN SVG,SVG-BILD EINSTELLUNGEN,PARAMÈTRES D’IMAGE SVG
+tooltip_svg_image_settings,,,,,,,
+label_text_and_fonts,TEXT & FONTS,テキストとフォント,텍스트 & 글꼴,文本与字体,TEXTO Y TIPOGRAFÍAS,TEXT & SCHRIFTARTEN,TEXTE & POLICES
+tooltip_text_and_fonts,,,,,,,
+label_text_component,Text Component,テキストコンポーネント,텍스트 컴포넌트,文本组件,Componente de texto,Textkomponente,Composant de texte
+tooltip_text_component,A text component to be used when wrapping text from Figma. Currently 'Unity.UI.Text' and 'TextMeshPro' are supported.,Figmaからのテキストをラップする際に使用されるテキストコンポーネント。現在は「Unity.UI.Text」と「TextMeshPro」がサポートされています。,Figma에서 가져온 텍스트를 감쌀 때 사용할 텍스트 컴포넌트입니다. 현재 'Unity.UI.Text'와 'TextMeshPro'가 지원됩니다.,用于在从 Figma 包裹文本时使用的文本组件。目前支持 'Unity.UI.Text' 和 'TextMeshPro'。,Un componente de texto que se usará al ajustar texto desde Figma. Actualmente se admiten 'Unity.UI.Text' y 'TextMeshPro'.,"Eine Textkomponente, die beim Umbruch von Text aus Figma verwendet wird. Derzeit werden 'Unity.UI.Text' und 'TextMeshPro' unterstützt.",Un composant de texte à utiliser lors de l’habillage du texte depuis Figma. Actuellement 'Unity.UI.Text' et 'TextMeshPro' sont pris en charge.
+label_textmeshpro_settings,TEXTMESHPRO SETTINGS,TEXTMESHPRO 設定,TEXTMESHPRO 설정,TEXTMESHPRO 设置,AJUSTES DE TEXTMESHPRO,TEXTMESHPRO-EINSTELLUNGEN,PARAMÈTRES TEXTMESHPRO
+tooltip_textmeshpro_settings,Settings specific to TextMeshPro components.,TextMeshPro コンポーネント専用の設定です。,TextMeshPro 컴포넌트를 위한 전용 설정입니다.,TextMeshPro 组件的专用设置。,Configuraciones específicas para los componentes de TextMeshPro.,Spezielle Einstellungen für TextMeshPro-Komponenten.,Paramètres spécifiques aux composants TextMeshPro.
+label_texture_compression,Texture Compression,テクスチャ圧縮,텍스처 압축,纹理压缩,Compresión de texturas,Texturkompression,Compression de texture
+tooltip_texture_compression,"Select the kind of compression you want for your texture.
+
+Uncompressed - Texture will not be compressed.
+
+Compressed - Texture will be compressed using a standard format depending on the platform (DXT, ASTC, ...).
+
+CompressedHQ - Texture will be compressed using a high quality format depending on the platform and availability (BC7, ASTC4x4, ...).
+
+CompressedLQ - Texture will be compressed using a low quality but high performance, high compression format depending on the platform and availability (2bpp PVRTC, ASTC8x8, ...).","テクスチャに使用したい圧縮の種類を選択します。
+
+Uncompressed - テクスチャは圧縮されません。
+
+Compressed - プラットフォームに応じた標準フォーマット（DXT、ASTCなど）で圧縮されます。
+
+CompressedHQ - プラットフォームと利用可能な形式に応じて高品質フォーマット（BC7、ASTC4x4など）で圧縮されます。
+
+CompressedLQ - プラットフォームと利用可能な形式に応じて低品質だが高パフォーマンス、高圧縮率のフォーマット（2bpp PVRTC、ASTC8x8など）で圧縮されます。","텍스처에 사용할 압축 방식을 선택하세요.
+
+Uncompressed - 텍스처가 압축되지 않습니다.
+
+Compressed - 플랫포옴에 따라 표준 형식（DXT, ASTC, ...）으로 압축됩니다.
+
+CompressedHQ - 플랫폼과 가용성에 따라 고품질 형식（BC7, ASTC4x4, ...）으로 압축됩니다.
+
+CompressedLQ - 플랫폼과 가용성에 따라 저품질이지만 높은 성능과 높은 압축률 형식（2bpp PVRTC, ASTC8x8, ...）으로 압축됩니다.","选择你希望为纹理使用的压缩类型。
+
+Uncompressed - 纹理不会被压缩。
+
+Compressed - 纹理将根据平台使用标准格式进行压缩 （DXT, ASTC, ...）。
+
+CompressedHQ - 纹理将根据平台和可用性使用高质量格式进行压缩 （BC7, ASTC4x4, ...）。
+
+CompressedLQ - 纹理将根据平台和可用性使用低质量但高性能、高压缩率的格式进行压缩 （2bpp PVRTC, ASTC8x8, ...）。","Seleccione el tipo de compresión que desea para su textura.
+
+Uncompressed - La textura no será comprimida.
+
+Compressed - La textura será comprimida usando un formato estándar dependiendo de la plataforma (DXT, ASTC, ...).
+
+CompressedHQ - La textura será comprimida usando un formato de alta calidad dependiendo de la plataforma y disponibilidad (BC7, ASTC4x4, ...).
+
+CompressedLQ - La textura será comprimida usando un formato de baja calidad pero alto rendimiento y alta compresión dependiendo de la plataforma y disponibilidad (2bpp PVRTC, ASTC8x8, ...).","Wählen Sie die Art der Kompression, die Sie für Ihre Textur wünschen.
+
+Uncompressed - Textur wird nicht komprimiert.
+
+Compressed - Textur wird mit einem Standardformat komprimiert, abhängig von der Plattform (DXT, ASTC, ...).
+
+CompressedHQ - Textur wird mit einem hochqualitativen Format komprimiert, abhängig von der Plattform und Verfügbarkeit (BC7, ASTC4x4, ...).
+
+CompressedLQ - Textur wird mit einem qualitativ niedrigeren, aber leistungsstarken und stark komprimierenden Format komprimiert, abhängig von der Plattform und Verfügbarkeit (2bpp PVRTC, ASTC8x8, ...).","Sélectionnez le type de compression que vous souhaitez pour votre texture.
+
+Non compressé - La texture ne sera pas compressée.
+
+Compressé - La texture sera compressée en utilisant un format standard selon la plateforme (DXT, ASTC, ...).
+
+CompresséHQ - La texture sera compressée en utilisant un format de haute qualité selon la plateforme et la disponibilité (BC7, ASTC4x4, ...).
+
+CompresséLQ - La texture sera compressée en utilisant un format de faible qualité mais haute performance, à forte compression selon la plateforme et la disponibilité (2bpp PVRTC, ASTC8x8, ...)."
+label_texture_importer_settings,TEXTURE IMPORTER SETTINGS,テクスチャインポーター設定,텍스처 임포터 설정,纹理导入器设置,AJUSTES DEL IMPORTADOR DE TEXTURAS,TEXTUR-IMPORT-EINSTELLUNGEN,PARAMÈTRES DE L’IMPORTATEUR DE TEXTURE
+tooltip_texture_importer_settings,Low-level texture importer settings applied to sprites.,スプライトに適用される低レベルのテクスチャインポーター設定です。,스프라이트에 적용되는 로우레벨 텍스처 임포터 설정입니다.,应用于精灵的底层纹理导入器设置。,Configuraciones del importador de texturas aplicadas a los sprites.,"Low-Level-Einstellungen des Texturimporters, die auf Sprites angewendet werden.",Paramètres détaillés de l'importateur de textures appliqués aux sprites.
+label_texture_type,Texture Type,テクスチャタイプ,텍스처 유형,纹理类型,Tipo de textura,Texturtyp,Type de texture
+tooltip_texture_type,"Use the Texture Type property to select the type of Texture you want to create from the source image file.
+
+The other properties in the Texture Import settings window change depending on the value you set.","テクスチャタイプのプロパティを使用して、ソース画像ファイルから作成したいテクスチャの種類を選択します。
+
+テクスチャインポート設定ウィンドウの他のプロパティは設定した値に応じて変化します。","텍스처 유형 속성을 사용하여 소스 이미지 파일에서 생성하려는 텍스처 유형을 선택하세요.
+
+텍스처 임포트 설정 창의 다른 속성은 설정한 값에 따라 달라집니다.","使用纹理类型属性来选择你希望从源图像文件创建的纹理类型。
+
+纹理导入设置窗口中的其他属性会根据你设置的值发生变化。","Use la propiedad Tipo de textura para seleccionar el tipo de textura que desea crear a partir del archivo de imagen de origen.
+
+Las demás propiedades en la ventana de ajustes de importación de texturas cambian según el valor que configure.","Verwenden Sie die Eigenschaft Texturtyp, um den Typ der Textur zu wählen, den Sie aus der Quelldatei erstellen möchten.
+
+Die anderen Eigenschaften im Fenster für Texturimport-Einstellungen ändern sich abhängig vom gewählten Wert.","Utilisez la propriété Type de texture pour sélectionner le type de texture que vous souhaitez créer à partir du fichier image source.
+
+Les autres propriétés de la fenêtre des paramètres d’importation de texture changent selon la valeur que vous définissez."
+label_ttf_path,TTF Fonts Path,TTF フォントパス,TTF 글꼴 경로,TTF 字体路径,Ruta de fuentes TTF,TTF-Schriftarten-Pfad,Chemin des polices TTF
+tooltip_ttf_path,Folder scanned when searching for local TTF files.,ローカルの TTF ファイルを検索する際に参照するフォルダーです。,로컬 TTF 파일을 찾을 때 검사할 폴더입니다.,搜索本地 TTF 文件时扫描的文件夹。,Carpeta que se analiza al buscar archivos TTF locales.,"Ordner, der beim Suchen nach lokalen TTF-Dateien durchsucht wird.",Dossier analysé lors de la recherche de fichiers TTF locaux.
+label_ui_framework,UI Framework,UI フレームワーク,UI 프레임워크,UI 框架,Framework de UI,UI-Framework,Framework UI
+tooltip_ui_framework,,,,,,,
+label_unity_image_settings,UNITY IMAGE SETTINGS,UNITY 画像設定,UNITY 이미지 설정,UNITY 图像设置,AJUSTES DE IMÁGENES DE UNITY,UNITY-BILDEINSTELLUNGEN,PARAMÈTRES D’IMAGE UNITY
+tooltip_unity_image_settings,Settings for Unity UI Image components.,Unity UI Image コンポーネント向けの設定です。,Unity UI Image 컴포넌트를 위한 설정입니다.,针对 Unity UI Image 组件的设置。,Configuraciones para los componentes Unity UI Image.,Einstellungen für Unity UI Image-Komponenten.,Paramètres pour les composants Unity UI Image.
+label_unity_text_settings,UNITY TEXT SETTINGS,UNITY テキスト設定,UNITY 텍스트 설정,UNITY 文本设置,AJUSTES DE TEXTO DE UNITY,UNITY-TEXTEINSTELLUNGEN,PARAMÈTRES DE TEXTE UNITY
+tooltip_unity_text_settings,Settings for the legacy Unity UI Text component.,旧来の Unity UI Text コンポーネント用の設定です。,레거시 Unity UI Text 컴포넌트에 대한 설정입니다.,旧版 Unity UI Text 组件的设置。,Configuraciones para el componente clásico Unity UI Text.,Einstellungen für die klassische Unity UI Text-Komponente.,Paramètres pour l'ancien composant Unity UI Text.
+label_uitk_linking_mode,UITK Linking Mode,UITK リンキングモード,UITK 링크 모드,UITK 链接模式,Modo de vinculación UITK,UITK-Verknüpfungsmodus,Mode de liaison UITK
+tooltip_uitk_linking_mode,,,,,,,
+label_uitk_output_path,UITK Output Path,UITK 出力パス,UITK 출력 경로,UITK 输出路径,Ruta de salida UITK,UITK-Ausgabepfad,Chemin de sortie UITK
+tooltip_uitk_output_path,Folder where generated UITK assets are saved.,生成された UITK アセットを保存するフォルダーです。,생성된 UITK 에셋이 저장되는 폴더입니다.,用于保存生成 UITK 资源的文件夹。,Carpeta donde se guardan los assets de UITK generados.,"Ordner, in dem die generierten UITK-Assets gespeichert werden.",Dossier où sont enregistrés les assets UITK générés.
+label_visible_descender,Visible Descender,可視ディセンダー,가시적 내림부분（Descender）,可见下行字形,Descendente visible,Sichtbarer Absteiger,Descendeur visible
+tooltip_visible_descender,Compute descender values from visible characters only. Used to adjust layout behavior when hiding and revealing characters dynamically.,可視文字のみからディセンダーの値を計算します。文字を動的に非表示または表示する際のレイアウト動作を調整するために使用されます。,가시 문자에서만 내림부분 값을 계산합니다. 문자를 동적으로 숨기거나 표시할 때 레이아웃 동작을 조정하는 데 사용됩니다.,仅从可见字符计算下行字形值。用于在动态隐藏和显示字符时调整布局行为。,Calcular valores descendentes solo a partir de caracteres visibles. Se utiliza para ajustar el comportamiento del diseño al ocultar y mostrar caracteres dinámicamente.,"Berechne Absteigerwerte nur aus sichtbaren Zeichen. Wird verwendet, um das Verhalten des Layouts anzupassen, wenn Zeichen dynamisch ausgeblendet oder angezeigt werden.",Calcule les valeurs du descendeur uniquement à partir des caractères visibles. Utilisé pour ajuster le comportement de mise en page lors de la dissimulation et l’affichage dynamique de caractères.
+label_vertical_mapping,Vertical Mapping,垂直マッピング,수직 매핑,垂直映射,Mapeo vertical,Vertikale Abbildung,Mappage vertical
+tooltip_vertical_mapping,Vertical UV mapping when using a shader with a texture face option.,テクスチャフェイスオプション付きシェーダーを使用する際の垂直UVマッピング。,텍스처 면 옵션이 있는 셰이더를 사용할 때 수직 UV 매핑.,当使用带有纹理面选项的着色器时的垂直 UV 映射。,Mapeo UV vertical al usar un shader con opción de cara de textura.,Vertikale UV-Abbildung bei Verwendung eines Shaders mit Texturflächenoption.,Mappage UV vertical lors de l’utilisation d’un shader avec une option de face texturée.
+label_vertical_overflow,Vertical Overflow,垂直オーバーフロー,수직 오버플로우,垂直溢出,Desbordamiento vertical,Vertikales Überlaufen,Débordement vertical
+tooltip_vertical_overflow,The method used to handle the situation where wrapped text is too tall to fit in the rectangle. The options are Truncate and Overflow.,ラップされたテキストが長すぎて矩形内に収まらない場合の処理方法。選択肢はTruncateとOverflowです。,줄바꿈된 텍스트가 너무 길어 사각형에 맞지 않을 때 처리 방법입니다. 옵션은 자르기（Truncate）와 오버플로우（Overflow）입니다.,处理换行文本过高无法适应矩形时的方法。选项包括截断和溢出。,El método usado para manejar la situación en la que el texto ajustado es demasiado alto para caber en el rectángulo. Las opciones son Truncar y Desbordar.,"Die Methode, die verwendet wird, wenn der umgebrochene Text zu hoch ist, um in das Rechteck zu passen. Die Optionen sind Kürzen und Überlaufen.",Méthode utilisée pour traiter la situation où le texte habillé est trop grand pour s’adapter dans le rectangle. Les options sont Tronqué et Débordement.
+tooltip_label_without_changes,,,,,,,
+label_wrapping,Wrapping,折り返し,줄바꿈,换行,Ajuste de línea,Umbruch,Habillage
+tooltip_wrapping,Wraps text to the next line when reaching the edge of the container.,テキストがコンテナの端に達したときに次の行に折り返されます。,컨테이너의 가장자리에 도달하면 텍스트를 다음 줄로 줄바꿈합니다.,当到达容器边缘时将文本换到下一行。,Ajusta el texto a la siguiente línea al llegar al borde del contenedor.,"Bricht den Text in die nächste Zeile um, wenn das Ende des Containers erreicht ist.",Habille le texte à la ligne suivante lorsqu’il atteint le bord du conteneur.
+label_procedural_ui_settings,SETTINGS FOR ANY PROCEDURAL IMAGE,任意のプロシージャル画像の設定,임의（Procedural） 이미지 설정,任意程序化图像设置,AJUSTES PARA CUALQUIER IMAGEN PROCEDURAL,EINSTELLUNGEN FÜR BELIEBIGES PROZEDURALES BILD,PARAMÈTRES POUR TOUTE IMAGE PROCÉDURALE
+tooltip_procedural_ui_settings,,,,,,,
+label_pui_settings,PROCEDURAL UI IMAGE SETTINGS,プロシージャル UI 画像設定,Procedural UI 이미지 설정,程序化 UI 图像设置,AJUSTES DE IMAGEN UI PROCEDURAL,PROZEDURALE UI-BILDEINSTELLUNGEN,PARAMÈTRES D’IMAGE UI PROCÉDURALE
+tooltip_pui_settings,,,,,,,
+label_mpuikit_settings,MPIMAGE SETTINGS,MPIMAGE 設定,MPIMAGE 설정,MPIMAGE 设置,AJUSTES DE MPIMAGE,MPIMAGE EINSTELLUNGEN,PARAMÈTRES MPIMAGE
+tooltip_mpuikit_settings,,,,,,,
+label_sr_settings,SPRITE RENDERER SETTINGS,スプライトレンダラー設定,스프라이트 렌더러 설정,SPRITE RENDERER 设置,AJUSTES DE SPRITE RENDERER,SPRITE RENDERER EINSTELLUNGEN,PARAMÈTRES DU RENDERER DE SPRITE
+tooltip_sr_settings,,,,,,,
+label_is_readable,Is Readable,読み取り可能,읽기 가능,是否可读,Es legible,Ist lesbar,Est lisible
+tooltip_is_readable,"Whether Unity stores an additional copy of this texture's pixel data in CPU-addressable memory.
+
+This is required for methods that read, write, and manipulate the pixel data on the CPU, such as Texture2D.GetPixels or ImageConversion.
+
+EncodeToPNG. It is not required for methods that perform all their work on the GPU, such as Graphics.CopyTexture or Graphics.Blit.","Unity がこのテクスチャのピクセルデータの追加コピーを CPU アドレス可能メモリに保存するかどうか。
+
+これは、Texture2D.GetPixels や ImageConversion.EncodeToPNG のように、CPU 上でピクセルデータを読み取り、書き込み、操作するメソッドに必要です。
+
+Graphics.CopyTexture や Graphics.Blit のように、GPU 上ですべての処理を行うメソッドには必要ありません。","Unity가 이 텍스처의 픽셀 데이터를 CPU 주소 지정 가능한 메모리에 추가 사본으로 저장할지 여부.
+
+이는 Texture2D.GetPixels 또는 ImageConversion.EncodeToPNG과 같이 CPU에서 픽셀 데이터를 읽고, 쓰고, 조작하는 메서드에 필요합니다.
+
+GPU에서 모든 작업을 수행하는 Graphics.CopyTexture 또는 Graphics.Blit 같은 메서드에는 필요하지 않습니다.","Unity 是否在 CPU 可寻址内存中存储该纹理像素数据的额外副本。
+
+对于在 CPU 上读取、写入和操作像素数据的方法（如 Texture2D.GetPixels 或 ImageConversion.EncodeToPNG），这是必需的。  
+
+对于在 GPU 上完成所有工作的方式（如 Graphics.CopyTexture 或 Graphics.Blit），则不需要。","Si Unity almacena una copia adicional de los datos de píxeles de esta textura en memoria accesible por la CPU.
+
+Esto es necesario para métodos que leen, escriben y manipulan los datos de píxeles en la CPU, como Texture2D.GetPixels o ImageConversion.
+
+EncodeToPNG. No es necesario para métodos que realizan todo su trabajo en la GPU, como Graphics.CopyTexture o Graphics.Blit.","Ob Unity eine zusätzliche Kopie der Pixeldaten dieser Textur im CPU-adressierbaren Speicher speichert.
+
+Dies ist erforderlich für Methoden, die Pixeldaten auf der CPU lesen, schreiben und bearbeiten, wie Texture2D.GetPixels oder ImageConversion.
+
+EncodeToPNG. Es ist nicht erforderlich für Methoden, die ihre Arbeit vollständig auf der GPU ausführen, wie Graphics.CopyTexture oder Graphics.Blit.","Indique si Unity stocke une copie supplémentaire des données de pixels de cette texture dans la mémoire adressable par le CPU.
+
+Ceci est requis pour les méthodes qui lisent, écrivent et manipulent les données de pixels sur le CPU, telles que Texture2D.GetPixels ou ImageConversion.
+
+EncodeToPNG. Ce n’est pas requis pour les méthodes qui exécutent tout leur travail sur le GPU, comme Graphics.CopyTexture ou Graphics.Blit."
+label_next_order_step,Next Order Step,次の順序ステップ,다음 주문 단계,下一步排序,Siguiente paso de orden,Nächster Bestellschritt,Étape suivante de la commande
+tooltip_next_order_step,,,,,,,
+label_raw_import,Raw Import,RAW インポート,원본 가져오기,原始导入,Importación en bruto,Rohimport,Import brut
+tooltip_raw_import,"When enabled, importing the full structure of your layout, without smart-combine multiple sprites into one sprite.",有効にすると、複数のスプライトを1つのスプライトにスマート結合することなく、レイアウト全体の構造をインポートします。,활성화되면 여러 스프라이트를 스마트하게 결합하지 않고 레이아웃의 전체 구조를 하나의 스프라이트로 가져옵니다.,启用时，将导入布局的完整结构，而不会智能合并多个精灵为一个。,"Cuando está activado, importa la estructura completa de tu diseño, sin combinar de forma inteligente múltiples sprites en uno solo.","Wenn aktiviert, wird die vollständige Struktur deines Layouts importiert, ohne dass mehrere Sprites intelligent in ein Sprite kombiniert werden.","Lorsqu’il est activé, importe la structure complète de votre mise en page, sans combiner intelligemment plusieurs sprites en un seul sprite."
+label_buttons_tab,BUTTONS,ボタン,버튼,按钮,BOTONES,SCHALTFLÄCHEN,BOUTONS
+tooltip_buttons_tab,"Configure button components, transitions, and DAButton options.",ボタンコンポーネント、トランジション、DAButton オプションを設定します。,"버튼 컴포넌트, 전환 및 DAButton 옵션을 구성합니다.",配置按钮组件、过渡效果和 DAButton 选项。,"Configura los componentes de botón, las transiciones y las opciones de DAButton.","Konfiguriert Button-Komponenten, Übergänge und DAButton-Optionen.","Configure les composants de bouton, les transitions et les options DAButton."
+label_ui_toolkit_tab,UI TOOLKIT,UI ツールキット,UI 도구 키트,UI 工具包,UI TOOLKIT,UI TOOLKIT,UI TOOLKIT
+tooltip_ui_toolkit_tab,,,,,,,
+label_fcu,Figma Converter for Unity,Figma Converter for Unity,Unity용 Figma 변환기,Figma 转换器（Unity）,Figma Converter para Unity,Figma Converter für Unity,Figma Converter pour Unity
+tooltip_fcu,,,,,,,
+label_settings,Settings,設定,설정,设置,Ajustes,Einstellungen,Paramètres
+tooltip_settings,,,,,,,
+label_script_generator,SCRIPT GENERATOR,スクリプトジェネレーター,스크립트 생성기,脚本生成器,GENERADOR DE SCRIPTS,SCRIPT GENERATOR,GÉNÉRATEUR DE SCRIPTS
+tooltip_script_generator,,,,,,,
+label_scripts_output_path,Scripts output path,スクリプト出力パス,스크립트 출력 경로,脚本输出路径,Ruta de salida de scripts,Ausgabepfad für Scripts,Chemin de sortie des scripts
+tooltip_scripts_output_path,Folder where generated scripts are written.,生成されたスクリプトを保存するフォルダーです。,생성된 스크립트가 저장되는 폴더입니다.,用于保存生成脚本的文件夹。,Carpeta donde se guardan los scripts generados.,"Ordner, in dem die generierten Skripte abgelegt werden.",Dossier où sont enregistrés les scripts générés.
+label_select_folder,Select Folder,フォルダーを選択,폴더 선택,选择文件夹,Seleccionar carpeta,Ordner auswählen,Sélectionner un dossier
+tooltip_select_folder,,,,,,,
+label_fcu_is_null,"The script '{0}' is not attached to this object.
+If this object is a prefab, to ensure the '{1}' function
+works correctly after adding the object to the scene, 
+you need to execute function '{2}' from the context menu.
+
+More information about the Context Menu can be found in the Developer Manual.","スクリプト '{0}' がこのオブジェクトにアタッチされていません。
+このオブジェクトがプレハブの場合、オブジェクトをシーンに追加した後に '{1}' 関数が正しく動作するようにするには、コンテキストメニューから '{2}' 関数を実行する必要があります。
+
+コンテキストメニューについての詳細は、開発者マニュアルをご覧ください。","스크립트 '{0}'이（가） 이 객체에 첨부되어 있지 않습니다.
+이 객체가 프리팹일 경우, 객체를 씬에 추가한 후 '{1}' 기능이 올바르게 작동하려면 컨텍스트 메뉴에서 '{2}' 기능을 실행해야 합니다.
+
+컨텍스트 메뉴에 대한 자세한 정보는 개발자 매뉴얼에서 확인할 수 있습니다.","脚本“{0}”未挂载到此对象。
+如果该对象是预制件，为了确保“{1}”功能在将对象添加到场景后正常工作，  
+需要在右键菜单中执行函数“{2}”。
+
+有关上下文菜单的更多信息，请参阅开发者手册。","El script '{0}' no está adjunto a este objeto.
+Si este objeto es un prefab, para asegurar que la función '{1}'
+funcione correctamente después de añadir el objeto a la escena, 
+debes ejecutar la función '{2}' desde el menú contextual.
+
+Puedes encontrar más información sobre el Menú Contextual en el Manual del Desarrollador.","Das Skript '{0}' ist nicht an dieses Objekt angehängt.
+Wenn dieses Objekt ein Prefab ist, müssen Sie, um sicherzustellen, dass die Funktion '{1}' 
+nach dem Hinzufügen des Objekts zur Szene korrekt funktioniert, die Funktion '{2}' 
+im Kontextmenü ausführen.
+
+Weitere Informationen zum Kontextmenü finden Sie im Entwicklerhandbuch.","Le script '{0}' n’est pas attaché à cet objet.  
+Si cet objet est un prefab, pour garantir que la fonction '{1}'  
+fonctionne correctement après avoir ajouté l’objet à la scène,  
+vous devez exécuter la fonction '{2}' depuis le menu contextuel.  
+
+Vous trouverez plus d’informations sur le menu contextuel dans le manuel du développeur."
+tooltip_fcu_is_null,This object has no '{0}' assigned. Run '{1}' and then '{2}' from the context menu to reattach it.,このオブジェクトには「{0}」が割り当てられていません。コンテキストメニューから「{1}」を実行し、その後「{2}」を実行して再割り当てしてください。,이 오브젝트에는 '{0}' 이(가) 연결되어 있지 않습니다. 컨텍스트 메뉴에서 '{1}'을 실행한 뒤 '{2}'을 실행하여 다시 연결하세요.,此对象未分配“{0}”。请在上下文菜单中先运行“{1}”，再运行“{2}”以重新附加。,Este objeto no tiene '{0}' asignado. Ejecuta '{1}' y luego '{2}' desde el menú contextual para volver a asignarlo.,"Diesem Objekt ist kein „{0}“ zugewiesen. Führe im Kontextmenü zuerst „{1}“, dann „{2}“ aus, um es erneut zu verknüpfen.",Cet objet n'a pas de « {0} ». Exécutez « {1} » puis « {2} » depuis le menu contextuel pour le rattacher.
+label_more_about_layout_updating,"You can learn more about this script in the dev manual, 'Layout updating' slide.",このスクリプトについてさらに知るには、開発者マニュアルの「レイアウト更新」スライドをご覧ください。,이 스크립트에 대한 더 많은 내용은 개발자 매뉴얼의 '레이아웃 업데이트' 슬라이드에서 확인할 수 있습니다.,你可以在开发者手册的 '布局更新' 部分了解更多关于此脚本的信息。,"Puedes aprender más sobre este script en el manual de desarrollador, diapositiva 'Actualización de diseño'.",Mehr über dieses Skript finden Sie im Entwicklerhandbuch im Abschnitt 'Layout aktualisieren'.,"Vous pouvez en savoir plus sur ce script dans le manuel de développement, diapositive 'Mise à jour de la mise en page'."
+tooltip_more_about_layout_updating,Opens the developer manual section that explains layout updating.,レイアウト更新について説明した開発者マニュアルのセクションを開きます。,레이아웃 업데이트를 설명하는 개발자 매뉴얼 섹션을 엽니다.,打开开发者手册中介绍布局更新的章节。,Abre la sección del manual para desarrolladores que explica la actualización de layouts.,"Öffnet den Abschnitt im Entwicklerhandbuch, der das Layout-Update erklärt.",Ouvre la section du manuel développeur qui explique la mise à jour du layout.
+tooltip_open_fcu_window,Open the FCU settings window.,FCU 設定ウィンドウを開きます。,FCU 설정 창을 엽니다.,打开 FCU 设置窗口。,Abre la ventana de configuración de FCU.,Öffnet das FCU-Einstellungsfenster.,Ouvre la fenêtre de paramètres FCU.
+tooltip_change_window_mode,_,_,_,_,_,_,_
+label_orthographic_mode,Orthographic Mode,直交モード,직교 모드,正交模式,Modo ortográfico,Orthographischer Modus,Mode orthographique
+tooltip_orthographic_mode,,,,,,,
+label_extra_padding,Extra Padding,余白の追加,추가 여백,额外填充,Relleno extra,Zusätzlicher Abstand,Marge supplémentaire
+tooltip_extra_padding,Adds some padding between the characters and the edge of the text mesh. Can reduce graphical errors when displaying small text.,文字とテキストメッシュの端との間に余白を追加します。小さなテキストを表示する際のグラフィックエラーを軽減できます。,문자와 텍스트 메시 가장자리를 구분하기 위해 여백을 추가합니다. 작은 텍스트를 표시할 때 그래픽 오류를 줄일 수 있습니다.,在字符与文本网格边缘之间添加一些填充。在显示小字号文本时可减少图形错误。,Agrega algo de relleno entre los caracteres y el borde de la malla de texto. Puede reducir errores gráficos al mostrar texto pequeño.,Fügt etwas Abstand zwischen den Zeichen und dem Rand des Textgitters hinzu. Kann grafische Fehler beim Anzeigen von kleinem Text reduzieren.,Ajoute une marge entre les caractères et le bord du maillage de texte. Peut réduire les erreurs graphiques lors de l’affichage de petits textes.
+label_overflow,Overflow,オーバーフロー,오버플로우,溢出,Desbordamiento,Überlauf,Débordement
+tooltip_overflow,How to display text which goes past the edge of the container.,コンテナの端を超えたテキストの表示方法。,컨테이너 가장자리를 넘어가는 텍스트를 어떻게 표시할지 설정합니다.,如何显示超出容器边缘的文本。,Cómo mostrar texto que sobrepasa el borde del contenedor.,"Wie Text angezeigt wird, der über den Rand des Containers hinausgeht.",Comment afficher le texte qui dépasse du bord du conteneur.
+label_geometry_sorting,Geometry Sorting,ジオメトリソート,기하학 정렬,几何排序,Ordenación de geometría,Geometrie-Sortierung,Tri de la géométrie
+tooltip_geometry_sorting,The order in which text geometry is sorted. Used to adjust the way overlapping characters are displayed.,テキストジオメトリをソートする順序。重なり合った文字の表示方法を調整するために使用します。,텍스트 기하학이 정렬되는 순서입니다. 겹치는 문자가 표시되는 방식을 조정하는 데 사용됩니다.,文本几何体的排序顺序。用于调整重叠字符的显示方式。,El orden en que se organiza la geometría del texto. Se usa para ajustar la forma en que se muestran los caracteres superpuestos.,"Die Reihenfolge, in der Textgeometrie sortiert wird. Wird verwendet, um die Darstellung überlappender Zeichen anzupassen.",L’ordre dans lequel la géométrie du texte est triée. Utilisé pour ajuster la façon dont les caractères se chevauchant sont affichés.
+label_shader,Shader,シェーダー,셰이더,着色器,Shader,Shader,Shader
+tooltip_shader,,,,,,,
+label_farsi,Farsi,ファルシ語,페르시아어,波斯语,Persa (farsi),Persisch (Farsi),Persan (farsi)
+tooltip_farsi,,,,,,,
+label_fix_tags,Fix Tags,タグを修正,태그 수정,修复标签,Corregir etiquetas,Tags korrigieren,Corriger les balises
+tooltip_fix_tags,,,,,,,
+label_user_name,The name of the user authorized in the current instance of the asset.,このアセットの現在のインスタンスで認証されているユーザーの名前。,현재 자산 인스턴스에서 인증된 사용자의 이름.,当前资产实例中授权用户的姓名。,El nombre del usuario autorizado en la instancia actual del recurso.,"Der Name des Benutzers, der in der aktuellen Instanz der Ressource autorisiert ist.",Le nom de l’utilisateur autorisé dans l’instance actuelle de l’actif.
+tooltip_user_id,The ID of the user authorized in the current instance of the asset.,このアセットの現在のインスタンスで認証されているユーザーのID。,현재 자산 인스턴스에서 인증된 사용자의 ID.,当前资产实例中授权用户的ID。,El ID del usuario autorizado en la instancia actual del recurso.,"Die ID des Benutzers, der in der aktuellen Instanz der Ressource autorisiert ist.",L’ID de l’utilisateur autorisé dans l’instance actuelle de l’actif.
+label_stable_version,This version of the asset is stable.,このアセットのバージョンは安定版です。,이 자산 버전은 안정적입니다.,此资产版本稳定。,Esta versión del recurso es estable.,Diese Version der Ressource ist stabil.,Cette version de l’actif est stable.
+tooltip_stable_version,,,,,,,
+label_go_layer,GameObject Layer,GameObjectレイヤー,GameObject 레이어,GameObject 图层,Capa de GameObject,GameObject-Ebene,Calque du GameObject
+tooltip_go_layer,"Sets the value of the ""Layout"" parameter, which you can see in the top-right corner of the Inspector, for all the GameObjects being instantiated.",生成されるすべてのGameObjectに対して、インスペクターの右上に表示される「Layout」パラメーターの値を設定します。,"생성되는 모든 GameObject에 대해 검사기 오른쪽 상단에서 볼 수 있는 ""Layout"" 매개변수의 값을 설정합니다.",为所有被实例化的 GameObject 设置“Layout”参数的值，该参数可以在 Inspector 界面右上角看到。,"Establece el valor del parámetro ""Layout"", que puedes ver en la esquina superior derecha del Inspector, para todos los GameObjects que se están instanciando.","Setzt den Wert des ""Layout""-Parameters, den Sie in der oberen rechten Ecke des Inspektors sehen können, für alle GameObjects, die instanziiert werden.","Définit la valeur du paramètre ""Layout"", que vous pouvez voir dans le coin supérieur droit de l’Inspecteur, pour tous les GameObjects instanciés."
+label_pivot_type,Pivot Type,ピボットタイプ,피벗 유형,枢轴类型,Tipo de pivote,Pivot-Typ,Type de pivot
+tooltip_pivot_type,,,,,,,
+tooltip_recent_projects,View recent projects.,最近のプロジェクトを表示。,최근 프로젝트 보기.,查看最近的项目。,Ver proyectos recientes.,Letzte Projekte anzeigen.,Voir les projets récents.
+tooltip_download_project,"Download Figma project from URL.
+The current active import of the current canvas will be stopped.","URLからFigmaプロジェクトをダウンロードします。
+現在アクティブなキャンバスのインポートは停止されます。","URL에서 Figma 프로젝트 다운로드.
+현재 캔버스의 활성 가져오기가 중지됩니다.","从URL下载 Figma 项目。  
+当前画布的正在进行的导入将被停止。","Descargar proyecto de Figma desde URL.  
+La importación activa actual del lienzo actual se detendrá.","Figma-Projekt von URL herunterladen.
+Der aktuell aktive Import der aktuellen Leinwand wird gestoppt.","Télécharger le projet Figma depuis l’URL.
+L’importation active en cours du canevas actuel sera arrêtée."
+label_sampling_point_size,Sampling Point Size,サンプリングポイントサイズ,샘플링 포인트 크기,采样点大小,Tamaño de punto de muestreo,Abtastpunktegröße,Taille du point d’échantillonnage
+tooltip_sampling_point_size,The sampling point size.,サンプリングポイントサイズです。,샘플링 포인트 크기입니다.,采样点的大小。,El tamaño de punto de muestreo.,Die Abtastpunktegröße.,La taille du point d’échantillonnage.
+label_enable_multi_atlas_support,Enable Multi Atlas Support,マルチアトラスサポートを有効化,멀티 아틀라스 지원 활성화,启用多图集支持,Habilitar compatibilidad Multi Atlas,Multi-Atlas-Unterstützung aktivieren,Activer la prise en charge Multi Atlas
+tooltip_enable_multi_atlas_support,,,,,,,
+label_images_format,Images Format,画像フォーマット,이미지 형식,图像格式,Formato de imágenes,Bildformat,Format des images
+tooltip_images_format,Format of images imported from Figma.,Figmaからインポートした画像のフォーマット。,Figma에서 불러온 이미지의 형식.,从 Figma 导入的图像格式。,Formato de las imágenes importadas desde Figma.,Format der aus Figma importierten Bilder.,Format des images importées de Figma.
+label_images_scale,Images Scale,画像スケール,이미지 크기,图像缩放,Escala de imágenes,Bildskalierung,Échelle des images
+tooltip_images_scale,The size of the images imported from Figma.,Figmaからインポートした画像のサイズ。,Figma에서 불러온 이미지의 크기.,从 Figma 导入的图像大小。,El tamaño de las imágenes importadas desde Figma.,Die Größe der aus Figma importierten Bilder.,La taille des images importées de Figma.
+label_preserve_ratio_mode,Preserve Ratio Mode,縦横比保持モード,비율 유지 모드,保持比例模式,Modo de preservar proporción,Seitenverhältnismodus beibehalten,Mode de préservation des proportions
+tooltip_preserve_ratio_mode,"If an object in Figma has the 'PreserveRatio' function enabled, the 'AspectRatioFitter' script will be added to it with your selected mode.",Figma内のオブジェクトで「PreserveRatio」機能が有効になっている場合、選択したモードで「AspectRatioFitter」スクリプトが追加されます。,"Figma의 객체에 'PreserveRatio' 기능이 활성화된 경우, 선택한 모드와 함께 'AspectRatioFitter' 스크립트가 추가됩니다.",如果在 Figma 中启用了“PreserveRatio”功能，则会为该对象添加“AspectRatioFitter”脚本，并使用你选择的模式。,"Si un objeto en Figma tiene habilitada la función 'PreserveRatio', se le añadirá el script 'AspectRatioFitter' con el modo que selecciones.","Wenn ein Objekt in Figma die 'PreserveRatio'-Funktion aktiviert hat, wird ihm das 'AspectRatioFitter'-Skript mit dem von Ihnen ausgewählten Modus hinzugefügt.","Si un objet dans Figma a la fonction 'PreserveRatio' activée, le script 'AspectRatioFitter' lui sera ajouté avec le mode que vous avez sélectionné."
+label_sprites_path,Sprites Path,スプライトパス,스프라이트 경로,精灵路径,Ruta de sprites,Sprites-Pfad,Chemin des sprites
+tooltip_sprites_path,Relative folder for downloaded sprite textures.,ダウンロードしたスプライトテクスチャを保存する相対フォルダーです。,다운로드한 스프라이트 텍스처를 저장할 상대 경로입니다.,用于存储下载的精灵贴图的相对文件夹。,Carpeta relativa donde se guardan las texturas de sprite descargadas.,Relativer Ordner für heruntergeladene Sprite-Texturen.,Dossier relatif où sont stockées les textures de sprites téléchargées.
+label_shapes2d_settings,SHAPES 2D SETTINGS,2D図形設定,2D 도형 설정,二维形状设置,AJUSTES DE FORMAS 2D,2D-FORMEN-EINSTELLUNGEN,PARAMÈTRES DES FORMES 2D
+tooltip_shapes2d_settings,,,,,,,
+label_google_fonts_settings,GOOGLE FONTS SETTINGS,Googleフォント設定,Google Fonts 설정,Google 字体设置,AJUSTES DE GOOGLE FONTS,GOOGLE-FONTS-EINSTELLUNGEN,PARAMÈTRES GOOGLE FONTS
+tooltip_google_fonts_settings,,,,,,,
+label_google_fonts_api_key,Google Fonts Api Key,Google フォント API キー,Google Fonts API 키,Google Fonts API 密钥,Clave de la API de Google Fonts,Google Fonts Api-Schlüssel,Clé API Google Fonts
+tooltip_google_fonts_api_key,"In order for the asset to be able to automatically download missing fonts, you need to create your own '{0}', and enter it in '{0}' field.",アセットが不足しているフォントを自動的にダウンロードできるようにするには、自分の '{0}' を作成し、それを '{0}' フィールドに入力する必要があります。,"에셋이 누락된 폰트를 자동으로 다운로드할 수 있도록 하려면, 자신만의 '{0}'을（를） 생성하고 '{0}' 필드에 입력해야 합니다.",为了使资源能够自动下载缺失的字体，您需要创建自己的“{0}”，并将其输入到“{0}”字段中。,"Para que el recurso pueda descargar automáticamente las fuentes que faltan, necesitas crear tu propio '{0}' e ingresarlo en el campo '{0}'.","Damit das Asset fehlende Schriftarten automatisch herunterladen kann, müssen Sie Ihren eigenen '{0}' erstellen und ihn in das Feld '{0}' eingeben.","Afin que l’actif puisse télécharger automatiquement les polices manquantes, vous devez créer votre propre '{0}', et l’entrer dans le champ '{0}'."
+label_get_google_api_key,Get,取得,키 발급,获取,Obtener,Holen,Obtenir
+tooltip_get_google_api_key,Open the instructions to obtain a Google Fonts API key.,Google Fonts API キーの取得手順を開きます。,Google Fonts API 키를 받는 방법을 엽니다.,打开获取 Google Fonts API 密钥的说明。,Abre las instrucciones para obtener una clave de la API de Google Fonts.,Öffnet die Anleitung zum Anfordern eines Google-Fonts-API-Schlüssels.,Ouvre les instructions pour obtenir une clé d'API Google Fonts.
+label_tmp_path,TMP Fonts Path,TMP フォントパス,TMP 폰트 경로,临时字体路径,Ruta de fuentes TMP,TMP-Schriften-Pfad,Chemin TMP Fonts
+tooltip_tmp_path,,,,,,,
+label_no_recent_sessions,No recent sessions found.,最近のセッションが見つかりません。,최근 세션을 찾을 수 없습니다.,未找到最近的会话。,No se encontraron sesiones recientes.,Keine aktuellen Sitzungen gefunden.,Aucune session récente trouvée.
+tooltip_no_recent_sessions,No OAuth sessions stored; sign in to create one.,保存された OAuth セッションがありません。サインインして作成してください。,저장된 OAuth 세션이 없습니다. 로그인하여 생성하세요.,没有保存的 OAuth 会话，请登录以创建。,No hay sesiones OAuth guardadas; inicia sesión para crear una.,"Es sind keine OAuth-Sitzungen gespeichert. Melde dich an, um eine zu erstellen.",Aucune session OAuth enregistrée ; connectez-vous pour en créer une.
+tooltip_new_components,Components that are missing on the scene but exist in Figma.,シーンには存在しないが、Figma に存在するコンポーネント。,씬에는 없지만 Figma에 존재하는 컴포넌트입니다.,场景中缺失但 Figma 中存在的组件。,Componentes que faltan en la escena pero existen en Figma.,"Komponenten, die in der Szene fehlen, aber in Figma existieren.",Composants manquants sur la scène mais existants dans Figma.
+tooltip_import_frames,"Import selected frames from a downloaded or cached Figma project.
+The current active import of the current canvas will be stopped.","ダウンロードまたはキャッシュされた Figma プロジェクトから選択されたフレームをインポートします。
+現在のキャンバスのアクティブなインポートは停止されます。","다운로드되었거나 캐시된 Figma 프로젝트에서 선택한 프레임을 가져옵니다.
+현재 캔버스의 활성 가져오기 작업은 중지됩니다.",从已下载或缓存的 Figma 项目中导入所选画框。当前画布的激活导入将会停止。,"Importar fotogramas seleccionados de un proyecto de Figma descargado o en caché.
+La importación activa actual del lienzo actual se detendrá.","Ausgewählte Frames aus einem heruntergeladenen oder zwischengespeicherten Figma-Projekt importieren.
+Der aktuelle aktive Import der aktuellen Leinwand wird gestoppt.","Importer les images sélectionnées depuis un projet Figma téléchargé ou mis en cache.
+L’importation active du canevas en cours sera arrêtée."
+tooltip_open_settings_window,Open settings window,設定ウィンドウを開く,설정 창 열기,打开设置窗口,Abrir ventana de configuración,Einstellungsfenster öffnen,Ouvrir la fenêtre des paramètres
+label_select_fonts_folder,Choose a folder with your fonts,フォントが入ったフォルダを選択,폰트가 있는 폴더를 선택하세요,选择一个包含字体的文件夹,Elige una carpeta con tus fuentes,Wählen Sie einen Ordner mit Ihren Schriftarten,Choisissez un dossier contenant vos polices
+tooltip_select_fonts_folder,Choose the folder that contains your local fonts.,ローカルフォントが入っているフォルダーを選択します。,로컬 폰트가 들어 있는 폴더를 선택합니다.,选择包含本地字体的文件夹。,Elige la carpeta que contiene tus fuentes locales.,"Wähle den Ordner, der deine lokalen Schriftarten enthält.",Choisissez le dossier qui contient vos polices locales.
+label_select_prefabs_folder,Select Prefabs Folder,プレハブ用フォルダーを選択,프리팹 폴더 선택,选择预制体文件夹,Seleccionar carpeta de prefabs,Prefab-Ordner auswählen,Sélectionner le dossier des prefabs
+tooltip_select_prefabs_folder,Choose where generated prefabs are stored.,生成されたプレハブを保存するフォルダーを選択します。,생성된 프리팹을 저장할 폴더를 선택합니다.,选择生成的预制体要保存到的文件夹。,Elige dónde se guardarán los prefabs generados.,"Wähle den Ordner, in dem die generierten Prefabs gespeichert werden.",Choisissez l'emplacement où seront stockés les prefabs générés.
+log_added_total,"Added: {0}
+Total: {1}","追加済み: {0}
+合計: {1}","추가됨: {0}
+총계: {1}","已添加: {0}
+总计: {1}","Añadido: {0}
+Total: {1}","Hinzugefügt: {0}
+Gesamt: {1}","Ajouté : {0}
+Total : {1}"
+log_asset_not_imported,Asset '{0}' was not imported. You can find it in the Asset Store or Package Manager.,アセット '{0}' はインポートされませんでした。Asset Store または Package Manager で見つけることができます。,에셋 '{0}'이（가） 가져오지 않았습니다. Asset Store나 Package Manager에서 찾을 수 있습니다.,资源“{0}”未被导入。您可以在 Asset Store 或 Package Manager 中找到它。,El recurso '{0}' no se importó. Puedes encontrarlo en la Asset Store o en el Package Manager.,Asset '{0}' wurde nicht importiert. Sie finden es im Asset Store oder im Package Manager.,L’actif '{0}' n’a pas été importé. Vous pouvez le trouver dans l’Asset Store ou le Package Manager.
+label_images_and_sprites_tab,IMAGES & SPRITES,画像 & スプライト,이미지 & 스프라이트,图像与精灵,IMÁGENES Y SPRITES,BILDER & SPRITES,IMAGES ET SPRITES
+tooltip_images_and_sprites_tab,"Configure how textures are downloaded, processed, and stored.",テクスチャのダウンロード、処理、保存方法を設定します。,텍스처를 다운로드하고 처리하며 저장하는 방식을 구성합니다.,配置纹理的下载、处理和存储方式。,"Configura cómo se descargan, procesan y guardan las texturas.","Konfiguriert, wie Texturen heruntergeladen, verarbeitet und gespeichert werden.","Configure la façon dont les textures sont téléchargées, traitées et stockées."
+label_normal_color,Normal Color,通常カラー,일반 색상,正常颜色,Color normal,Normale Farbe,Couleur normale
+tooltip_normal_color,Button color used in its idle state.,ボタンが通常状態のときに使う色です。,버튼의 기본 상태에 사용되는 색상입니다.,按钮在默认状态下使用的颜色。,Color que se usa cuando el botón está en reposo.,"Farbe, die im Ruhezustand des Buttons verwendet wird.",Couleur utilisée lorsque le bouton est au repos.
+label_highlighted_color,Highlighted Color,ハイライトカラー,강조된 색상,高亮颜色,Color resaltado,Hervorgehobene Farbe,Couleur en surbrillance
+tooltip_highlighted_color,Color used when a button is highlighted or hovered.,ボタンがハイライトまたはホバーされたときの色です。,버튼이 강조 표시되거나 호버될 때 사용되는 색상입니다.,按钮高亮或悬停时使用的颜色。,Color que se usa cuando el botón está resaltado o al pasar el cursor.,"Farbe, die verwendet wird, wenn ein Button hervorgehoben oder gehovert wird.",Couleur utilisée lorsque le bouton est en surbrillance ou survolé.
+label_pressed_color,Pressed Color,押下時のカラー,눌림 색상,按下颜色,Color presionado,Gedrückte Farbe,Couleur enfoncée
+tooltip_pressed_color,Color used when the button is pressed.,ボタンが押されたときの色です。,버튼이 눌렸을 때 사용되는 색상입니다.,按钮被按下时使用的颜色。,Color que se usa cuando el botón está presionado.,"Farbe, die verwendet wird, wenn der Button gedrückt ist.",Couleur utilisée lorsque le bouton est enfoncé.
+label_selected_color,Selected Color,選択時のカラー,선택된 색상,选中颜色,Color seleccionado,Ausgewählte Farbe,Couleur sélectionnée
+tooltip_selected_color,Color used when the button is selected.,ボタンが選択状態のときの色です。,버튼이 선택되었을 때 사용되는 색상입니다.,按钮处于选中状态时使用的颜色。,Color que se usa cuando el botón está seleccionado.,"Farbe, die verwendet wird, wenn der Button ausgewählt ist.",Couleur utilisée lorsque le bouton est sélectionné.
+label_disabled_color,Disabled Color,無効時のカラー,비활성 색상,禁用颜色,Color deshabilitado,Deaktivierte Farbe,Couleur désactivée
+tooltip_disabled_color,Color used when the button is disabled.,ボタンが無効のときに使われる色です。,버튼이 비활성화될 때 사용되는 색상입니다.,按钮被禁用时使用的颜色。,Color que se usa cuando el botón está deshabilitado.,"Farbe, die verwendet wird, wenn der Button deaktiviert ist.",Couleur utilisée lorsque le bouton est désactivé.
+label_color_multiplier,Color Multiplier,カラー乗数,색상 배율,颜色乘数,Multiplicador de color,Farb-Multiplikator,Multiplicateur de couleur
+tooltip_color_multiplier,,,,,,,
+label_fade_duration,Fade Duration,フェード時間,페이드 지속 시간,渐隐持续时间,Duración de desvanecimiento,Überblendungsdauer,Durée de fondu
+tooltip_fade_duration,,,,,,,
+label_go_name_max_length,GameObject Name Max Length,GameObject 名の最大長,GameObject 이름 최대 길이,GameObject 名称最大长度,Longitud máxima del nombre de GameObject,Maximale Länge für GameObject-Namen,Longueur max du nom de GameObject
+tooltip_go_name_max_length,Maximum character count allowed for generated GameObject names.,生成される GameObject 名の最大文字数を設定します。,생성된 GameObject 이름의 최대 길이를 설정합니다.,设置生成的 GameObject 名称允许的最大字符数。,Longitud máxima permitida para los nombres de GameObject generados.,Maximale Länge für generierte GameObject-Namen.,Longueur maximale autorisée pour les noms de GameObject générés.
+label_text_name_max_length,Text Name Max Length,テキスト名の最大長,텍스트 이름 최대 길이,文本名称最大长度,Longitud máxima del nombre del texto,Maximale Länge für Textnamen,Longueur max du nom de texte
+tooltip_text_name_max_length,Maximum length allowed for generated text object names.,生成されるテキストオブジェクト名の最大文字数です。,생성된 텍스트 오브젝트 이름에 허용되는 최대 길이입니다.,设置生成的文本对象名称允许的最大长度。,Longitud máxima permitida para los nombres de objetos de texto generados.,Maximale Länge für generierte Textobjektnamen.,Longueur maximale autorisée pour les noms d'objets texte générés.
+log_import_failed_incompatible,Import failed because '{0}' is incompatible with '{1}'.\nPlease change the import settings.\n,インポートに失敗しました。'{0}' は '{1}' と互換性がありません。\nインポート設定を変更してください。\n,'{0}'가（이） '{1}'과（와） 호환되지 않아 가져오기에 실패했습니다.\n가져오기 설정을 변경하세요.\n,导入失败，因为“{0}”与“{1}”不兼容。\n请更改导入设置。\n,"La importación falló porque '{0}' es incompatible con '{1}'.\nPor favor, cambia la configuración de importación.\n","Import fehlgeschlagen, da '{0}' inkompatibel mit '{1}' ist.\nBitte ändern Sie die Import-Einstellungen.\n",Échec de l'importation car '{0}' est incompatible avec '{1}'.\nVeuillez modifier les paramètres d'importation.\n
+log_import_failed_enable_required,Import failed because you need to enable '{0}' to use '{1}'.\nPlease change the import settings.\n,インポートに失敗しました。'{0}' を有効にしないと '{1}' を使用できません。\nインポート設定を変更してください。\n,가져오기에 실패했습니다. '{0}'을(를) 활성화해야 '{1}'을(를) 사용할 수 있습니다.\n가져오기 설정을 변경하세요.\n,导入失败，因为您需要启用“{0}”才能使用“{1}”。\n请更改导入设置。\n,"La importación falló porque necesitas habilitar '{0}' para usar '{1}'.\nPor favor, cambia la configuración de importación.\n","Import fehlgeschlagen, da Sie '{0}' aktivieren müssen, um '{1}' zu verwenden.\nBitte ändern Sie die Import-Einstellungen.\n",Échec de l'importation car vous devez activer '{0}' pour utiliser '{1}'.\nVeuillez modifier les paramètres d'importation.\n
+log_import_failed_unsupported,"Import failed because you are attempting to use '{0}', which does not support '{1}'.\nPlease change the import settings.\n",インポートに失敗しました。'{0}' を使用しようとしましたが、これは '{1}' をサポートしていません。\nインポート設定を変更してください。\n,가져오기에 실패했습니다. '{0}'은(는) '{1}'을(를) 지원하지 않습니다.\n가져오기 설정을 변경하세요.\n,导入失败，因为您尝试使用的“{0}”不支持“{1}”。\n请更改导入设置。\n,"La importación falló porque estás intentando usar '{0}', lo cual no es compatible con '{1}'.\nPor favor, cambia la configuración de importación.\n","Import fehlgeschlagen, da Sie versuchen, '{0}' zu verwenden, was '{1}' nicht unterstützt.\nBitte ändern Sie die Import-Einstellungen.\n","Échec de l'importation car vous essayez d'utiliser '{0}', qui ne prend pas en charge '{1}'.\nVeuillez modifier les paramètres d'importation.\n"
+label_loc_key_max_lenght,Loc Key Max Length,Loc キーの最大長,Loc 키 최대 길이,Loc键最大长度,Longitud Máxima de Clave de Localización,Maximale Schlüssellänge,Longueur maximale de la clé de localisation
+tooltip_loc_key_max_lenght,Maximum length allowed for localization keys.,ローカライズキーの最大文字数を指定します。,로컬라이제이션 키에 허용되는 최대 길이입니다.,设置本地化键允许的最大长度。,Longitud máxima permitida para las claves de localización.,Maximale Länge für Lokalisierungsschlüssel.,Longueur maximale autorisée pour les clés de localisation.
+label_loc_folder_path,Localization Folder Path,ローカライズフォルダーパス,현지화 폴더 경로,本地化文件夹路径,Ruta de Carpeta de Localización,Lokalisierungsordnerpfad,Chemin du dossier de localisation
+tooltip_loc_folder_path,Folder where localization CSV files are stored.,ローカライズ CSV ファイルを保存するフォルダーです。,현지화 CSV 파일이 저장되는 폴더입니다.,用于存储本地化 CSV 文件的文件夹。,Carpeta donde se guardan los archivos CSV de localización.,"Ordner, in dem die Lokalisierungs-CSV-Dateien gespeichert werden.",Dossier dans lequel sont stockés les fichiers CSV de localisation.
+label_loc_file_name,Localization File Name,ローカライズファイル名,현지화 파일 이름,本地化文件名,Nombre de Archivo de Localización,Lokalisierungsdateiname,Nom du fichier de localisation
+tooltip_loc_file_name,File name used when exporting the localization CSV.,ローカライズ CSV を書き出す際に使用するファイル名です。,현지화 CSV를 내보낼 때 사용할 파일 이름입니다.,导出本地化 CSV 时使用的文件名。,Nombre de archivo que se usa al exportar el CSV de localización.,"Dateiname, der beim Export der Lokalisierungs-CSV verwendet wird.",Nom de fichier utilisé lors de l'export du CSV de localisation.
+label_namespace,Namespace,ネームスペース,네임스페이스,命名空间,Espacio de Nombres,Namensraum,Espace de noms
+tooltip_namespace,Namespace applied to generated scripts.,生成されるスクリプトに適用する名前空間です。,생성된 스크립트에 적용할 네임스페이스입니다.,应用于生成脚本的命名空间。,Namespace que se aplicará a los scripts generados.,"Namespace, der auf die generierten Skripte angewendet wird.",Espace de noms appliqué aux scripts générés.
+label_field_name_max_length,Field Name Max Length,フィールド名の最大長,필드 이름 최대 길이,字段名最大长度,Longitud Máxima de Nombre de Campo,Maximale Feldnamenlänge,Longueur maximale du nom du champ
+tooltip_field_name_max_length,Maximum allowed length for generated field names.,生成されるフィールド名に許可する最大文字数。,생성된 필드 이름에 허용되는 최대 길이입니다.,设置生成字段名称允许的最大长度。,Longitud máxima permitida para los nombres de campo generados.,Maximale Länge für generierte Feldnamen.,Longueur maximale autorisée pour les noms de champ générés.
+label_method_name_max_length,Method Name Max Length,メソッド名の最大長,메서드 이름 최대 길이,方法名最大长度,Longitud Máxima de Nombre de Método,Maximale Methodennamenlänge,Longueur maximale du nom de la méthode
+tooltip_method_name_max_length,Maximum characters allowed for generated method names.,生成されるメソッド名の最大文字数です。,생성된 메서드 이름에 허용되는 최대 길이입니다.,设置生成方法名称允许的最大字符数。,Longitud máxima permitida para los nombres de método generados.,Maximale Länge für generierte Methodennamen.,Longueur maximale autorisée pour les noms de méthode générés.
+label_class_name_max_length,Class Name Max Length,クラス名の最大長,클래스 이름 최대 길이,类名最大长度,Longitud Máxima de Nombre de Clase,Maximale Klassennamenlänge,Longueur maximale du nom de la classe
+tooltip_class_name_max_length,Maximum length allowed for generated class names.,生成されるクラス名の最大文字数を指定します。,생성된 클래스 이름에 허용되는 최대 길이입니다.,设置生成类名允许的最大长度。,Longitud máxima permitida para los nombres de clase generados.,Maximale Länge für generierte Klassennamen.,Longueur maximale autorisée pour les noms de classe générés.
+label_serialization_mode,Serialization Mode,シリアル化モード,직렬화 모드,序列化模式,Modo de Serialización,Serialisierungsmodus,Mode de sérialisation
+tooltip_serialization_mode,,  ,,,,,
+label_base_class,Base Class,基底クラス,기본 클래스,基类,Clase Base,Basisklasse,Classe de base
+tooltip_base_class,,  ,,,,,
+label_use_image_linear_material,Use ImageLinear Material,ImageLinear マテリアルを使用,ImageLinear 머티리얼 사용,使用ImageLinear材质,Usar Material ImageLinear,ImageLinear-Material verwenden,Utiliser le matériau ImageLinear
+tooltip_use_image_linear_material,,  ,,,,,
+label_max_sprite_size,Max Sprite Size,スプライトの最大サイズ,최대 스프라이트 크기,精灵最大尺寸,Tamaño Máximo de Sprite,Maximale Sprite-Größe,Taille maximale du sprite
+tooltip_max_sprite_size,Maximum width and height (in pixels) for generated sprites.,生成されるスプライトの最大幅と高さ (ピクセル) を設定します。,생성되는 스프라이트의 최대 가로/세로 픽셀 크기를 설정합니다.,设置生成精灵的最大宽度和高度（像素）。,Tamaño máximo en píxeles de ancho y alto para los sprites generados.,Maximale Breite und Höhe (in Pixel) für generierte Sprites.,Définit la largeur et la hauteur maximales (en pixels) des sprites générés.
+helpbox_install_json_net,"The package ""<b>com.unity.nuget.newtonsoft-json</b>"", which is required for the asset to work, is not installed.
+To open the detailed installation guide, click on this message.","アセットを動作させるために必要なパッケージ「<b>com.unity.nuget.newtonsoft-json</b>」がインストールされていません。  
+詳細なインストールガイドを開くには、このメッセージをクリックしてください。","에셋이 작동하는 데 필요한 패키지 ""<b>com.unity.nuget.newtonsoft-json</b>""이（가） 설치되지 않았습니다.
+자세한 설치 가이드를 열려면 이 메시지를 클릭하세요.","未安装资源运行所需的包“<b>com.unity.nuget.newtonsoft-json</b>”。
+要打开详细的安装指南，请点击此消息。","El paquete ""<b>com.unity.nuget.newtonsoft-json</b>"", que es necesario para que el recurso funcione, no está instalado.
+
+Para abrir la guía de instalación detallada, haz clic en este mensaje.","Das Paket ""<b>com.unity.nuget.newtonsoft-json</b>"", das für die Funktion des Assets erforderlich ist, ist nicht installiert. Um die detaillierte Installationsanleitung zu öffnen, klicken Sie auf diese Nachricht.","Le package ""<b>com.unity.nuget.newtonsoft-json</b>"", nécessaire au fonctionnement de l’asset, n’est pas installé.
+
+Pour ouvrir le guide d’installation détaillé, cliquez sur ce message."
+auth_button_delete_sessions,Delete all sessions,すべてのセッションを削除,모든 세션 삭제,删除所有会话,Eliminar todas las sesiones,Alle Sitzungen löschen,Supprimer toutes les sessions
+auth_button_sign_in_web,Sign In With Web Browser,ウェブブラウザでサインイン,웹 브라우저로 로그인,使用网页浏览器登录,Iniciar sesión con el navegador web,Mit Webbrowser anmelden,Se connecter avec le navigateur Web
+auth_button_sign_in_token,Sign In With Access Token,アクセストークンでサインイン,액세스 토큰으로 로그인,使用访问令牌登录,Iniciar sesión con token de acceso,Mit Zugriffstoken anmelden,Se connecter avec un jeton d'accès
+debug_label_settings,Debug Settings,デバッグ設定,디버그 설정,调试设置,Configuración de depuración,Debugeinstellungen,Paramètres de débogage
+debug_button_open_logs,Open logs folder,ログフォルダを開く,로그 폴더 열기,打开日志文件夹,Abrir carpeta de registros,Protokollordner öffnen,Ouvrir le dossier des journaux
+debug_button_open_cache,Open cache folder,キャッシュフォルダを開く,캐시 폴더 열기,打开缓存文件夹,Abrir carpeta de caché,Cache-Ordner öffnen,Ouvrir le dossier du cache
+debug_button_open_backup,Open backup folder,バックアップフォルダを開く,백업 폴더 열기,打开备份文件夹,Abrir carpeta de copias de seguridad,Sicherungsordner öffnen,Ouvrir le dossier de sauvegarde
+debug_button_test,Test Button,テストボタン,테스트 버튼,测试按钮,Botón de prueba,Test-Button,Bouton de test
+common_label_debug,Debug,デバッグ,디버그,调试,Depurar,Debuggen,Déboguer
+sync_helper_link_view_in_figma,View component in Figma,Figmaでコンポーネントを表示,Figma에서 구성 요소 보기,在 Figma 中查看组件,Ver componente en Figma,Komponente in Figma anzeigen,Voir le composant dans Figma
+imagesprites_error_settings_not_found,Could not find ImageSprites Settings property. Check the path.,ImageSprites設定プロパティが見つかりませんでした。パスを確認してください。,ImageSprites 설정 속성을 찾을 수 없습니다. 경로를 확인하세요.,未能找到 ImageSprites 设置属性。请检查路径。,No se pudo encontrar la propiedad de configuración de ImageSprites. Compruebe la ruta.,Eigenschaft für ImageSprites-Einstellungen nicht gefunden. Überprüfen Sie den Pfad.,Impossible de trouver la propriété des paramètres ImageSprites. Vérifiez le chemin d'accès.
+mainsettings_error_property_not_found,Could not find MainSettings property. Check the path.,MainSettingsプロパティが見つかりませんでした。パスを確認してください。,MainSettings 속성을 찾을 수 없습니다. 경로를 확인하세요.,未能找到 MainSettings 属性。请检查路径。,No se pudo encontrar la propiedad de MainSettings. Compruebe la ruta.,Eigenschaft für MainSettings nicht gefunden. Überprüfen Sie den Pfad.,Impossible de trouver la propriété MainSettings. Vérifiez le chemin d'accès.
+textfonts_error_gfontsapi_not_found,Could not find GFontsApi property. Check the path.,GFontsApiプロパティが見つかりませんでした。パスを確認してください。,GFontsApi 속성을 찾을 수 없습니다. 경로를 확인하세요.,未能找到 GFontsApi 属性。请检查路径。,No se pudo encontrar la propiedad GFontsApi. Compruebe la ruta.,Eigenschaft GFontsApi nicht gefunden. Überprüfen Sie den Pfad.,Impossible de trouver la propriété GFontsApi. Vérifiez le chemin d'accès.
+textfonts_error_fontloader_not_found,Could not find 'FontLoader' property. Check the path.,'FontLoader'プロパティが見つかりませんでした。パスを確認してください。,'FontLoader' 속성을 찾을 수 없습니다. 경로를 확인하세요.,未能找到 'FontLoader' 属性。请检查路径。,No se pudo encontrar la propiedad 'FontLoader'. Compruebe la ruta.,Eigenschaft 'FontLoader' nicht gefunden. Überprüfen Sie den Pfad.,Impossible de trouver la propriété 'FontLoader'. Vérifiez le chemin d'accès.
+scriptgen_button_generate,Generate scripts,スクリプトを生成,스크립트 생성,生成脚本,Generar scripts,Skripte generieren,Générer les scripts
+scriptgen_button_serialize,Serialize objects,オブジェクトをシリアル化,객체 직렬화,序列化对象,Serializar objetos,Objekte serialisieren,Sérialiser les objets
+common_button_create,Create,作成,생성,创建,Crear,Erstellen,Créer
+importevents_error_property_not_found,Could not find 'Events' property. Check the path.,'Events'プロパティが見つかりませんでした。パスを確認してください。,'Events' 속성을 찾을 수 없습니다. 경로를 확인하세요.,未能找到 'Events' 属性。请检查路径。,No se pudo encontrar la propiedad 'Events'. Compruebe la ruta.,Eigenschaft 'Events' nicht gefunden. Überprüfen Sie den Pfad.,Impossible de trouver la propriété 'Events'. Vérifiez le chemin d'accès.
+localization_warning_serialize_first,"Before starting the import, you need to serialize your localizer in the 'Localizator' field.",インポートを開始する前に、'Localizator'フィールドでローカライザーをシリアル化する必要があります。,가져오기를 시작하기 전에 'Localizator' 필드에서 로컬라이저를 직렬화해야 합니다。,开始导入之前，您需要在 'Localizator' 字段中序列化您的定位器。,"Antes de iniciar la importación, debe serializar su localizador en el campo 'Localizator'.",Vor dem Start des Imports müssen Sie Ihren Localizer im Feld 'Localizator' serialisieren.,"Avant de commencer l'importation, vous devez sérialiser votre localisateur dans le champ 'Localizator'."
+common_button_apply,Apply,適用,적용,应用,Aplicar,Anwenden,Appliquer
+sprite_duplicate_context_move_to_group,Move to group,グループに移動,그룹으로 이동,移动到组,Mover al grupo,In Gruppe verschieben,Déplacer vers le groupe
+sprite_duplicate_label_group_count,Group {0} ({1}),グループ {0} （{1}）,그룹 {0} （{1}）,组 {0} （{1}）,Grupo {0} ({1}),Gruppe {0} ({1}),Groupe {0} ({1})
+sprite_duplicate_label_selected_for_deletion,Selected for deletion: {0},削除対象: {0},삭제 대상으로 선택됨: {0},已选择待删除: {0},Seleccionado para eliminar: {0},Zum Löschen ausgewählt: {0},Sélectionné pour suppression : {0}
+sprite_duplicate_help_step_1,1. Each card is a group of similar sprites.,1. 各カードは似たスプライトのグループです。,1. 각 카드에는 유사한 스프라이트가 그룹으로 묶여 있습니다.,1. 每张卡片都是一组相似的精灵。,1. Cada tarjeta es un grupo de sprites similares.,1. Jede Karte stellt eine Gruppe ähnlicher Sprites dar.,1. Chaque carte correspond à un groupe de sprites similaires.
+sprite_duplicate_help_step_2,"2. By default, the largest sprite in the group is kept, and the rest are marked for deletion.",2. 既定では、グループ内で最も大きいスプライトが保持され、残りは削除対象としてマークされます。,2. 기본적으로 그룹에서 가장 큰 스프라이트만 유지되고 나머지는 삭제 대상으로 표시됩니다.,2. 默认情况下，将保留组内最大的精灵，其余精灵会被标记为删除。,"2. De forma predeterminada, se conserva el sprite más grande del grupo y el resto se marca para eliminación.","2. Standardmäßig bleibt der größte Sprite der Gruppe erhalten, die übrigen werden zum Löschen markiert.","2. Par défaut, le sprite le plus grand du groupe est conservé et les autres sont marqués pour suppression."
+sprite_duplicate_help_step_3,"3. The selected sprites will be deleted, and their references within the new import will be replaced with the largest unselected sprite. References in existing local usages will not be replaced and will be lost if the sprite is deleted.",3. 選択したスプライトは削除され、新しいインポート内でその参照は未選択の中で最も大きいスプライトに置き換えられます。既存のローカル使用箇所の参照は置き換えられないため、スプライトを削除すると失われます。,3. 선택한 스프라이트는 삭제되며 새 가져오기에서는 해당 참조가 선택되지 않은 스프라이트 중 가장 큰 것으로 대체됩니다. 기존 로컬 사용처의 참조는 대체되지 않으므로 스프라이트를 삭제하면 손실됩니다.,3. 选中的精灵将被删除，新导入中的引用会替换为未选中精灵中最大的一个。现有本地使用中的引用不会被替换，若该精灵被删除，这些引用将丢失。,"3. Los sprites seleccionados se eliminarán y, en la nueva importación, sus referencias se reemplazarán por el sprite sin seleccionar más grande. Las referencias de usos locales existentes no se reemplazarán y se perderán si se elimina el sprite.","3. Die ausgewählten Sprites werden gelöscht und ihre Verweise werden im neuen Import durch den größten nicht ausgewählten Sprite ersetzt. Verweise in bestehenden lokalen Verwendungen werden nicht ersetzt und gehen verloren, wenn der Sprite gelöscht wird.","3. Les sprites sélectionnés seront supprimés et, dans le nouvel import, leurs références seront remplacées par le plus grand sprite non sélectionné. Les références déjà utilisées localement ne sont pas remplacées et seront perdues si le sprite est supprimé."
+sprite_duplicate_help_step_4,"4. If all sprites in a group are marked, they will all be deleted, and their references will not be replaced.",4. グループ内のスプライトがすべてマークされている場合は全て削除され、参照も置き換えられません。,4. 한 그룹의 스프라이트가 모두 표시되면 전부 삭제되며 참조도 대체되지 않습니다.,4. 如果一个组中的所有精灵都被标记，它们都会被删除，引用也不会被替换。,"4. Si todos los sprites de un grupo están marcados, todos se eliminarán y sus referencias no se reemplazarán.","4. Sind alle Sprites einer Gruppe markiert, werden sie komplett gelöscht und ihre Verweise nicht ersetzt.","4. Si tous les sprites d'un groupe sont marqués, ils seront tous supprimés et leurs références ne seront pas remplacées."
+sprite_duplicate_help_step_5,5. Right-click a sprite to open the context menu. Its functions are:\n   a. Show where the sprite is used in the project.\n   b. Create a new group from this sprite.\n   c. Move the sprite to a group by the group's index.\nYou can also drag sprites between groups with the mouse.,5. スプライトを右クリックしてコンテキストメニューを開きます。機能は以下のとおりです:\n   a. プロジェクト内でそのスプライトが使用されている場所を表示します。\n   b. このスプライトから新しいグループを作成します。\n   c. グループのインデックスを指定してスプライトを移動します。\nマウスでスプライトをグループ間にドラッグすることもできます。,5. 스프라이트를 마우스 오른쪽 버튼으로 클릭하면 컨텍스트 메뉴가 열립니다. 기능은 다음과 같습니다:\n   a. 프로젝트에서 해당 스프라이트가 사용되는 위치를 표시합니다.\n   b. 이 스프라이트로 새 그룹을 생성합니다.\n   c. 그룹 인덱스를 지정해 스프라이트를 다른 그룹으로 이동합니다.\n또한 마우스로 그룹 간에 스프라이트를 드래그할 수도 있습니다.,5. 右键单击精灵可打开上下文菜单，其功能包括：\n   a. 显示该精灵在项目中的使用位置。\n   b. 以此精灵创建新组。\n   c. 按组索引将精灵移动到指定组。\n你也可以使用鼠标在组之间拖动精灵。,5. Haz clic con el botón derecho en un sprite para abrir el menú contextual. Sus funciones son:\n   a. Mostrar dónde se usa el sprite en el proyecto.\n   b. Crear un nuevo grupo a partir de este sprite.\n   c. Mover el sprite a un grupo según su índice.\nTambién puedes arrastrar sprites entre grupos con el ratón.,"5. Klicke mit der rechten Maustaste auf einen Sprite, um das Kontextmenü zu öffnen. Es bietet folgende Funktionen:\n   a. Zeigt an, wo der Sprite im Projekt verwendet wird.\n   b. Erstellt aus diesem Sprite eine neue Gruppe.\n   c. Verschiebt den Sprite mithilfe des Gruppenindex in eine andere Gruppe.\nDu kannst Sprites auch mit der Maus zwischen Gruppen ziehen.",5. Cliquez avec le bouton droit sur un sprite pour ouvrir le menu contextuel. Il permet de :\n   a. Afficher où le sprite est utilisé dans le projet.\n   b. Créer un nouveau groupe à partir de ce sprite.\n   c. Déplacer le sprite vers un groupe via son index.\nVous pouvez également faire glisser les sprites entre les groupes avec la souris.
+sprite_duplicate_help_step_6,6. Turn on the checkbox under the sprites you want to delete.,6. 削除したいスプライトの下にあるチェックボックスをオンにします。,6. 삭제할 스프라이트 아래의 체크박스를 켭니다.,6. 打开要删除的精灵下方的复选框。,6. Activa la casilla situada bajo los sprites que quieras eliminar.,"6. Aktiviere das Kontrollkästchen unter den Sprites, die du löschen möchtest.",6. Activez la case à cocher sous les sprites que vous souhaitez supprimer.
+sprite_duplicate_help_step_7,7. Click <b>{0}</b> to apply the changes.,7. <b>{0}</b> をクリックして変更を適用します。,7. 변경 사항을 적용하려면 <b>{0}</b> 버튼을 클릭합니다.,7. 单击 <b>{0}</b> 以应用更改。,7. Haz clic en <b>{0}</b> para aplicar los cambios.,"7. Klicke auf <b>{0}</b>, um die Änderungen zu übernehmen.",7. Cliquez sur <b>{0}</b> pour appliquer les modifications.
+sprite_duplicate_help_step_8,"8. After that, the selected files will be deleted from disk.",8. その後、選択されたファイルはディスクから削除されます。,8. 이후 선택된 파일이 디스크에서 삭제됩니다.,8. 随后，选中的文件将从磁盘中删除。,"8. Después, los archivos seleccionados se eliminarán del disco.",8. Danach werden die ausgewählten Dateien vom Datenträger gelöscht.,"8. Ensuite, les fichiers sélectionnés seront supprimés du disque."
+sprite_duplicate_help_step_9,9. It is recommended to have a backup or a Git commit before deletion.,9. 削除前にバックアップか Git コミットを用意しておくことをおすすめします。,9. 삭제 전에 백업이나 Git 커밋을 준비해 두는 것이 좋습니다.,9. 建议在删除之前准备备份或执行一次 Git 提交。,9. Se recomienda contar con una copia de seguridad o un commit de Git antes de eliminar.,"9. Vor dem Löschen empfiehlt es sich, ein Backup oder einen Git-Commit zu haben.",9. Il est recommandé d'avoir une sauvegarde ou un commit Git avant la suppression.
+move_to_group_title,Move to group,グループに移動,그룹으로 이동,移动到组,Mover al grupo,In Gruppe verschieben,Déplacer vers le groupe
+move_to_group_label_target_index,Target group index,ターゲットグループのインデックス,대상 그룹 인덱스,目标组索引,Índice del grupo de destino,Zielgruppenindex,Index du groupe cible
+common_button_cancel,Cancel,キャンセル,취소,取消,Cancelar,Abbrechen,Annuler
+common_button_ok,OK,OK,확인,确定,Aceptar,OK,OK
+layout_updater_title_components_to_import,COMPONENTS TO IMPORT,インポートするコンポーネント,가져올 구성 요소,要导入的组件,COMPONENTES A IMPORTAR,ZU IMPORTIERENDE KOMPONENTEN,COMPOSANTS À IMPORTER
+layout_updater_title_remove_from_scene,REMOVE FROM SCENE,シーンから削除,씬에서 제거,从场景中移除,ELIMINAR DE LA ESCENA,AUS SZENE ENTFERNEN,RETIRER DE LA SCÈNE
+common_filter_new,New,新規,새로 만들기,新建,Nuevo,Neu,Nouveau
+layout_updater_filter_changed_in_unity,Changed in Unity,Unityで変更済み,Unity에서 변경됨,在 Unity 中已更改,Cambiado en Unity,In Unity geändert,Modifié dans Unity
+layout_updater_filter_without_changes,Without changes,変更なし,변경 사항 없음,无更改,Sin cambios,Ohne Änderungen,Sans modifications
+common_placeholder_search,Search,検索,검색,搜索,Buscar,Suchen,Rechercher
+common_message_nothing_matches,Nothing matches.,一致するものがありません。,일치하는 항목이 없습니다.,没有匹配项。,No hay coincidencias.,Keine Übereinstimmungen.,Aucune correspondance.
+layout_updater_title,Layout Updater (beta),レイアウトアップデーター （ベータ）,레이아웃 업데이터 （베타）,布局更新器 （测试版）,Actualizador de diseño (beta),Layout Updater (Beta),Mise à jour de la mise en page (bêta)
+layout_updater_button_sprite_duplicate_finder,Sprite Duplicate Finder,スプライト重複ファインダー,스프라이트 중복 찾기,精灵重复查找器,Buscador de duplicados de sprites,Sprite-Duplikat-Finder,Recherche de doublons de sprites
+common_button_settings,Settings,設定,설정,设置,Configuración,Einstellungen,Paramètres
+layout_updater_button_apply_and_continue,Apply and Continue,適用して続行,적용하고 계속하기,应用并继续,Aplicar y continuar,Anwenden und fortfahren,Appliquer et continuer
+layout_updater_help_step_1,1. This window shows the differences between your local Unity scene and the Figma project.,1. このウィンドウでは、ローカルの Unity シーンと Figma プロジェクトの差分を表示します。,1. 이 창에서는 로컬 Unity 씬과 Figma 프로젝트 간의 차이를 보여줍니다.,1. 此窗口显示本地 Unity 场景与 Figma 项目之间的差异。,1. Esta ventana muestra las diferencias entre tu escena local de Unity y el proyecto de Figma.,1. Dieses Fenster zeigt die Unterschiede zwischen deiner lokalen Unity-Szene und dem Figma-Projekt.,1. Cette fenêtre affiche les différences entre votre scène Unity locale et le projet Figma.
+layout_updater_help_step_2,2. <b>Left panel ('{0}'):</b> Select which new or changed components to import into Unity.,2. <b>左ペイン（「{0}」）:</b> Unity にインポートする新規または変更済みのコンポーネントを選択します。,2. <b>왼쪽 패널('{0}'):</b> Unity로 가져올 새 구성 요소와 변경된 구성 요소를 선택합니다.,2. <b>左侧面板（“{0}”）：</b> 选择要导入到 Unity 的新增或已更改组件。,2. <b>Panel izquierdo ('{0}'):</b> Elige qué componentes nuevos o modificados se deben importar a Unity.,2. <b>Linkes Panel („{0}“):</b> Wähle aus, welche neuen oder geänderten Komponenten nach Unity importiert werden sollen.
+layout_updater_help_step_3,3. Use the <b>{0}</b> field to filter components by name.,3. <b>{0}</b> フィールドを使って名前でコンポーネントを絞り込みます。,3. <b>{0}</b> 필드를 사용해 이름으로 컴포넌트를 필터링하세요.,3. 使用 <b>{0}</b> 字段按名称筛选组件。,3. Usa el campo <b>{0}</b> para filtrar los componentes por nombre.,3. Verwende das Feld <b>{0}</b>, um Komponenten nach Namen zu filtern.
+layout_updater_help_step_4,"4. Use the filters (<b>{0}, {1}, {2}</b>) to quickly select or deselect component groups.",4. フィルター（<b>{0}、{1}、{2}</b>）を使ってコンポーネントのグループをすばやく選択／解除します。,"4. 필터(<b>{0}, {1}, {2}</b>)를 사용해 구성 요소 그룹을 빠르게 선택하거나 선택 해제하세요.",4. 使用筛选器（<b>{0}、{1}、{2}</b>）即可快速选择或取消选择组件组。,"4. Usa los filtros (<b>{0}, {1}, {2}</b>) para seleccionar o deseleccionar grupos de componentes rápidamente.","4. Verwende die Filter (<b>{0}, {1}, {2}</b>), um Komponenten-Gruppen schnell zu (de)selektieren.","4. Utilisez les filtres (<b>{0}, {1}, {2}</b>) pour sélectionner ou désélectionner rapidement des groupes de composants."
+layout_updater_help_step_5,5. Click a component name to highlight it in Unity (if it exists) or open it in Figma.,5. コンポーネント名をクリックすると、Unity（存在する場合）でハイライトするか、Figma で開きます。,5. 컴포넌트 이름을 클릭하면 Unity에서 강조 표시하거나(존재하는 경우) Figma에서 엽니다。,5. 单击组件名称即可在 Unity 中高亮（如果存在）或在 Figma 中打开。,5. Haz clic en el nombre de un componente para resaltarlo en Unity (si existe) u abrirlo en Figma.,5. Klicke auf einen Komponentennamen, um ihn in Unity hervorzuheben (falls vorhanden) oder in Figma zu öffnen.
+layout_updater_help_step_6,6. <b>Right panel ('{0}'):</b> It appears when Figma components were deleted so you can choose what to remove in Unity.,6. <b>右ペイン（「{0}」）:</b> Figma でコンポーネントが削除された場合に表示され、Unity から削除するものを選択できます。,6. <b>오른쪽 패널('{0}'):</b> Figma에서 컴포넌트가 삭제된 경우 나타나며 Unity에서 제거할 항목을 선택할 수 있습니다。,6. <b>右侧面板（“{0}”）：</b> 当 Figma 中删除了组件时会显示，可选择要在 Unity 中移除的对象。,6. <b>Panel derecho ('{0}'):</b> Aparece cuando se borraron componentes en Figma y te permite elegir qué quitar en Unity.,6. <b>Rechtes Panel („{0}“):</b> Wird angezeigt, wenn in Figma Komponenten gelöscht wurden
+layout_updater_help_step_7,7. Use the main checkbox in each section header to select or deselect all items in that group.,7. 各セクションのメインチェックボックスで、そのグループ内の項目を一括選択／解除できます。,7. 각 섹션 헤더의 기본 체크박스를 사용해 해당 그룹의 모든 항목을 선택하거나 해제하세요.,7. 使用每个部分标题中的主复选框，可一次性全选或取消选择该组项目。,7. Usa la casilla principal de cada sección para seleccionar o deseleccionar todos los elementos del grupo.,7. Nutze das Hauptkontrollkästchen in jedem Abschnitt, um alle Elemente der Gruppe zu (de)selektieren.
+layout_updater_help_step_8,8. Click <b>{0}</b> to confirm your choices and continue importing.,8. <b>{0}</b> をクリックして選択内容を確定し、インポートを続行します。,8. <b>{0}</b>을(를) 클릭해 선택을 확정하고 가져오기를 계속합니다.,8. 单击 <b>{0}</b> 以确认选择并继续导入。,8. Haz clic en <b>{0}</b> para confirmar tus elecciones y continuar con la importación.,8. Klicke auf <b>{0}</b>, um deine Auswahl zu bestätigen und den Import fortzusetzen.
+layout_updater_label_new_component,New component,新しいコンポーネント,새 구성 요소,新组件,Componente nuevo,Neue Komponente,Nouveau composant
+layout_updater_label_color_diff,🎨 Color: {0} → {1},🎨 色: {0} → {1},🎨 색상: {0} → {1},🎨 颜色：{0} → {1},🎨 Color: {0} → {1},🎨 Farbe: {0} → {1},🎨 Couleur: {0} → {1}
+layout_updater_label_size_diff,📏 Size: {0} → {1},📏 サイズ: {0} → {1},📏 크기: {0} → {1},📏 尺寸：{0} → {1},📏 Tamaño: {0} → {1},📏 Größe: {0} → {1},📏 Taille: {0} → {1}
+layout_updater_label_main_header,COMPONENTS ({0}/{1}),コンポーネント ({0}/{1}),구성 요소 ({0}/{1}),组件 ({0}/{1}),COMPONENTES ({0}/{1}),KOMPONENTEN ({0}/{1}),COMPOSANTS ({0}/{1})
+layout_updater_label_name_with_selection,{0} ({1}/{2}),{0} ({1}/{2}),{0} ({1}/{2}),{0} ({1}/{2}),{0} ({1}/{2}),{0} ({1}/{2}),{0} ({1}/{2})
+header_status_not_logged,Not logged.,未ログイン,로그인되지 않음.,未登录。,No has iniciado sesión.,Nicht angemeldet.,Non connecté.
+label_ui_language,Language (UI & Logs),言語（UI とログ）,언어（UI 및 로그）,语言（UI 和日志）,Idioma (UI & registros),Sprache (UI & Protokolle),Langue (UI & journaux)
+label_sequential_import,Sequential Import,順次インポート,순차 가져오기,顺序导入,Importación secuencial,Sequenzieller Import,Importation séquentielle
+log_import_stoped_manually,Import stopped manually.,インポートが手動で停止されました。,수동으로 임포트가 중지되었습니다.,导入已手动停止。,La importación se detuvo manualmente.,Der Import wurde manuell gestoppt.,L'importation a été arrêtée manuellement.
+label_stop_import,Stop Import,インポートを停止,임포트 중지,停止导入,Detener importación,Import stoppen,Arrêter l'importation
+label_recent_sessions,Recent Sessions,最近のセッション,최근 세션,最近的会话,Sesiones recientes,Letzte Sitzungen,Sessions récentes
+label_access_token,Access Token,アクセストークン,액세스 토큰,访问令牌,Token de acceso,Zugriffstoken,Jeton d'accès
+label_use_duplicate_finder,Use Duplicate Finder,重複ファインダーを使用,중복 찾기 사용,使用重复查找器,Usar buscador de duplicados,Duplikat-Finder verwenden,Utiliser le chercheur de doublons
+label_oauth_app_credentials,OAuth App Credentials,OAuthアプリの認証情報,OAuth 앱 자격 증명,OAuth 应用凭据,Credenciales de la aplicación OAuth,OAuth-App-Anmeldeinformationen,Identifiants de l'application OAuth
+label_oauth_scopes,OAuth Scopes,OAuthスコープ,OAuth 범위,OAuth 范围,Ámbitos de OAuth,OAuth-Bereiche,Portées OAuth
+label_redirect_uri,Redirect URI,リダイレクトURI,리디렉션 URI,重定向 URI,URI de redirección,Weiterleitungs-URI,URI de redirection
+label_client_id,Client ID,クライアントID,클라이언트 ID,客户端 ID,ID de cliente,Client-ID,ID client
+label_client_secret,Client Secret,クライアントシークレット,클라이언트 시크릿,客户端密钥,Secreto del cliente,Client-Secret,Secret client
+label_prefab_naming_mode,Prefab Naming Mode,プレハブ命名モード,프리팹 이름 지정 모드,预制件命名模式,Modo de nomenclatura de prefabricados,Prefab-Benennungsmodus,Mode de nommage des préfabriqués
+label_transition_type,Transition Type,トランジションタイプ,전환 유형,过渡类型,Tipo de transición,Übergangstyp,Type de transition
+label_uitk_text_settings,UITK TEXT SETTINGS,UITK テキスト設定,UITK 텍스트 설정,UITK 文本设置,AJUSTES DE TEXTO DE UITK,UITK-TEXTEINSTELLUNGEN,PARAMÈTRES DE TEXTE UITK
+tooltip_uitk_text_settings,Additional text options for UI Toolkit labels and text fields.,UI Toolkit のラベルとテキストフィールド向けの追加テキストオプションです。,UI Toolkit 레이블과 텍스트 필드를 위한 추가 텍스트 옵션입니다。,用于 UI Toolkit 标签和文本字段的其他文本选项。,Opciones de texto adicionales para las etiquetas y campos de texto de UI Toolkit.,Zusätzliche Textoptionen für UI-Toolkit-Beschriftungen und Textfelder.,Options de texte supplémentaires pour les étiquettes et champs de texte UI Toolkit.
+label_white_space,White Space,空白,공백,空白,Espacio en blanco,Leerraum,Espaces
+tooltip_white_space,Controls how white space characters are processed.,空白文字の処理方法を制御します。,공백 문자를 처리하는 방식을 제어합니다。,控制如何处理空白字符。,Controla cómo se procesan los caracteres de espacio en blanco.,Steuert, wie Leerraumzeichen verarbeitet werden.
+label_text_overflow,Text Overflow,テキストのオーバーフロー,텍스트 오버플로,文本溢出,Desbordamiento de texto,Textüberlauf,Débordement de texte
+tooltip_text_overflow,Determines how overflowing text content is handled.,テキストがはみ出した場合の処理方法を決定します。,넘치는 텍스트 내용을 처리하는 방법을 결정합니다。,确定如何处理溢出的文本内容。,Determina cómo se maneja el contenido de texto que se desborda.,Bestimmt, wie überlaufender Textinhalt behandelt wird.
+label_focusable,Focusable,フォーカス可能,포커스 가능,可聚焦,Enfocable,Fokussierbar,Focalisable
+tooltip_focusable,Whether the text element can receive keyboard focus.,テキスト要素がキーボードフォーカスを受け取れるかどうかを指定します。,텍스트 요소가 키보드 포커스를 받을 수 있는지 여부입니다。,指定文本元素是否可以获得键盘焦点。,Indica si el elemento de texto puede recibir el foco del teclado.,Legt fest, ob das Textelement die Tastaturfokussierung erhalten kann.
+label_emoji_fallback_support,Emoji Fallback Support,絵文字フォールバックサポート,이모지 폴백 지원,表情符号回退支持,Compatibilidad con fallback de emojis,Emoji-Fallback-Unterstützung,Prise en charge du remplacement des emoji
+tooltip_emoji_fallback_support,Enables emoji fallback font support.,絵文字のフォールバックフォントのサポートを有効にします。,이모지 폴백 폰트 지원을 활성화합니다。,启用表情符号回退字体支持。,Habilita la compatibilidad de fuentes de reserva para emojis.,Aktiviert die Unterstützung für Emoji-Fallback-Schriften.,Active la prise en charge des polices de secours pour les emoji.
+label_selectable,Selectable,選択可能,선택 가능,可选中,Seleccionable,Auswählbar,Sélectionnable
+tooltip_selectable,Allows the user to select text with the mouse.,ユーザーがマウスでテキストを選択できるようにします。,사용자가 마우스로 텍스트를 선택할 수 있게 합니다。,允许用户用鼠标选择文本。,Permite al usuario seleccionar texto con el ratón.,Ermöglicht dem Benutzer, Text mit der Maus auszuwählen.
+label_double_click_selects_word,Double-click Selects Word,ダブルクリックで単語を選択,더블클릭으로 단어 선택,双击选择单词,Doble clic selecciona palabra,Doppelklick wählt Wort,Double-clic sélectionne le mot
+tooltip_double_click_selects_word,Select the entire word when double-clicking.,ダブルクリックしたときに単語全体を選択します。,더블클릭 시 단어 전체를 선택합니다。,双击时选择整个单词。,Selecciona la palabra completa al hacer doble clic.,Wählt beim Doppelklick das gesamte Wort aus.,Sélectionne le mot entier lors d’un double-clic.
+label_triple_click_selects_line,Triple-click Selects Line,トリプルクリックで行を選択,트리플클릭으로 줄 선택,三击选择行,Triple clic selecciona línea,Dreifachklick wählt Zeile,Triple-clic sélectionne la ligne
+tooltip_triple_click_selects_line,Select the entire line when triple-clicking.,トリプルクリックしたときに行全体を選択します。,세 번 클릭하면 줄 전체를 선택합니다。,三击时选择整行。,Selecciona la línea completa al hacer triple clic.,Wählt beim Dreifachklick die gesamte Zeile aus.,Sélectionne la ligne entière lors d’un triple-clic.
+label_display_tooltip_when_elided,Display Tooltip When Elided,省略時にツールチップを表示,생략 시 툴팁 표시,截断时显示工具提示,Mostrar información emergente al truncar,Tooltip bei Auslassung anzeigen,Afficher l’infobulle en cas de troncature
+tooltip_display_tooltip_when_elided,Show the element tooltip when text is truncated.,テキストが省略されたときに要素のツールチップを表示します。,텍스트가 생략될 때 요소 툴팁을 표시합니다。,当文本被截断时显示元素工具提示。,Muestra la información emergente del elemento cuando el texto se trunca.,Zeigt die Element-Tooltip an, wenn Text abgeschnitten wird.
+label_language_direction,Language Direction,言語方向,언어 방향,语言方向,Dirección del idioma,Sprachrichtung,Direction de la langue
+tooltip_language_direction,Sets the reading direction applied to generated UI Toolkit text.,生成される UI Toolkit テキストに適用する読み方向を設定します。,생성된 UI Toolkit 텍스트에 적용할 읽기 방향을 설정합니다.,设置生成的 UI Toolkit 文本所采用的阅读方向。,Configura la dirección de lectura que se aplicará al texto generado en UI Toolkit.,"Legt fest, in welche Leserichtung der erzeugte UI-Toolkit-Text dargestellt wird.",Définit la direction de lecture appliquée au texte généré par UI Toolkit.
+label_cannot_select_setting,You cannot select '{0}' because you are using '{1}'.,「{0}」は「{1}」を使用しているため選択できません。,'{0}'은(는) '{1}'을(를) 사용 중이므로 선택할 수 없습니다.,无法选择“{0}”，因为正在使用“{1}”。,No puedes seleccionar '{0}' porque estás usando '{1}'.,"Sie können '{0}' nicht auswählen, da Sie '{1}' verwenden.",Vous ne pouvez pas sélectionner '{0}' car vous utilisez '{1}'.
+log_layout_value_getter_failed,Failed to create value getter for '{0}' search functionality.,'{0}' 検索機能の値ゲッターの作成に失敗しました。,'{0}' 검색 기능에 대한 값 getter를 생성하지 못했습니다.,无法为“{0}”搜索功能创建值获取器。,No se pudo crear el captador de valor para la funcionalidad de búsqueda '{0}'.,Der Wert-Getter für die Suchfunktion „{0}“ konnte nicht erstellt werden.,Échec de la création d'un getter de valeur pour la fonctionnalité de recherche « {0} ».
+log_layout_window_closed,'{0}' was closed because the scripts were recompiled or data is invalid.,スクリプトが再コンパイルされたか、データが無効であるため、「{0}」は閉じられました。,스크립트가 다시 컴파일되었거나 데이터가 유효하지 않아 '{0}'이(가) 닫혔습니다.,“{0}”已关闭，因为脚本已重新编译或数据无效。,'{0}' se cerró porque los scripts se volvieron a compilar o los datos no son válidos.,"„{0}“ wurde geschlossen, weil die Skripte neu kompiliert wurden oder die Daten ungültig sind.",'{0}' a été fermé car les scripts ont été recompilés ou les données ne sont pas valides.
+log_sprite_usage_asset_not_found,Asset not found: {0},アセットが見つかりません: {0},자산을 찾을 수 없음: {0},未找到资源：{0},Activo no encontrado: {0},Asset nicht gefunden: {0},Actif introuvable : {0}
+log_sdf_results_scroll_null,Results scroll view is null. Cannot build groups UI.,結果のスクロール ビューが null です。グループ UI を構築できません。,결과 스크롤 뷰가 null입니다. 그룹 UI를 구축할 수 없습니다.,结果滚动视图为空。无法构建组 UI。,La vista de desplazamiento de resultados es nula. No se puede crear la interfaz de usuario de grupos.,Die Bildlaufansicht der Ergebnisse ist null. Benutzeroberfläche für Gruppen kann nicht erstellt werden.,La vue déroulante des résultats est nulle. Impossible de créer l'interface utilisateur des groupes.
+log_sdf_group_card_missing_for_element,Group card not found for element {0}.,要素 {0} のグループ カードが見つかりません。,{0} 요소에 대한 그룹 카드를 찾을 수 없습니다.,未找到元素 {0} 的组卡。,No se encontró la tarjeta de grupo para el elemento {0}.,Gruppenkarte für Element {0} nicht gefunden.,Carte de groupe introuvable pour l'élément {0}.
+log_sdf_group_card_userdata_invalid,Group card userData is not an int: {0}.,グループ カードの userData は int ではありません: {0}。,그룹 카드 userData가 정수가 아닙니다: {0}.,组卡 userData 不是 int：{0}。,Los datos de usuario de la tarjeta de grupo no son un int: {0}.,Benutzerdaten der Gruppenkarte sind kein int: {0}.,Les données utilisateur de la carte de groupe ne sont pas un entier : {0}.
+log_sdf_group_card_missing_for_index,Group card for index {0} not found.,インデックス {0} のグループ カードが見つかりません。,인덱스 {0}에 대한 그룹 카드를 찾을 수 없습니다.,未找到索引 {0} 的组卡。,No se encontró la tarjeta de grupo para el índice {0}.,Gruppenkarte für Index {0} nicht gefunden.,Carte de groupe pour l'index {0} introuvable.
+log_sdf_group_row_missing_for_index,Group row for index {0} not found.,インデックス {0} のグループ行が見つかりません。,인덱스 {0}에 대한 그룹 행을 찾을 수 없습니다.,未找到索引 {0} 的组行。,No se encontró la fila de grupo para el índice {0}.,Gruppenzeile für Index {0} nicht gefunden.,Ligne de groupe pour l'index {0} introuvable.
+log_sdf_sprite_data_missing,Could not find sprite data for path: {0} in group {1}.,パス {0} のスプライトデータがグループ {1} に見つかりませんでした。,경로 {0}에 대한 스프라이트 데이터를 그룹 {1}에서 찾을 수 없습니다.,无法找到路径 {0} 在组 {1} 中的精灵数据。,No se pudieron encontrar datos de sprites para la ruta: {0} en el grupo {1}.,Sprite-Daten für Pfad: {0} in Gruppe {1} konnten nicht gefunden werden.,Impossible de trouver les données de sprite pour le chemin : {0} dans le groupe {1}.
+log_sdf_group_header_missing,Group header for index {0} not found.,インデックス {0} のグループ ヘッダーが見つかりません。,인덱스 {0}에 대한 그룹 헤더를 찾을 수 없습니다.,未找到索引 {0} 的组标头。,No se encontró el encabezado de grupo para el índice {0}.,Gruppenheader für Index {0} nicht gefunden.,En-tête de groupe pour l'index {0} introuvable.
+log_sdf_drag_data_invalid,Drag data not found or invalid type: {0}. Expected {1}. Key: {2}.,ドラッグ データが見つからないか、無効なタイプです: {0}。 {1} が予期されました。キー: {2}。,드래그 데이터를 찾을 수 없거나 유형이 잘못되었습니다: {0}. {1}이(가) 필요합니다. 키: {2}.,拖动数据未找到或无效类型：{0}。应为 {1}。键：{2}。,Datos de arrastre no encontrados o tipo no válido: {0}. Se esperaba {1}. Clave: {2}.,Drag-Daten nicht gefunden oder ungültiger Typ: {0}. Erwartet {1}. Schlüssel: {2}.,Faites glisser les données introuvables ou type non valide : {0}. {1} attendu. Clé : {2}.
+log_sdf_asset_not_found,Asset not found: {0},アセットが見つかりません: {0},자산을 찾을 수 없음: {0},未找到资产：{0},Activo no encontrado: {0},Asset nicht gefunden: {0},Actif introuvable : {0}
+log_sdf_groups_found,Groups found: {0},グループが見つかりました: {0},발견된 그룹: {0},找到的组：{0},Grupos encontrados: {0},Gruppen gefunden: {0},Groupes trouvés : {0}
+log_request_sender_error_field_empty,RequestSender error field '{0}' is empty. Result: {1}.,RequestSender エラー フィールド '{0}' が空です。結果: {1}。,RequestSender 오류 필드 '{0}'이(가) 비어 있습니다. 결과: {1}.,RequestSender 错误字段“{0}”为空。结果：{1}。,El campo de error de RequestSender '{0}' está vacío. Resultado: {1}.,Das RequestSender-Fehlerfeld „{0}“ ist leer. Ergebnis: {1}.,Le champ d’erreur RequestSender « {0} » est vide. Résultat : {1}.
+log_request_sender_try_parse_state,TryParseResponse state: {0},TryParseResponse 状態: {0},TryParseResponse 상태: {0},TryParseResponse 状态：{0},Estado TryParseResponse: {0},TryParseResponse-Status: {0},État TryParseResponse : {0}
+log_google_fonts_subset_failed,Can't get '{0}' fonts from Google repository.,Google リポジトリから「{0}」フォントを取得できません。,Google 저장소에서 '{0}' 글꼴을 가져올 수 없습니다.,无法从 Google 存储库获取“{0}”字体。,No se pueden obtener las fuentes '{0}' del repositorio de Google.,„{0}“-Schriftarten können nicht aus dem Google-Repository abgerufen werden.,Impossible d'obtenir les polices « {0} » à partir du référentiel Google.
+log_import_show_difference_checker,Opening difference checker window.,差分チェッカーウィンドウを開きます。,차이점 검사기 창을 엽니다.,打开差异检查器窗口。,Abrir ventana del verificador de diferencias.,Öffnen des Differenzprüffensters.,Ouverture de la fenêtre du vérificateur de différence.
+log_import_no_frames_to_sync,No frames to sync.,同期するフレームがありません。,동기화할 프레임이 없습니다.,没有要同步的帧。,No hay cuadros para sincronizar.,Keine Frames zum Synchronisieren.,Aucune image à synchroniser.
+log_convert_tree_to_list,Converting nodes tree to list.,ノードツリーをリストに変換します。,노드 트리를 목록으로 변환하는 중입니다.,将节点树转换为列表。,Convirtiendo el árbol de nodos en una lista.,Konvertieren des Knotenbaums in eine Liste.,Conversion de l'arborescence des nœuds en liste.
+log_layout_pre_import_stats,"Pre-import data: to import {0}, to remove {1}.",データの事前インポート: {0} をインポートし、{1} を削除します。,데이터 가져오기 전: {0}을 가져오고 {1}을 제거합니다.,预导入数据：导入{0}，删除{1}。,"Datos previos a la importación: para importar {0}, para eliminar {1}.","Daten vor dem Import: zum Importieren von {0}, zum Entfernen von {1}.","Données de pré-importation : pour importer {0}, pour supprimer {1}."
+log_layout_root_frame_missing,RootFrame is null for '{0}'. Skipping.,「{0}」の RootFrame は null です。スキップ。,RootFrame은 '{0}'에 대해 null입니다. 건너뛰는 중입니다.,对于“{0}”，RootFrame 为空。跳绳。,RootFrame es nulo para '{0}'. Salto a la comba.,RootFrame ist null für „{0}“. Überspringen.,RootFrame est nul pour '{0}'. Saut.
+log_set_root_frames,Setting root frames.,ルートフレームの設定。,루트 프레임 설정.,设置根框架。,Configuración de marcos raíz.,Root-Frames festlegen.,Définition des images racine.
+log_set_image_types,Setting image types.,画像タイプの設定。,이미지 유형을 설정합니다.,设置图像类型。,Configuración de tipos de imágenes.,Bildtypen festlegen.,Définition des types d'images.
+log_set_hashes,Calculating hashes.,ハッシュを計算しています。,해시를 계산하는 중입니다.,计算哈希值。,Calculando hashes.,Hashes berechnen.,Calcul des hachages.
+log_sprite_downloader_no_sprites,No sprites need to be downloaded.,スプライトをダウンロードする必要はありません。,스프라이트를 다운로드할 필요가 없습니다.,无需下载精灵。,No es necesario descargar sprites.,Es müssen keine Sprites heruntergeladen werden.,Aucun sprite ne doit être téléchargé.
+log_sprite_duplicate_remover_no_sprites,No sprites found in path: {0}. Skipping duplicate removal.,パス {0} にスプライトが見つかりません。重複の削除をスキップします。,경로: {0}에 스프라이트가 없습니다. 중복 제거를 건너뛰는 중입니다.,在路径 {0} 中找不到精灵。跳过重复删除。,No se encontraron sprites en la ruta: {0}. Saltarse la eliminación de duplicados.,Keine Sprites im Pfad gefunden: {0}. Überspringen der Duplikatentfernung.,Aucun sprite trouvé dans le chemin : {0}. Ignorer la suppression des doublons.
+log_sprite_duplicate_remover_no_duplicates,No duplicates detected. Skipping.,重複は検出されませんでした。スキップ。,중복된 항목이 감지되지 않았습니다. 건너뛰는 중입니다.,未检测到重复项。跳绳。,No se detectaron duplicados. Salto a la comba.,Keine Duplikate erkannt. Überspringen.,Aucun doublon détecté. Saut.
+log_sprite_batch_writer_timeout,SpriteBatchWriter timeout.,SpriteBatchWriter のタイムアウト。,SpriteBatchWriter 시간 초과입니다.,SpriteBatchWriter 超时。,Tiempo de espera de SpriteBatchWriter.,SpriteBatchWriter-Zeitüberschreitung.,Délai d'expiration de SpriteBatchWriter.
+log_sprite_processor_null_texture,[{0}] Cannot save null texture.,[{0}] Null テクスチャを保存できません。,[{0}] Null 텍스처를 저장할 수 없습니다.,[{0}] 无法保存空纹理。,[{0}] No se puede guardar la textura nula.,[{0}] Nulltextur kann nicht gespeichert werden.,[{0}] Impossible d'enregistrer la texture nulle.
+log_sprite_processor_path_empty,[{0}] SpritePath is empty.,[{0}] SpritePath が空です。,[{0}] SpritePath가 비어 있습니다.,[{0}] SpritePath 为空。,[{0}] SpritePath está vacío.,[{0}] SpritePath ist leer.,[{0}] SpritePath est vide.
+log_sprite_processor_file_not_found,[{0}] Sprite file not found: {1},[{0}] スプライト ファイルが見つかりません: {1},[{0}] 스프라이트 파일을 찾을 수 없습니다: {1},[{0}] 未找到精灵文件：{1},[{0}] Archivo Sprite no encontrado: {1},[{0}] Sprite-Datei nicht gefunden: {1},[{0}] Fichier sprite introuvable : {1}
+log_sprite_processor_file_unreadable,[{0}] Sprite file is empty or unreadable: {1},[{0}] スプライト ファイルが空であるか、読み取ることができません: {1},[{0}] 스프라이트 파일이 비어 있거나 읽을 수 없습니다: {1},[{0}] Sprite 文件为空或不可读：{1},[{0}] El archivo Sprite está vacío o es ilegible: {1},[{0}] Sprite-Datei ist leer oder nicht lesbar: {1},[{0}] Le fichier sprite est vide ou illisible : {1}
+log_sprite_processor_load_failed,[{0}] Texture2D.LoadImage failed for: {1},[{0}] Texture2D.LoadImage が失敗しました: {1},[{0}] Texture2D.LoadImage 실패: {1},[{0}]Texture2D.LoadImage 失败：{1},[{0}] Texture2D.LoadImage falló para: {1},[{0}] Texture2D.LoadImage fehlgeschlagen für: {1},[{0}] Texture2D.LoadImage a échoué pour : {1}
+log_sprite_processor_size_updated,[{0}] Sprite size updated: {1}x{2},[{0}] スプライト サイズが更新されました: {1}x{2},[{0}] 스프라이트 크기 업데이트됨: {1}x{2},[{0}] 精灵大小已更新：{1}x{2},[{0}] Tamaño de Sprite actualizado: {1}x{2},[{0}] Sprite-Größe aktualisiert: {1}x{2},[{0}] Taille du sprite mise à jour : {1}x{2}
+log_figma_link_fetch_failed,Failed to fetch sprite links. Status: {0}. Details: {1}.,スプライトリンクの取得に失敗しました。ステータス: {0}。詳細: {1}。,스프라이트 링크를 가져오지 못했습니다. 상태: {0}. 세부정보: {1}.,无法获取精灵链接。状态：{0}。详细信息：{1}。,No se pudieron recuperar los enlaces de sprites. Estado: {0}. Detalles: {1}.,Sprite-Links konnten nicht abgerufen werden. Status: {0}. Details: {1}.,Échec de la récupération des liens de sprite. Statut : {0}. Détails : {1}.
+log_figma_link_missing_ids,Figma API returned success but no image links for IDs: {0},Figma API は成功を返しましたが、ID の画像リンクがありませんでした: {0},Figma API가 성공을 반환했지만 ID에 대한 이미지 링크가 없습니다: {0},Figma API 返回成功，但没有 ID 的图像链接：{0},La API de Figma arrojó éxito pero no hubo enlaces de imágenes para las ID: {0},"Die Figma-API hat Erfolg zurückgegeben, aber keine Bildlinks für die IDs: {0}",L'API Figma a renvoyé un succès mais aucun lien d'image pour les identifiants : {0}
+log_localization_provider_null,Localization provider is not assigned.,ローカリゼーション プロバイダーが割り当てられていません。,현지화 제공업체가 할당되지 않았습니다.,未分配本地化提供商。,El proveedor de localización no está asignado.,Lokalisierungsanbieter ist nicht zugewiesen.,Le fournisseur de localisation n’est pas attribué.
+log_localization_file_not_loaded,Localization file '{0}' could not be loaded.,ローカリゼーション ファイル '{0}' をロードできませんでした。,현지화 파일 '{0}'을(를) 로드할 수 없습니다.,无法加载本地化文件“{0}”。,No se pudo cargar el archivo de localización '{0}'.,Die Lokalisierungsdatei „{0}“ konnte nicht geladen werden.,Le fichier de localisation '{0}' n'a pas pu être chargé.
+log_localization_file_saved,Localization file saved at: {0},ローカリゼーション ファイルの保存場所: {0},현지화 파일 저장 위치: {0},本地化文件保存在：{0},Archivo de localización guardado en: {0},Lokalisierungsdatei gespeichert unter: {0},Fichier de localisation enregistré sous : {0}
+log_dtt_field_not_found,Field '{0}' not found in type '{1}'.,フィールド '{0}' がタイプ '{1}' に見つかりません。,필드 '{0}'을(를) 형식 '{1}'에서 찾을 수 없습니다.,字段“{0}”在类型“{1}”中不存在。,El campo '{0}' no se encuentra en el tipo '{1}'.,Das Feld „{0}“ wurde im Typ „{1}“ nicht gefunden.,Champ '{0}' introuvable dans le type '{1}'.
+log_dtt_field_not_array,Field '{0}' is not an array or is null.,フィールド '{0}' が配列でないか、null です。,'{0}' 필드가 배열이 아니거나 null입니다.,字段“{0}”不是数组或者为空。,El campo '{0}' no es una matriz o es nulo.,Das Feld „{0}“ ist kein Array oder null.,Le champ '{0}' n'est pas un tableau ou est nul.
+log_dtt_index_out_of_bounds,Index '{0}' is out of bounds for array '{1}'.,インデックス '{0}' は配列 '{1}' の範囲外です。,인덱스 '{0}'은(는) 배열 '{1}'의 범위를 벗어났습니다.,索引“{0}”超出数组“{1}”的范围。,El índice '{0}' está fuera de los límites de la matriz '{1}'.,Der Index „{0}“ liegt außerhalb der Grenzen für das Array „{1}“.,L'index '{0}' est hors limites pour le tableau '{1}'.
+log_button_default_tag_not_found,Object with tag 'BtnDefault' was not found for {0}.,{0} にはタグ「BtnDefault」を持つオブジェクトが見つかりませんでした。,{0}에 대해 'BtnDefault' 태그가 있는 개체를 찾을 수 없습니다.,未找到 {0} 的带有标记“BtnDefault”的对象。,No se encontró el objeto con la etiqueta 'BtnDefault' para {0}.,Objekt mit Tag „BtnDefault“ wurde für {0} nicht gefunden.,L'objet avec la balise « BtnDefault » est introuvable pour {0}.
+log_prefab_missing_prefab,Prefab instance for '{0}' was not created.,「{0}」のプレハブ インスタンスは作成されませんでした。,'{0}'에 대한 프리팹 인스턴스가 생성되지 않았습니다.,未创建“{0}”的预制件实例。,No se creó la instancia prefabricada para '{0}'.,Die vorgefertigte Instanz für „{0}“ wurde nicht erstellt.,L'instance préfabriquée pour « {0} » n'a pas été créée.
+log_prefab_task_stopped,The prefab creation task was stopped.,プレハブ作成タスクが停止されました。,프리팹 생성 작업이 중지되었습니다.,预制件创建任务已停止。,La tarea de creación de casas prefabricadas fue detenida.,Die Aufgabe zur Fertigteilerstellung wurde gestoppt.,La tâche de création du préfabriqué a été arrêtée.
+log_transform_null,Transform is null.,変換は null です。,변환이 null입니다.,变换为空。,La transformación es nula.,Transformation ist null.,La transformation est nulle.
+log_tag_extensions_fobject_data_null,fobject.Data is null.,fobject.Data が null です。,fobject.Data가 null입니다.,fobject.Data 为空。,fobject.Data es nulo.,fobject.Data ist null.,fobject.Data est nul.
+log_tag_extensions_synchelper_data_null,syncHelper.Data is null.,syncHelper.Data が null です。,syncHelper.Data가 null입니다.,syncHelper.Data 为空。,syncHelper.Data es nulo.,syncHelper.Data ist null.,syncHelper.Data est nul.
+log_tag_extensions_config_missing,No tag config for '{0}' tag.,「{0}」タグのタグ構成がありません。,'{0}' 태그에 대한 태그 구성이 없습니다.,“{0}”标签没有标签配置。,No hay configuración de etiqueta para la etiqueta '{0}'.,Keine Tag-Konfiguration für das Tag „{0}“.,Aucune configuration de balise pour la balise '{0}'.
+log_main_settings_positioning_not_supported,{0} is not supported in {1} framework.,{0} は {1} フレームワークではサポートされていません。,{0}은 {1} 프레임워크에서 지원되지 않습니다.,{0} 在 {1} 框架中不受支持。,{0} no es compatible con el marco {1}.,{0} wird im {1}-Framework nicht unterstützt.,{0} n'est pas pris en charge dans le framework {1}.
+log_script_generator_no_sync_helpers,No SyncHelpers found.,SyncHelpers が見つかりません。,SyncHelpers를 찾을 수 없습니다.,未找到 SyncHelpers。,No se encontraron SyncHelpers.,Keine SyncHelper gefunden.,Aucun SyncHelpers trouvé.
+log_script_generator_root_frame_null,RootFrame is null.,RootFrame が null です。,RootFrame이 null입니다.,根框架为空。,RootFrame es nulo.,RootFrame ist null.,RootFrame est nul.
+log_script_generator_root_frame_gameobject_null,GameObject for RootFrame '{0}' is null.,RootFrame '{0}' のゲームオブジェクトが null です。,RootFrame '{0}'의 GameObject가 null입니다.,RootFrame“{0}”的游戏对象为空。,GameObject para RootFrame '{0}' es nulo.,GameObject für RootFrame „{0}“ ist null.,GameObject pour RootFrame '{0}' est nul.
+log_script_generator_method_not_found,Method '{0}' not found in {1} for button {2}.,メソッド '{0}' が {1}（ボタン {2}）に見つかりません。,'{0}' 메서드를 {1}에서 버튼 {2}용으로 찾을 수 없습니다.,方法“{0}”在 {1} 中不存在，无法用于按钮 {2}。,El método '{0}' no se encuentra en {1} para el botón {2}.,Die Methode „{0}“ wurde in {1} für die Schaltfläche {2} nicht gefunden.,Méthode '{0}' introuvable dans {1} pour le bouton {2}.
+log_script_generator_methods_serialized,Methods serialization completed successfully.,メソッドのシリアル化が正常に完了しました。,메소드 직렬화가 성공적으로 완료되었습니다.,方法序列化成功完成。,La serialización de métodos se completó correctamente.,Die Serialisierung der Methoden wurde erfolgreich abgeschlossen.,La sérialisation des méthodes s'est terminée avec succès.
+log_script_generator_persistent_method_assigned,Assigned persistent method '{0}' to UitkButton '{1}'.,永続メソッド '{0}' を UitkButton '{1}' に割り当てました。,영구 메서드 '{0}'을 UitkButton '{1}'에 할당했습니다.,将持久方法“{0}”分配给 UitkButton“{1}”。,Se asignó el método persistente '{0}' a UitkButton '{1}'.,Persistente Methode '{0}' dem UitkButton '{1}' zugewiesen.,La méthode persistante '{0}' a été attribuée au UitkButton '{1}'.
+log_script_generator_component_added,Added {0} component to {1}.,{0} コンポーネントを {1} に追加しました。,{0} 컴포넌트를 {1}에 추가했습니다.,将 {0} 组件添加到 {1}。,Se agregó el componente {0} a {1}.,{0}-Komponente zu {1} hinzugefügt.,Ajout du composant {0} à {1}.
+log_script_generator_names_serialized,Serialization by names completed successfully.,名前によるシリアル化が正常に完了しました。,이름별 직렬화가 성공적으로 완료되었습니다.,按名称序列化已成功完成。,La serialización por nombres se completó con éxito.,Serialisierung nach Namen erfolgreich abgeschlossen.,La sérialisation par noms s'est terminée avec succès.
+log_script_generator_sync_helper_gameobject_null,GameObject for SyncHelper '{0}' is null.,SyncHelper '{0}' のゲームオブジェクトが null です。,SyncHelper '{0}'의 GameObject가 null입니다.,SyncHelper“{0}”的游戏对象为空。,GameObject para SyncHelper '{0}' es nulo.,GameObject für SyncHelper „{0}“ ist null.,GameObject pour SyncHelper '{0}' est nul.
+log_script_generator_component_null,Component for field '{0}' is null.,フィールド「{0}」のコンポーネントが null です。,'{0}' 필드의 구성 요소가 null입니다.,字段“{0}”的组件为空。,El componente del campo '{0}' es nulo.,Die Komponente für das Feld „{0}“ ist null.,Le composant du champ '{0}' est nul.
+log_script_generator_component_assigned,Assigned component {0} to field {1}.,コンポーネント {0} をフィールド {1} に割り当てました。,컴포넌트 {0}을(를) {1} 필드에 할당했습니다.,将组件 {0} 分配给字段 {1}。,Componente asignado {0} al campo {1}.,Komponente {0} dem Feld {1} zugewiesen.,Composant attribué {0} au champ {1}.
+log_script_generator_gameobject_assigned,Assigned GameObject {0} to field {1}.,ゲームオブジェクト {0} をフィールド {1} に割り当てました。,GameObject {0}을(를) {1} 필드에 할당했습니다.,将游戏对象 {0} 分配给字段 {1}。,Se asignó GameObject {0} al campo {1}.,GameObject {0} dem Feld {1} zugewiesen.,Attribué GameObject {0} au champ {1}.
+log_script_generator_field_type_unsupported,Unsupported field type {0} for field {1}.,フィールドタイプ {0} はフィールド {1} ではサポートされていません。,필드 유형 {0}은(는) {1} 필드에서 지원되지 않습니다.,字段类型 {0} 不受字段 {1} 支持。,Tipo de campo no admitido {0} para el campo {1}.,Nicht unterstützter Feldtyp {0} für Feld {1}.,Type de champ {0} non pris en charge pour le champ {1}.
+log_script_generator_assembly_load_failed,Failed to load Assembly-CSharp.,Assembly-CSharp のロードに失敗しました。,Assembly-CSharp를 로드하지 못했습니다.,无法加载 Assembly-CSharp。,No se pudo cargar Assembly-CSharp.,Assembly-CSharp konnte nicht geladen werden.,Échec du chargement de Assembly-CSharp.
+log_script_generator_unexpected_error,Unexpected error: {0},予期しないエラー: {0},예상치 못한 오류: {0},意外错误：{0},Error inesperado: {0},Unerwarteter Fehler: {0},Erreur inattendue : {0}
+common_button_create_group,Create Group,グループを作成,그룹 만들기,创建组,Crear grupo,Gruppe erstellen,Créer un groupe
+label_raw_image_settings,RAW IMAGE SETTINGS,RAW 画像設定,RAW 이미지 설정,RAW 图像设置,AJUSTES DE IMÁGENES RAW,RAW-BILDEINSTELLUNGEN,PARAMÈTRES D’IMAGE RAW
+tooltip_sequential_import,Imports frames one by one to minimize memory spikes and keep progress predictable.,フレームを 1 つずつインポートしてメモリ使用量のスパイクを抑え、進行状況を予測しやすくします。,프레임을 한 번에 하나씩 가져와 메모리 사용량 급증을 줄이고 진행 상황을 예측 가능하게 유지합니다.,逐个导入画框，可降低内存峰值并保持可预测的进度。,Importa los fotogramas uno a uno para minimizar los picos de memoria y mantener un progreso predecible.,"Importiert die Frames nacheinander, um Speicherspitzen zu minimieren und den Fortschritt berechenbar zu halten.",Importe les images une par une afin de limiter les pics de mémoire et de garder une progression prévisible.
+tooltip_transition_type,"Choose which Unity transition (Color Tint, Sprite Swap, Animation, etc.) generated buttons should use.",生成されるボタンに適用する Unity のトランジション（Color Tint、Sprite Swap、Animation など）を選択します。,"생성된 버튼에 적용할 Unity 전환 방식(색상 틴트, 스프라이트 교체, 애니메이션 등)을 선택합니다.",选择生成的按钮应使用的 Unity 过渡方式（颜色渐变、精灵切换、动画等）。,"Elige qué transición de Unity (Color Tint, Sprite Swap, Animación, etc.) usarán los botones generados.","Wählen Sie, welchen Unity-Übergang (Color Tint, Sprite Swap, Animation usw.) die generierten Buttons verwenden sollen.","Choisissez quelle transition Unity (Color Tint, Sprite Swap, Animation, etc.) les boutons générés doivent utiliser."
+tooltip_ui_language,Sets the language used by FCU windows and log messages. Switch it to work in your preferred locale.,FCU のウィンドウとログで使用する言語を設定します。好みのロケールで作業できるように切り替えてください。,FCU 창과 로그 메시지에 사용할 언어를 설정합니다. 선호하는 로캘로 전환해 사용하세요.,设置 FCU 窗口和日志消息所使用的语言，可切换到偏好的区域设置。,Define el idioma que utilizarán las ventanas y los mensajes de registro de FCU; cambia aquí para trabajar en tu idioma preferido.,"Legt fest, welche Sprache die FCU-Fenster und Protokollmeldungen verwenden; wechseln Sie hier zu Ihrem bevorzugten Gebietsschema.",Définit la langue utilisée par les fenêtres et les journaux FCU ; basculez ici vers votre locale préférée.
+tooltip_use_duplicate_finder,Runs the duplicate finder after import to highlight identical sprites that can be grouped or cleaned up.,インポート後に重複検出ツールを実行し、グループ化や整理に回せる同一スプライトを強調表示します。,가져오기 후 중복 찾기를 실행하여 그룹화하거나 정리할 수 있는 동일한 스프라이트를 강조 표시합니다.,导入完成后运行重复项查找器，以突出可分组或可清理的相同精灵。,Ejecuta el buscador de duplicados tras la importación para resaltar sprites idénticos que puedas agrupar o limpiar.,"Führt nach dem Import den Duplikatfinder aus, um identische Sprites hervorzuheben, die gruppiert oder bereinigt werden können.",Exécute l’outil de détection des doublons après l’import pour mettre en évidence les sprites identiques à regrouper ou nettoyer.
+scriptgen_button_scan,Scan,スキャン,스캔,扫描,Escanear,Scannen,Analyser
+scriptgen_message_scan_scene,Scan the scene to collect frames.,シーンをスキャンしてフレームを収集してください。,씬을 스캔하여 프레임을 모으세요。,扫描场景以收集框架。,Escanea la escena para recopilar los marcos.,Scanne die Szene, um Frames zu sammeln.
+scriptgen_message_click_scan,Click Scan to populate the mapping list.,「スキャン」をクリックしてリストを作成してください。,스캔을 클릭하여 목록을 채우세요。,单击“扫描”以填充列表。,Haz clic en Escanear para llenar la lista.,Klicke auf Scannen, um die Liste zu füllen.
+scriptgen_banner_invalid_naming,Errors were found in the field naming. Click this message to automatically scroll to the item that contains the error.,フィールドの命名に問題があります。このメッセージをクリックすると次のエラー項目に自動スクロールします。,필드 이름에 오류가 있습니다. 이 메시지를 클릭하면 다음 오류 항목으로 자동 스크롤합니다.,字段命名存在错误。点击此消息即可自动滚动到下一个出错的项。,Se detectaron errores en el nombrado de campos. Haz clic en este mensaje para desplazarte automáticamente al siguiente elemento con error.,"Bei der Feldbenennung wurden Fehler gefunden. Klicke auf diese Meldung, um automatisch zum nächsten fehlerhaften Eintrag zu springen.",Des erreurs de nommage de champs ont été trouvées. Cliquez sur ce message pour faire défiler automatiquement jusqu'à l'élément en erreur suivant.
+scriptgen_label_global_filter,Global filter: {0},グローバルフィルター: {0},전역 필터: {0},全局筛选：{0},Filtro global: {0},Globaler Filter: {0},Filtre global : {0}
+scriptgen_label_method_name,Method name,Method name,Method name,Method name,Method name,Method name,Method name
+scriptgen_summary_counts,Frames {0}/{1} - Fields {2}/{3},フレーム {0}/{1} • フィールド {2}/{3},프레임 {0}/{1} • 필드 {2}/{3},框架 {0}/{1} • 字段 {2}/{3},Marcos {0}/{1} • Campos {2}/{3},Frames {0}/{1} • Felder {2}/{3},Frames {0}/{1} • Champs {2}/{3}
+scriptgen_summary_invalid_hint,Resolve highlighted names,強調表示された名前を修正してください,강조된 이름을 수정하세요,修复高亮显示的名称,Corrige los nombres resaltados,Markierte Namen korrigieren,Corrigez les noms mis en surbrillance
+scriptgen_validation_empty,Name cannot be empty.,名前を空にすることはできません。,이름은 비워둘 수 없습니다。,名称不能为空。,El nombre no puede estar vacío.,Der Name darf nicht leer sein.,Le nom ne peut pas être vide.
+scriptgen_validation_length,Max length is {0} characters.,最大長は {0} 文字です。,최대 길이는 {0}자입니다。,最大长度为 {0} 个字符。,La longitud máxima es de {0} caracteres.,Die maximale Länge beträgt {0} Zeichen.,La longueur maximale est de {0} caractères.
+scriptgen_validation_startchar,Start with a letter or underscore.,先頭は文字または '_' にしてください。,첫 글자는 문자 또는 '_'로 시작해야 합니다。,请以字母或“_”开头。,Comienza con una letra o “_”.,Beginnt mit einem Buchstaben oder „_“.,Commencez par une lettre ou « _ ».
+scriptgen_validation_charset,Only letters, digits, or underscores are allowed.,文字・数字・「_」のみ使用できます。,문자, 숫자, '_'만 사용할 수 있습니다。
+scriptgen_validation_keyword,Reserved C# keywords are not allowed.,C# の予約語は使用できません。,예약된 C# 키워드는 사용할 수 없습니다。,不允许使用 C# 保留关键字。,Las palabras clave reservadas de C# no están permitidas.,Reservierte C#-Schlüsselwörter sind nicht zulässig.,Les mots-clés réservés de C# ne sont pas autorisés.
+scriptgen_rules_description,Letters, digits, underscores only. Start with a letter or underscore. Max length: {0}.,文字・数字・「_」のみ。先頭は文字または '_'。最大長: {0}。,문자, 숫자, '_'만 허용. 문자 또는 '_'로 시작. 최대 길이: {0}.
+rate_limit_window_title,Figma Rate Limit,Figma リクエスト制限,Figma 요청 제한,Figma 请求限制,Límite de frecuencia de Figma,Figma-Anfragelimit,Limite de requêtes Figma
+rate_limit_window_description,"Figma reports that your account has reached the request limit.
+The waiting time until the next request is:","アカウントがリクエスト制限に達したとFigmaが報告しています。
+次のリクエストまでの待機時間は以下の通りです:","계정이 요청 제한에 도달했다고 Figma가 보고했습니다.
+다음 요청까지의 대기 시간은 다음과 같습니다:","Figma 报告您的帐户已达到请求限制。
+距离下一次请求的等待时间为：","Figma informa que su cuenta ha alcanzado el límite de solicitudes.
+El tiempo de espera hasta la siguiente solicitud es:","Figma meldet, dass Ihr Konto das Anfragelimit erreicht hat.
+Die Wartezeit bis zur nächsten Anfrage beträgt:","Figma signale que votre compte a atteint la limite de demandes.
+Le temps d'attente jusqu'à la prochaine demande est :"
+rate_limit_window_action_wait,a. Wait for the timeout to finish. The popup closes automatically and the import continues afterwards.,a. タイムアウトが終了するまで待ちます。ポップアップは自動的に閉じ、その後インポートが続行されます。,a. 타임아웃이 끝날 때까지 기다리십시오. 팝업이 자동으로 닫히고 이후 가져오기가 계속됩니다。,a. 等待超时结束。弹窗将自动关闭，随后继续导入。,a. Espere a que finalice el tiempo de espera. La ventana emergente se cerrará automáticamente y la importación continuará después.,"a. Warten Sie, bis der Timeout abgelaufen ist. Das Popup schließt sich automatisch und der Import wird danach fortgesetzt.",a. Attendez la fin du délai d'attente. La fenêtre contextuelle se ferme automatiquement et l'importation continue ensuite.
+rate_limit_window_action_retry,"b. If you upgraded your Figma account to a higher plan, your limits will be increased, and you will be able to continue the import from where you left off by clicking the 'Retry request now' button.
+You can see the current limits for different Figma plans at:
+https://developers.figma.com/docs/rest-api/rate-limits/","b. Figmaアカウントをより高いプランにアップグレードした場合、制限が緩和され、「今すぐリクエストを再試行」ボタンをクリックして中断した場所からインポートを続行できます。
+Figmaの各プランの現在の制限については、以下をご覧ください:
+https://developers.figma.com/docs/rest-api/rate-limits/","b. Figma 계정을 상위 요금제로 업그레이드한 경우 제한이 늘어나며, '지금 요청 재시도' 버튼을 클릭하여 중단된 곳에서 가져오기를 계속할 수 있습니다.
+다양한 Figma 요금제에 대한 현재 제한 사항은 다음에서 확인할 수 있습니다:
+https://developers.figma.com/docs/rest-api/rate-limits/","b. 如果您已将 Figma 帐户升级到更高版本，您的限制将会增加，并且您可以通过点击“立即重试请求”按钮从上次中断的地方继续导入。
+您可以在此处查看不同 Figma 计划的当前限制：
+https://developers.figma.com/docs/rest-api/rate-limits/","b. Si actualizó su cuenta de Figma a un plan superior, sus límites aumentarán y podrá continuar la importación desde donde la dejó haciendo clic en el botón 'Reintentar solicitud ahora'.
+Puede consultar los límites actuales para los diferentes planes de Figma en:
+https://developers.figma.com/docs/rest-api/rate-limits/","b. Wenn Sie Ihr Figma-Konto auf einen höheren Plan hochgestuft haben, werden Ihre Limits erhöht und Sie können den Import an der Stelle fortsetzen, an der Sie aufgehört haben, indem Sie auf die Schaltfläche 'Anfrage jetzt wiederholen' klicken.
+Die aktuellen Limits für verschiedene Figma-Pläne finden Sie unter:
+https://developers.figma.com/docs/rest-api/rate-limits/","b. Si vous avez mis à niveau votre compte Figma vers un plan supérieur, vos limites seront augmentées et vous pourrez continuer l'importation là où vous vous étiez arrêté en cliquant sur le bouton « Réessayer la demande maintenant ».
+Vous pouvez consulter les limites actuelles pour les différents plans Figma sur :
+https://developers.figma.com/docs/rest-api/rate-limits/"
+rate_limit_window_action_stop,c. Stop the import.,c. インポートを停止します。,c. 가져오기를 중지합니다.,c. 停止导入。,c. Detener la importación.,c. Import stoppen.,c. Arrêter l'importation.
+rate_limit_window_details_header,Details from the Figma response:,Figmaレスポンスの詳細:,Figma 응답의 세부 정보:,来自 Figma 响应的详细信息：,Detalles de la respuesta de Figma:,Details aus der Figma-Antwort:,Détails de la réponse Figma :
+rate_limit_window_button_retry,Retry request now,今すぐリクエストを再試行,지금 요청 재시도,立即重试请求,Reintentar solicitud ahora,Anfrage jetzt wiederholen,Réessayer la demande maintenant
+rate_limit_window_button_stop,Stop import,インポートを停止,가져오기 중지,停止导入,Detener importación,Import stoppen,Arrêter l'importation
+rate_limit_window_waiting_counter,The waiting time before the next request is {0}.,次のリクエストまでの待機時間は {0} です。,다음 요청까지의 대기 시간은 {0}입니다.,距离下一次请求的等待时间为 {0}。,El tiempo de espera antes de la siguiente solicitud es {0}.,Die Wartezeit bis zur nächsten Anfrage beträgt {0}.,Le temps d'attente avant la prochaine demande est de {0}.
+rate_limit_window_waiting_done,Timeout finished. Resuming the import...,タイムアウトが終了しました。インポートを再開しています...,타임아웃이 종료되었습니다. 가져오기를 재개하는 중...,超时结束。正在恢复导入...,Tiempo de espera finalizado. Reanudando la importación...,Timeout beendet. Import wird fortgesetzt...,Délai d'attente terminé. Reprise de l'importation...
+label_you_can,You can:,次のことが可能です:,다음을 수행할 수 있습니다:,您可以：,Puede:,Sie können:,Vous pouvez :
+time_unit_d,d,日,일,天,d,d,d
+time_unit_h,h,時間,시간,小时,h,h,h
+time_unit_m,m,分,분,分,m,m,m
+time_unit_s,s,秒,초,秒,s,s,s
+time_unit_seconds_full,seconds,秒,초,秒,segundos,sekunden,secondes

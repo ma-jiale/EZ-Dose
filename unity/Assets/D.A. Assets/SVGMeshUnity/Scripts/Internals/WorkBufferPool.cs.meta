@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 4e9185cc3eef4289807b77668196dd7f
+timeCreated: 1519698762
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/Scripts/Internals/WorkBufferPool.cs
+  uploadId: 771831

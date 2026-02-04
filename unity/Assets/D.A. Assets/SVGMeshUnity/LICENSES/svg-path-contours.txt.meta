@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 8a6df2beb0e60294f9790f4836614c70
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/svg-path-contours.txt
+  uploadId: 771831

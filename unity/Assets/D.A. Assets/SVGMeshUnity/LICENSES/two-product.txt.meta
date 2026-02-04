@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e28a45c2e0c50e649af6a4bc635b01cc
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/two-product.txt
+  uploadId: 771831

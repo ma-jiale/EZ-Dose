@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 99248ff198330e1489d4213f3818433b
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 198134
+  packageName: Figma Converter for Unity
+  packageVersion: 5.7.4
+  assetPath: Assets/D.A. Assets/SVGMeshUnity/LICENSES/svg-arc-to-cubic-bezier.txt
+  uploadId: 771831

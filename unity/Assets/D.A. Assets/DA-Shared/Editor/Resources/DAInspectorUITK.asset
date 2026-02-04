@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49573ad43463bcb43bfbebb75e1bacb6, type: 3}
+  m_Name: DAInspectorUITK
+  m_EditorClassIdentifier: DA_Assets.Shared.Editor::DA_Assets.DAI.DAInspectorUITK
+  _foldoutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _foldoutDuration: 0.25
+  _darkScheme:
+    ARROW_GRAY:
+      serializedVersion: 2
+      rgba: 4289962393
+    HOVER_WHITE:
+      serializedVersion: 2
+      rgba: 352321535
+    CLEAR: {r: 0, g: 0, b: 0, a: 0}
+    FCU_BG: {r: 0, g: 0, b: 0, a: 1}
+    BG: {r: 0.078431375, g: 0.078431375, b: 0.078431375, a: 1}
+    GROUP: {r: 0.10980392, g: 0.10980392, b: 0.10980392, a: 1}
+    IMGUI: {r: 0.43137255, g: 0.43137255, b: 0.43137255, a: 1}
+    OUTLINE: {r: 0.14901961, g: 0.14901961, b: 0.14901961, a: 1}
+    BUTTON: {r: 0.1882353, g: 0.1882353, b: 0.1882353, a: 1}
+    TEXT: {r: 1, g: 1, b: 1, a: 1}
+    TEXT_SECOND: {r: 0.8235294, g: 0.8235294, b: 0.8235294, a: 1}
+    RED: {r: 0.9137255, g: 0.08235294, b: 0.1764706, a: 1}
+    ORANGE: {r: 1, g: 0.5529412, b: 0.15686275, a: 1}
+    GREEN: {r: 0.20392157, g: 0.78039217, b: 0.34901962, a: 1}
+    BLUE: {r: 0.11764706, g: 0.43137255, b: 0.95686275, a: 1}
+    ACCENT_SECOND: {r: 0, g: 0.54509807, b: 0.9372549, a: 1}
+    SEPARATOR: {r: 1, g: 1, b: 1, a: 0.039215688}
+  _lightScheme:
+    ARROW_GRAY:
+      serializedVersion: 2
+      rgba: 4289962393
+    HOVER_WHITE:
+      serializedVersion: 2
+      rgba: 352321535
+    CLEAR: {r: 0, g: 0, b: 0, a: 0}
+    FCU_BG: {r: 1, g: 1, b: 1, a: 0}
+    BG: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    GROUP: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    IMGUI: {r: 1, g: 1, b: 1, a: 1}
+    OUTLINE: {r: 0.49803922, g: 0.49803922, b: 0.49803922, a: 1}
+    BUTTON: {r: 0.89411765, g: 0.89411765, b: 0.89411765, a: 1}
+    TEXT: {r: 0, g: 0, b: 0, a: 1}
+    TEXT_SECOND: {r: 0.03529412, g: 0.03529412, b: 0.03529412, a: 1}
+    RED: {r: 0.9137255, g: 0.08235294, b: 0.1764706, a: 1}
+    ORANGE: {r: 1, g: 0.5529412, b: 0.15686275, a: 1}
+    GREEN: {r: 0.20392157, g: 0.78039217, b: 0.34901962, a: 1}
+    BLUE: {r: 0.11764706, g: 0.43137255, b: 0.95686275, a: 1}
+    ACCENT_SECOND: {r: 0, g: 0.54509807, b: 0.9372549, a: 1}
+    SEPARATOR: {r: 0.6627451, g: 0.6627451, b: 0.6627451, a: 1}
