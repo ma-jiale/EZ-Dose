@@ -55,6 +55,9 @@ namespace EZDose.MainFlow
         
         // Skip medicine event - triggered when UI requests to skip current medicine
         public event Action<string> MedicineSkipped;                      // Medicine name that was skipped
+        
+        // Skip confirm event - triggered when skip command sent, UI shows confirmation dialog
+        public event Action<string> SkipConfirmRequired;                  // Medicine name being skipped
 
         private PrescriptionManager prescriptionManager;
         private readonly Dictionary<string, PatientStatus> patientStatus = new Dictionary<string, PatientStatus>(StringComparer.OrdinalIgnoreCase);
@@ -85,6 +88,10 @@ namespace EZDose.MainFlow
         
         // Task for handling skip request during dispensing
         private TaskCompletionSource<bool> skipCurrentMedicineTcs;
+        
+        // Task for waiting for user to confirm skip in dialog
+        // Result: true = mark as dispensed, false = don't mark
+        private TaskCompletionSource<bool> skipConfirmTcs;
         
         // Pending image bytes from pill calibration for server upload
         private byte[] pendingCalibrationImageBytes;
@@ -197,14 +204,14 @@ namespace EZDose.MainFlow
 
             if (!enableAutoRefresh)
             {
-                Debug.Log("[MainController] Auto-refresh is disabled in settings.");
+                EZLog.D(EZLog.Module.Main, "Auto-refresh is disabled in settings");
                 return;
             }
 
             // Ensure interval is not below minimum to prevent server overload
             var interval = Mathf.Max(autoRefreshInterval, minRefreshInterval);
             autoRefreshCoroutine = StartCoroutine(AutoRefreshCoroutine(interval));
-            Debug.Log($"[MainController] Auto-refresh started with interval: {interval} seconds");
+            EZLog.I(EZLog.Module.Main, $"Auto-refresh started with interval: {interval} seconds");
         }
 
         /// <summary>
@@ -217,7 +224,7 @@ namespace EZDose.MainFlow
             {
                 StopCoroutine(autoRefreshCoroutine);
                 autoRefreshCoroutine = null;
-                Debug.Log("[MainController] Auto-refresh stopped.");
+                EZLog.D(EZLog.Module.Main, "Auto-refresh stopped");
             }
         }
 
@@ -228,7 +235,7 @@ namespace EZDose.MainFlow
         public void PauseAutoRefresh()
         {
             isAutoRefreshPaused = true;
-            Debug.Log("[MainController] Auto-refresh paused.");
+            EZLog.D(EZLog.Module.Main, "Auto-refresh paused");
         }
 
         /// <summary>
@@ -237,7 +244,7 @@ namespace EZDose.MainFlow
         public void ResumeAutoRefresh()
         {
             isAutoRefreshPaused = false;
-            Debug.Log("[MainController] Auto-refresh resumed.");
+            EZLog.D(EZLog.Module.Main, "Auto-refresh resumed");
         }
 
         /// <summary>
@@ -289,12 +296,12 @@ namespace EZDose.MainFlow
                 // Skip refresh if paused (during dispensing) or if already dispensing
                 if (!isAutoRefreshPaused && !isDispensing)
                 {
-                    Debug.Log("[MainController] Auto-refresh: Fetching patient data from server...");
+                    EZLog.D(EZLog.Module.Main, "Auto-refresh: Fetching patient data from server");
                     FireAndForget(RefreshPatientsAsync());
                 }
                 else
                 {
-                    Debug.Log("[MainController] Auto-refresh: Skipped (dispensing in progress or paused).");
+                    EZLog.V(EZLog.Module.Main, "Auto-refresh: Skipped (dispensing in progress or paused)");
                 }
 
                 yield return new WaitForSeconds(intervalSeconds);
@@ -315,13 +322,13 @@ namespace EZDose.MainFlow
             var success = await prescriptionManager.RefreshFromServerAsync();
             if (!success)
             {
-                Debug.LogWarning("[MainController] Failed to pull patients from server.");
+                EZLog.W(EZLog.Module.Main, "Failed to pull patients from server");
             }
 
-            Debug.Log($"[MainController] Received {prescriptionManager.CachedRecords.Count} prescription records from server.");
+            EZLog.I(EZLog.Module.Main, $"Received {prescriptionManager.CachedRecords.Count} prescription records from server");
             foreach (var rx in prescriptionManager.CachedRecords)
             {
-                Debug.Log($"[MainController] RX: patient_id={rx.patient_id}, patient_name={rx.patient_name}, medicine_name={rx.medicine_name}, last_dispensed_expiry_date={rx.last_dispensed_expiry_date}, is_active={rx.is_active}");
+                EZLog.V(EZLog.Module.Main, $"RX: patient_id={rx.patient_id}, patient_name={rx.patient_name}, medicine_name={rx.medicine_name}, last_dispensed_expiry_date={rx.last_dispensed_expiry_date}, is_active={rx.is_active}");
             }
 
             patientStatus.Clear();
@@ -342,7 +349,7 @@ namespace EZDose.MainFlow
             {
                 // Count how many medicines need dispensing today
                 var medicineCount = CountMedicinesNeedingDispensing(patient.PatientId, expiryDaysThreshold);
-                Debug.Log($"[MainController] Patient {patient.PatientId} ({patient.PatientName}) needs dispensing for {medicineCount} medicines.");
+                EZLog.D(EZLog.Module.Main, $"Patient {patient.PatientId} ({patient.PatientName}) needs dispensing for {medicineCount} medicines");
 
                 // Only include patients who have medicines needing dispensing today
                 if (medicineCount > 0)
@@ -352,7 +359,7 @@ namespace EZDose.MainFlow
                 }
             }
 
-            Debug.Log($"[MainController] Added {addedCount} patients needing dispensing to UI.");
+            EZLog.I(EZLog.Module.Main, $"Added {addedCount} patients needing dispensing to UI");
             PatientsUpdated?.Invoke(GetPatientsSnapshot());
         }
 
@@ -651,14 +658,17 @@ namespace EZDose.MainFlow
                 }
             }
 
-            // All medicines dispensed successfully
-            // Open tray for user to collect pills
-            Debug.Log("[MainController] Opening tray for pill collection");
-            await OpenTrayAsync();
-            
-            // Pause the turntable motor to stop rotation
-            Debug.Log("[MainController] All medicines dispensed, pausing turntable motor");
-            await PauseAsync();
+                // All medicines dispensed successfully
+                
+                EZLog.I(EZLog.Module.Main, "Opening tray for pill collection");
+                await OpenTrayAsync();
+
+                // 等待舱门机械结构运动完成（出药舱弹出）
+                EZLog.D(EZLog.Module.Main, "Waiting for tray mechanical movement to complete...");
+                await Task.Delay(2000); // 根据实际机械行程调整，这里暂定2秒
+
+                EZLog.I(EZLog.Module.Main, "All medicines dispensed, pausing turntable motor");
+                await PauseAsync();
             
             // Update server and mark patient complete
             await prescriptionManager.PushAllChangesAsync();
@@ -709,7 +719,7 @@ namespace EZDose.MainFlow
             // Check if medicine needs calibration before dispensing
             if (med.NeedsCalibration)
             {
-                Debug.Log($"[MainController] Medicine '{med.MedicineName}' needs calibration");
+                EZLog.I(EZLog.Module.Main, $"Medicine '{med.MedicineName}' needs calibration");
                 
                 // Trigger calibration dialog in UI
                 PillCalibrationRequired?.Invoke(med);
@@ -720,7 +730,7 @@ namespace EZDose.MainFlow
                 
                 if (calibratedAreaMm2 <= 0)
                 {
-                    Debug.LogError("[MainController] Calibration failed or was cancelled");
+                    EZLog.E(EZLog.Module.Main, "Calibration failed or was cancelled");
                     DispensingError?.Invoke("药片校准失败，请重试");
                     return false;
                 }
@@ -738,13 +748,13 @@ namespace EZDose.MainFlow
                     
                     if (!serverUpdated)
                     {
-                        Debug.LogWarning("[MainController] Failed to update pill size on server, but continuing...");
+                        EZLog.W(EZLog.Module.Main, "Failed to update pill size on server, continuing");
                     }
                     else if (!string.IsNullOrEmpty(imageResourceId))
                     {
                         // Update medicine with new image resource ID
                         med.ImageResourceId = imageResourceId;
-                        Debug.Log($"[MainController] Image uploaded: {imageResourceId}");
+                        EZLog.I(EZLog.Module.Main, $"Image uploaded: {imageResourceId}");
                     }
                     
                     // Clear pending image bytes
@@ -752,20 +762,20 @@ namespace EZDose.MainFlow
                 }
                 else
                 {
-                    Debug.LogWarning("[MainController] No calibration manager found, cannot update server");
+                    EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot update server");
                 }
                 
                 // Notify UI that calibration is complete
                 PillCalibrationCompleted?.Invoke(calibratedAreaMm2);
-                Debug.Log($"[MainController] Calibration complete: {calibratedAreaMm2:.1f}mm²");
+                EZLog.I(EZLog.Module.Main, $"Calibration complete: {calibratedAreaMm2:.1f}mm²");
             }
 
             // Configure dispenser hardware based on pill area
-            Debug.Log($"[MainController] Configuring dispenser for pill area: {med.PillSizeArea:.1f}mm²");
+            EZLog.D(EZLog.Module.Main, $"Configuring dispenser for pill area: {med.PillSizeArea:.1f}mm²");
             var configured = await ConfigureDispenserForPillArea(med.PillSizeArea);
             if (!configured)
             {
-                Debug.LogWarning($"[MainController] Failed to configure for pill area {med.PillSizeArea:.1f}mm², continuing anyway...");
+                EZLog.W(EZLog.Module.Main, $"Failed to configure for pill area {med.PillSizeArea:.1f}mm², continuing anyway");
             }
 
             var matrix = ToByteMatrix(med.PillMatrix);
@@ -794,19 +804,23 @@ namespace EZDose.MainFlow
             // Reset skip task for this medicine
             skipCurrentMedicineTcs = new TaskCompletionSource<bool>();
 
-            var (success, wasSkipped) = await SendMatrixAndWaitAsync(matrix);
+            var (success, wasSkipped, markAsDispensed) = await SendMatrixAndWaitAsync(matrix);
             
-            // If skipped by user, continue to next medicine (don't mark as dispensed)
+            // If skipped by user
             if (wasSkipped)
             {
-                Debug.Log($"[MainController] Medicine '{med.MedicineName}' was skipped by user");
+                EZLog.I(EZLog.Module.Main, $"Medicine '{med.MedicineName}' was skipped by user, markAsDispensed={markAsDispensed}");
+                if (markAsDispensed)
+                {
+                    prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                }
                 return true;  // Return true to continue the loop
             }
             
             // If failed specifically due to count error, initiate interactive recovery
             if (!success && hasCountError)
             {
-                Debug.LogWarning($"[MainController] Count error detected for {med.MedicineName}. Initiating recovery flow.");
+                EZLog.W(EZLog.Module.Main, $"Count error detected for {med.MedicineName}, initiating recovery flow");
                 
                 // 1. Eject tray for user access
                 await OpenTrayAsync();
@@ -823,7 +837,7 @@ namespace EZDose.MainFlow
                 // - For multiple medicines: hardware handles next medicine with tray open (via pill matrix)
                 
                 // 4. Treat as success (manual fix) and continue
-                Debug.Log("[MainController] Error resolution confirmed by user. Continuing dispensing.");
+                EZLog.I(EZLog.Module.Main, "Error resolution confirmed by user, continuing dispensing");
                 prescriptionManager.ApplyDispensingResult(med.MedicineName);
                 return true; 
             }
@@ -855,18 +869,25 @@ namespace EZDose.MainFlow
         {
             if (!isDispensing)
             {
-                Debug.LogWarning("[MainController] SkipCurrentMedicine called but not currently dispensing");
+                EZLog.W(EZLog.Module.Main, "SkipCurrentMedicine called but not currently dispensing");
                 return;
             }
             
-            Debug.Log($"[MainController] Skipping medicine: {currentMedicineName}");
+            EZLog.I(EZLog.Module.Main, $"Skipping medicine: {currentMedicineName}");
             
             // Cancel any pending dispensing operation
             isWaitingForDispensingComplete = false;
             skipCurrentMedicineTcs?.TrySetResult(true);
-            
-            // Fire skip event for UI notification
-            MedicineSkipped?.Invoke(currentMedicineName);
+        }
+
+        /// <summary>
+        /// Called by UI when user confirms skip in the dialog.
+        /// </summary>
+        /// <param name="markAsDispensed">If true, the skipped medicine will be marked as dispensed</param>
+        public void ConfirmSkipReady(bool markAsDispensed)
+        {
+            EZLog.D(EZLog.Module.Main, $"Skip confirmed, markAsDispensed={markAsDispensed}");
+            skipConfirmTcs?.TrySetResult(markAsDispensed);
         }
 
         /// <summary>
@@ -894,12 +915,12 @@ namespace EZDose.MainFlow
             else
             {
                 // Fallback to default Medium settings if no calibration manager
-                Debug.LogWarning("[MainController] No calibration manager found, using default Medium settings");
+                EZLog.W(EZLog.Module.Main, "No calibration manager found, using default Medium settings");
                 motorSpeed = 0.5f;
                 servoAngle = 0.5f;
             }
 
-            Debug.Log($"[MainController] Pill area {pillAreaMm2:.1f}mm² → motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
+            EZLog.D(EZLog.Module.Main, $"Pill area {pillAreaMm2:.1f}mm² -> motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
 
             // CRITICAL: Temporarily unsubscribe from completion event during configuration
             // Configuration commands also send machine_state:FINISH which should NOT trigger dispensing completion
@@ -907,7 +928,7 @@ namespace EZDose.MainFlow
 
             try
             {
-                Debug.Log($"[MainController] Setting motor speed: {motorSpeed}, servo angle: {servoAngle}");
+                EZLog.D(EZLog.Module.Main, $"Setting motor speed: {motorSpeed}, servo angle: {servoAngle}");
 
                 // Set turntable motor speed first (controls how fast pills rotate)
                 var speedResult = await RunDispenserAction(callback => 
@@ -915,7 +936,7 @@ namespace EZDose.MainFlow
                 
                 if (!speedResult)
                 {
-                    Debug.LogWarning("[MainController] Failed to set motor speed");
+                    EZLog.W(EZLog.Module.Main, "Failed to set motor speed");
                     return false;
                 }
 
@@ -926,11 +947,11 @@ namespace EZDose.MainFlow
 
                 if (!angleResult)
                 {
-                    Debug.LogWarning("[MainController] Failed to set servo angle");
+                    EZLog.W(EZLog.Module.Main, "Failed to set servo angle");
                     return false;
                 }
                 
-                Debug.Log("[MainController] Dispenser configuration completed successfully");
+                EZLog.I(EZLog.Module.Main, "Dispenser configuration completed successfully");
                 return true;
             }
             finally
@@ -985,7 +1006,7 @@ namespace EZDose.MainFlow
             return result;
         }
 
-        private async Task<(bool success, bool wasSkipped)> SendMatrixAndWaitAsync(byte[,] matrix)
+        private async Task<(bool success, bool wasSkipped, bool markAsDispensed)> SendMatrixAndWaitAsync(byte[,] matrix)
         {
             // Create a fresh TaskCompletionSource for this specific dispensing operation
             // This ensures we only respond to FINISH messages for THIS matrix send
@@ -1005,14 +1026,14 @@ namespace EZDose.MainFlow
             var sendSuccess = await sendTcs.Task;
             if (!sendSuccess)
             {
-                Debug.LogWarning("[MainController] Failed to send pill matrix");
-                return (false, false);
+                EZLog.W(EZLog.Module.Main, "Failed to send pill matrix");
+                return (false, false, false);
             }
 
             // Only start waiting for completion AFTER the matrix is successfully sent
             // This prevents configuration command FINISH responses from triggering completion
             isWaitingForDispensingComplete = true;
-            Debug.Log("[MainController] Matrix sent successfully, now waiting for dispensing completion or skip");
+            EZLog.I(EZLog.Module.Main, "Matrix sent successfully, now waiting for dispensing completion or skip");
 
             // Wait for either: dispensing complete OR skip requested
             var dispensingTask = dispenseTcs.Task;
@@ -1023,22 +1044,47 @@ namespace EZDose.MainFlow
             
             if (completedTask == skipTask)
             {
-                // User requested skip - pause dispenser and return skip status
-                Debug.Log("[MainController] Skip requested, pausing dispenser");
-                await PauseAsync();
+                // User requested skip - send SKIP_TASK command to STM32
+                EZLog.I(EZLog.Module.Main, "Skip requested, sending SKIP_TASK command");
                 isWaitingForDispensingComplete = false;
-                return (false, true);  // wasSkipped = true
+                
+                var skipCmdTcs = new TaskCompletionSource<bool>();
+                dispenserController.SkipTask(s => skipCmdTcs.TrySetResult(s));
+                bool skipSuccess = await skipCmdTcs.Task;
+                
+                if (!skipSuccess)
+                {
+                    EZLog.E(EZLog.Module.Main, "SKIP_TASK command failed, no ACK from dispenser");
+                    DispensingError?.Invoke("跳过命令发送失败，请重试");
+                    // Reset skip TCS so user can try again
+                    skipCurrentMedicineTcs = new TaskCompletionSource<bool>();
+                    isWaitingForDispensingComplete = true;
+                    // Re-enter the wait loop by recursing
+                    return await SendMatrixAndWaitAsync(matrix);
+                }
+                
+                // STM32 acknowledged skip — notify UI to show confirmation dialog
+                SkipConfirmRequired?.Invoke(currentMedicineName);
+                MedicineSkipped?.Invoke(currentMedicineName);
+                
+                // Wait for user to confirm in dialog
+                skipConfirmTcs = new TaskCompletionSource<bool>();
+                bool markAsDispensed = await skipConfirmTcs.Task;
+                
+                // No need to CloseTray here — SendPillMatrix for the next medicine
+                // will automatically move the tray to the correct row
+                return (false, true, markAsDispensed);
             }
             
             if (completedTask == timeoutTask)
             {
                 DispensingError?.Invoke("分药超时，请检查设备连接");
                 isWaitingForDispensingComplete = false;
-                return (false, false);
+                return (false, false, false);
             }
             
             // Dispensing completed normally
-            return (await dispensingTask, false);
+            return (await dispensingTask, false, false);
         }
         #endregion
 
@@ -1062,11 +1108,11 @@ namespace EZDose.MainFlow
             // This prevents false triggers from configuration commands or stale messages
             if (!isWaitingForDispensingComplete)
             {
-                Debug.Log("[MainController] Ignoring FINISH message - not waiting for dispensing completion");
+                EZLog.V(EZLog.Module.Main, "Ignoring FINISH message - not waiting for dispensing completion");
                 return;
             }
 
-            Debug.Log("[MainController] Dispensing complete for current medicine");
+            EZLog.I(EZLog.Module.Main, "Dispensing complete for current medicine");
             isWaitingForDispensingComplete = false;
             dispenseTcs?.TrySetResult(true);
         }
@@ -1076,11 +1122,11 @@ namespace EZDose.MainFlow
             // Only respond to error messages if we're actively waiting for dispensing completion
             if (!isWaitingForDispensingComplete)
             {
-                Debug.Log("[MainController] Ignoring count error - not waiting for dispensing completion");
+                EZLog.V(EZLog.Module.Main, "Ignoring count error - not waiting for dispensing completion");
                 return;
             }
 
-            Debug.LogWarning("[MainController] Machine reported count error!");
+            EZLog.W(EZLog.Module.Main, "Machine reported count error");
             hasCountError = true;
             isWaitingForDispensingComplete = false;
             dispenseTcs?.TrySetResult(false);
@@ -1111,7 +1157,7 @@ namespace EZDose.MainFlow
         {
             if (dispenserController == null || !dispenserController.EnsureConnected())
             {
-                Debug.LogError("[MainController] Cannot open tray - dispenser not connected");
+                EZLog.E(EZLog.Module.Main, "Cannot open tray - dispenser not connected");
                 return Task.FromResult(false);
             }
 
@@ -1122,7 +1168,7 @@ namespace EZDose.MainFlow
         {
             if (dispenserController == null || !dispenserController.EnsureConnected())
             {
-                Debug.LogError("[MainController] Cannot close tray - dispenser not connected");
+                EZLog.E(EZLog.Module.Main, "Cannot close tray - dispenser not connected");
                 return Task.FromResult(false);
             }
 
@@ -1179,7 +1225,7 @@ namespace EZDose.MainFlow
             if (patientStatus.ContainsKey(patientId))
             {
                 patientStatus.Remove(patientId);
-                Debug.Log($"[MainController] Patient {patientId} completed and removed from today's list");
+                EZLog.I(EZLog.Module.Main, $"Patient {patientId} completed and removed from today's list");
                 
                 // Notify UI to update patient list (button will be removed)
                 PatientsUpdated?.Invoke(GetPatientsSnapshot());
@@ -1199,7 +1245,7 @@ namespace EZDose.MainFlow
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[MainController] Async error: {e.Message}");
+                    EZLog.E(EZLog.Module.Main, $"Async error: {e.Message}");
                 }
             }
 

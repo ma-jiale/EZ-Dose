@@ -146,7 +146,7 @@ namespace EZDose.Prescriptions
             // Pull all prescriptions from the server; no local files are used
             if (string.IsNullOrEmpty(serverUrl))
             {
-                Debug.LogError("[PrescriptionManager] Server URL is empty");
+                EZLog.E(EZLog.Module.Prescription, "Server URL is empty");
                 return false;
             }
 
@@ -157,7 +157,7 @@ namespace EZDose.Prescriptions
 
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError($"[PrescriptionManager] Fetch failed: {request.error}");
+                    EZLog.E(EZLog.Module.Prescription, $"Fetch failed: {request.error}");
                     return false;
                 }
 
@@ -168,7 +168,7 @@ namespace EZDose.Prescriptions
                     return true;
                 }
 
-                Debug.LogError($"[PrescriptionManager] Server rejected fetch: {request.downloadHandler.text}");
+                EZLog.E(EZLog.Module.Prescription, $"Server rejected fetch: {request.downloadHandler.text}");
                 return false;
             }
         }
@@ -257,11 +257,11 @@ namespace EZDose.Prescriptions
                 var dispensingDays = CalculateDispensingDays(medicine, maxDays, expiryThreshold);
                 currentDispensingDays[medicine.MedicineName] = dispensingDays;
                 
-                Debug.Log($"[PrescriptionManager] Medicine '{medicine.MedicineName}': dispensingDays={dispensingDays}, lastExpiry={medicine.LastDispensedExpiryDate}, threshold={expiryThreshold}");
+                EZLog.D(EZLog.Module.Prescription, $"Medicine '{medicine.MedicineName}': dispensingDays={dispensingDays}, lastExpiry={medicine.LastDispensedExpiryDate}, threshold={expiryThreshold}");
 
                 if (dispensingDays <= 0)
                 {
-                    Debug.Log($"[PrescriptionManager] Skipping '{medicine.MedicineName}' - no dispensing needed");
+                    EZLog.D(EZLog.Module.Prescription, $"Skipping '{medicine.MedicineName}' - no dispensing needed");
                     continue;
                 }
 
@@ -362,7 +362,7 @@ namespace EZDose.Prescriptions
             // Send the updated prescriptions back to the server
             if (string.IsNullOrEmpty(serverUrl))
             {
-                Debug.LogError("[PrescriptionManager] Server URL is empty");
+                EZLog.E(EZLog.Module.Prescription, "Server URL is empty for upload");
                 return false;
             }
 
@@ -385,7 +385,7 @@ namespace EZDose.Prescriptions
 
                 if (request.result != UnityWebRequest.Result.Success)
                 {
-                    Debug.LogError($"[PrescriptionManager] Upload failed: {request.error}");
+                    EZLog.E(EZLog.Module.Prescription, $"Upload failed: {request.error}");
                     return false;
                 }
 

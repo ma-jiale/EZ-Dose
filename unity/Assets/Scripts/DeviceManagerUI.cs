@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using EZDose.Hardware;
+using EZDose;
 
 namespace EZDose.UI
 {
@@ -64,7 +65,7 @@ namespace EZDose.UI
 
             if (dispenserController == null)
             {
-                Debug.LogError("[DeviceManagerUI] DispenserController not found in scene!");
+                EZLog.E(EZLog.Module.UI, "DispenserController not found in scene");
                 return;
             }
 
@@ -128,7 +129,7 @@ namespace EZDose.UI
             if (dialogRoot != null)
             {
                 dialogRoot.SetActive(true);
-                Debug.Log("[DeviceManagerUI] Device management dialog opened");
+                EZLog.D(EZLog.Module.UI, "Device management dialog opened");
 
                 // Auto-start scan if enabled
                 if (autoScanOnOpen)
@@ -151,7 +152,7 @@ namespace EZDose.UI
             if (dialogRoot != null)
             {
                 dialogRoot.SetActive(false);
-                Debug.Log("[DeviceManagerUI] Device management dialog closed");
+                EZLog.D(EZLog.Module.UI, "Device management dialog closed");
             }
         }
 
@@ -189,18 +190,18 @@ namespace EZDose.UI
                 if (dispenserController != null)
                 {
                     SubscribeToEvents();
-                    Debug.Log("[DeviceManagerUI] Found DispenserController (late binding)");
+                    EZLog.D(EZLog.Module.UI, "Found DispenserController (late binding)");
                 }
             }
 
             if (dispenserController == null)
             {
-                Debug.LogError("[DeviceManagerUI] DispenserController is null");
+                EZLog.E(EZLog.Module.UI, "DispenserController is null");
                 UpdateStatusText("Error: Dispenser controller not available", Color.red);
                 return;
             }
 
-            Debug.Log("[DeviceManagerUI] Starting device scan...");
+            EZLog.D(EZLog.Module.UI, "Starting device scan");
             ClearDeviceList();
             ShowLoadingState(true);
             UpdateStatusText("正在扫描附近的设备...", Color.yellow);
@@ -213,7 +214,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnDiscoveryStarted()
         {
-            Debug.Log("[DeviceManagerUI] Discovery started");
+            EZLog.D(EZLog.Module.UI, "Discovery started");
             ShowLoadingState(true);
             UpdateStatusText("正在扫描附近的设备...", Color.yellow);
         }
@@ -223,7 +224,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnDevicesFound(List<BluetoothDeviceInfo> devices)
         {
-            Debug.Log($"[DeviceManagerUI] Found {devices.Count} devices");
+            EZLog.D(EZLog.Module.UI, $"Found {devices.Count} devices");
             
             ClearDeviceList();
 
@@ -253,7 +254,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnDiscoveryCompleted()
         {
-            Debug.Log("[DeviceManagerUI] Discovery completed");
+            EZLog.D(EZLog.Module.UI, "Discovery completed");
             ShowLoadingState(false);
 
             if (spawnedCards.Count == 0)
@@ -277,7 +278,7 @@ namespace EZDose.UI
         {
             if (deviceCardPrefab == null || deviceListContainer == null)
             {
-                Debug.LogError("[DeviceManagerUI] Device card prefab or container not assigned!");
+                EZLog.E(EZLog.Module.UI, "Device card prefab or container not assigned");
                 return;
             }
 
@@ -287,7 +288,7 @@ namespace EZDose.UI
 
             if (card == null)
             {
-                Debug.LogError("[DeviceManagerUI] Device card prefab missing DeviceCardUI component!");
+                EZLog.E(EZLog.Module.UI, "Device card prefab missing DeviceCardUI component");
                 Destroy(cardObj);
                 return;
             }
@@ -337,11 +338,11 @@ namespace EZDose.UI
 
             if (isConnecting)
             {
-                Debug.LogWarning("[DeviceManagerUI] Already connecting to a device");
+                EZLog.W(EZLog.Module.UI, "Already connecting to a device");
                 return;
             }
 
-            Debug.Log($"[DeviceManagerUI] Attempting to connect to {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
+            EZLog.I(EZLog.Module.UI, $"Connecting to {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
             isConnecting = true;
             UpdateStatusText($"正在连接 {deviceInfo.DeviceName}...", Color.yellow);
 
@@ -358,7 +359,7 @@ namespace EZDose.UI
                 return;
             }
 
-            Debug.Log($"[DeviceManagerUI] Disconnecting from {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
+            EZLog.I(EZLog.Module.UI, $"Disconnecting from {deviceInfo.DeviceName} ({deviceInfo.MacAddress})");
             UpdateStatusText($"正在从{deviceInfo.DeviceName}断开连接...", Color.yellow);
 
             dispenserController.DisconnectCurrentDevice();
@@ -369,7 +370,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnConnectionStateChanged(string state)
         {
-            Debug.Log($"[DeviceManagerUI] Connection state changed: {state}");
+            EZLog.D(EZLog.Module.UI, $"Connection state changed: {state}");
             isConnecting = false;
 
             switch (state)
@@ -454,7 +455,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnDispenserError(string errorMessage)
         {
-            Debug.LogError($"[DeviceManagerUI] Dispenser error: {errorMessage}");
+            EZLog.E(EZLog.Module.UI, $"Dispenser error: {errorMessage}");
             UpdateStatusText($"错误: {errorMessage}", Color.red);
             ShowLoadingState(false);
             isConnecting = false;

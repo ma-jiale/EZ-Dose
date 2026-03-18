@@ -26,7 +26,7 @@ namespace EZDose.PillCounter
             
             if (controller == null)
             {
-                Debug.LogError("未找到PillCounterController组件！");
+                EZLog.E(EZLog.Module.PillCount, "PillCounterController component not found");
                 return;
             }
             
@@ -69,7 +69,7 @@ namespace EZDose.PillCounter
         
         private void LogDebug(string message)
         {
-            Debug.Log($"[PillCounterTest] {message}");
+            EZLog.D(EZLog.Module.PillCount, $"[PillCounterTest] {message}");
         }
     }
 }

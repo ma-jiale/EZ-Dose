@@ -90,7 +90,7 @@ namespace EZDose.Calibration
         {
             if (string.IsNullOrEmpty(serverUrl))
             {
-                Debug.LogWarning("[PillCalibrationManager] Server URL not set");
+                EZLog.W(EZLog.Module.Calibration, "Server URL not set");
                 return;
             }
 
@@ -111,14 +111,14 @@ namespace EZDose.Calibration
                         if (response != null && response.success)
                         {
                             referencePillDiameterMm = response.data.reference_pill_diameter_mm;
-                            Debug.Log($"[PillCalibrationManager] Loaded reference diameter: {referencePillDiameterMm}mm");
+                            EZLog.I(EZLog.Module.Calibration, $"Loaded reference diameter: {referencePillDiameterMm}mm");
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PillCalibrationManager] Failed to fetch settings: {e.Message}");
+                EZLog.E(EZLog.Module.Calibration, "Failed to fetch calibration settings", e);
             }
         }
 
@@ -136,7 +136,7 @@ namespace EZDose.Calibration
         {
             if (detectedPixelArea <= 0)
             {
-                OnCalibrationError?.Invoke("检测到的像素面积无效");
+                OnCalibrationError?.Invoke("Invalid detected pixel area");
                 return false;
             }
 
@@ -150,7 +150,7 @@ namespace EZDose.Calibration
             // Save to PlayerPrefs
             SaveCalibration();
             
-            Debug.Log($"[PillCalibrationManager] System calibrated: {detectedPixelArea}px → {actualAreaMm2:.2f}mm² (ratio: {pixelToMm2Ratio:.6f})");
+            EZLog.I(EZLog.Module.Calibration, $"System calibrated: {detectedPixelArea}px -> {actualAreaMm2:.2f}mm2 (ratio: {pixelToMm2Ratio:.6f})");
             
             OnSystemCalibrationComplete?.Invoke(pixelToMm2Ratio);
             return true;
@@ -164,7 +164,7 @@ namespace EZDose.Calibration
             pixelToMm2Ratio = 0f;
             PlayerPrefs.DeleteKey("PillCalibration_Ratio");
             PlayerPrefs.Save();
-            Debug.Log("[PillCalibrationManager] Calibration reset");
+            EZLog.I(EZLog.Module.Calibration, "Calibration reset");
         }
 
         #endregion
@@ -181,7 +181,7 @@ namespace EZDose.Calibration
         {
             if (!IsSystemCalibrated)
             {
-                Debug.LogWarning("[PillCalibrationManager] System not calibrated");
+                EZLog.W(EZLog.Module.Calibration, "System not calibrated, cannot convert pixel area");
                 return 0f;
             }
 
@@ -190,7 +190,7 @@ namespace EZDose.Calibration
             // Validate result is within reasonable range
             if (actualArea < MIN_VALID_AREA_MM2 || actualArea > MAX_VALID_AREA_MM2)
             {
-                Debug.LogWarning($"[PillCalibrationManager] Calculated area {actualArea:.2f}mm² is outside valid range");
+                EZLog.W(EZLog.Module.Calibration, $"Calculated area {actualArea:.2f}mm2 is outside valid range");
             }
             
             return actualArea;
@@ -221,7 +221,7 @@ namespace EZDose.Calibration
             float servoAngle = Mathf.Lerp(MAX_SERVO_ANGLE, MIN_SERVO_ANGLE, t);
 
             
-            Debug.Log($"[PillCalibrationManager] Area {pillAreaMm2:.1f}mm² → motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
+            EZLog.D(EZLog.Module.Calibration, $"Area {pillAreaMm2:.1f}mm2 -> motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
             
             return (motorSpeed, servoAngle);
         }
@@ -234,7 +234,7 @@ namespace EZDose.Calibration
             if (pillAreaMm2 <= 0)
             {
                 // Default to Medium settings
-                Debug.LogWarning("[PillCalibrationManager] Using default Medium settings for uncalibrated pill");
+                EZLog.W(EZLog.Module.Calibration, "Using default Medium settings for uncalibrated pill");
                 return (0.5f, 0.5f);
             }
             
@@ -256,7 +256,7 @@ namespace EZDose.Calibration
             
             if (string.IsNullOrEmpty(url))
             {
-                Debug.LogError("[PillCalibrationManager] Server URL not set");
+                EZLog.E(EZLog.Module.Calibration, "Server URL not set for pill size update");
                 return false;
             }
 
@@ -281,17 +281,17 @@ namespace EZDose.Calibration
 
                     if (request.result != UnityWebRequest.Result.Success)
                     {
-                        Debug.LogError($"[PillCalibrationManager] Failed to update pill size: {request.error}");
+                        EZLog.E(EZLog.Module.Calibration, $"Failed to update pill size: {request.error}");
                         return false;
                     }
 
-                    Debug.Log($"[PillCalibrationManager] Updated prescription {prescriptionId} pill size to {pillSizeAreaMm2:.1f}mm²");
+                    EZLog.I(EZLog.Module.Calibration, $"Updated prescription {prescriptionId} pill size to {pillSizeAreaMm2:.1f}mm2");
                     return true;
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PillCalibrationManager] Exception updating pill size: {e.Message}");
+                EZLog.E(EZLog.Module.Calibration, "Exception updating pill size", e);
                 return false;
             }
         }
@@ -315,7 +315,7 @@ namespace EZDose.Calibration
             
             if (string.IsNullOrEmpty(url))
             {
-                Debug.LogError("[PillCalibrationManager] Server URL not set");
+                EZLog.E(EZLog.Module.Calibration, "Server URL not set for calibration update");
                 return (false, null);
             }
 
@@ -329,7 +329,7 @@ namespace EZDose.Calibration
                 if (imageBytes != null && imageBytes.Length > 0)
                 {
                     form.AddBinaryData("pill_image", imageBytes, "pill_image.jpg", "image/jpeg");
-                    Debug.Log($"[PillCalibrationManager] Uploading image: {imageBytes.Length} bytes");
+                    EZLog.D(EZLog.Module.Calibration, $"Uploading pill image: {imageBytes.Length} bytes");
                 }
 
                 using (var request = UnityWebRequest.Post($"{url}/packer/prescription/{prescriptionId}/calibration", form))
@@ -344,7 +344,7 @@ namespace EZDose.Calibration
 
                     if (request.result != UnityWebRequest.Result.Success)
                     {
-                        Debug.LogError($"[PillCalibrationManager] Failed to update calibration: {request.error}");
+                        EZLog.E(EZLog.Module.Calibration, $"Failed to update calibration: {request.error}");
                         return (false, null);
                     }
 
@@ -352,17 +352,17 @@ namespace EZDose.Calibration
                     var response = JsonUtility.FromJson<CalibrationUpdateResponse>(request.downloadHandler.text);
                     if (response != null && response.success)
                     {
-                        Debug.Log($"[PillCalibrationManager] Updated prescription {prescriptionId}: area={pillSizeAreaMm2:.1f}mm², image={response.image_resource_id ?? "none"}");
+                        EZLog.I(EZLog.Module.Calibration, $"Updated prescription {prescriptionId}: area={pillSizeAreaMm2:.1f}mm2, image={response.image_resource_id ?? "none"}");
                         return (true, response.image_resource_id);
                     }
 
-                    Debug.LogWarning($"[PillCalibrationManager] Server returned error: {request.downloadHandler.text}");
+                    EZLog.W(EZLog.Module.Calibration, $"Server returned error: {request.downloadHandler.text}");
                     return (false, null);
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PillCalibrationManager] Exception updating calibration: {e.Message}");
+                EZLog.E(EZLog.Module.Calibration, "Exception updating calibration", e);
                 return (false, null);
             }
         }
@@ -401,7 +401,7 @@ namespace EZDose.Calibration
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PillCalibrationManager] Exception saving reference diameter: {e.Message}");
+                EZLog.E(EZLog.Module.Calibration, "Exception saving reference diameter", e);
                 return false;
             }
         }
@@ -417,7 +417,7 @@ namespace EZDose.Calibration
             
             if (IsSystemCalibrated)
             {
-                Debug.Log($"[PillCalibrationManager] Loaded calibration: ratio={pixelToMm2Ratio:.6f}, ref={referencePillDiameterMm}mm");
+                EZLog.D(EZLog.Module.Calibration, $"Loaded calibration: ratio={pixelToMm2Ratio:.6f}, ref={referencePillDiameterMm}mm");
             }
         }
 

@@ -39,18 +39,18 @@ namespace EZDose.UI
 
                     if (request.result != UnityWebRequest.Result.Success)
                     {
-                        Debug.LogWarning($"[PillImageLoader] Failed to load image: {request.error}");
+                        EZLog.W(EZLog.Module.Network, $"Failed to load pill image: {request.error}");
                         return null;
                     }
 
                     var texture = DownloadHandlerTexture.GetContent(request);
-                    Debug.Log($"[PillImageLoader] Loaded image: {imageResourceId} ({texture.width}x{texture.height})");
+                    EZLog.D(EZLog.Module.Network, $"Loaded pill image: {imageResourceId} ({texture.width}x{texture.height})");
                     return texture;
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[PillImageLoader] Exception loading image: {e.Message}");
+                EZLog.E(EZLog.Module.Network, "Exception loading pill image", e);
                 return null;
             }
         }

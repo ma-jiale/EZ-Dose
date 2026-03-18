@@ -70,7 +70,7 @@ namespace EZDose.UI
 
         private void OnConfirmClicked()
         {
-            Debug.Log("[ErrorResolutionUI] User confirmed error resolution.");
+            EZLog.I(EZLog.Module.UI, "User confirmed error resolution");
             
             var main = MainController.Instance;
             if (main != null)

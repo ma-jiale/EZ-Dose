@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using EZDose.PillCounter;
 using EZDose.MainFlow;
 using EZDose.Calibration;
+using EZDose;
 
 namespace EZDose.UI
 {
@@ -104,7 +105,7 @@ namespace EZDose.UI
             }
             detectionCoroutine = StartCoroutine(DetectionLoop());
             
-            Debug.Log("[PillCalibrationDialog] Retry calibration");
+            EZLog.I(EZLog.Module.Calibration, "Retry calibration requested");
         }
 
         // 不再使用事件订阅 - UIManager 会直接调用 Show() 方法
@@ -298,7 +299,7 @@ namespace EZDose.UI
             // UV Rect: x=左偏移, y=下偏移, width=宽度比例, height=高度比例
             cameraPreview.uvRect = new UnityEngine.Rect(offsetX, offsetY, cropWidthRatio, cropHeightRatio);
             
-            Debug.Log($"[PillCalibrationDialog] Camera crop: {squareSize}x{squareSize} from {sourceWidth}x{sourceHeight}, UV offset=({offsetX:F3}, {offsetY:F3})");
+            EZLog.D(EZLog.Module.Calibration, $"Camera crop: {squareSize}x{squareSize} from {sourceWidth}x{sourceHeight}, UV offset=({offsetX:F3}, {offsetY:F3})");
         }
 
         /// <summary>
@@ -327,7 +328,7 @@ namespace EZDose.UI
                 retryButton.gameObject.SetActive(true);
             }
             
-            Debug.Log($"[PillCalibrationDialog] Calibration complete: {pixelArea:F0} pixels, image captured: {capturedImageBytes?.Length ?? 0} bytes");
+            EZLog.I(EZLog.Module.Calibration, $"Calibration complete: {pixelArea:F0} pixels, image captured: {capturedImageBytes?.Length ?? 0} bytes");
         }
 
         /// <summary>
@@ -338,14 +339,14 @@ namespace EZDose.UI
         {
             if (pillCounterController == null)
             {
-                Debug.LogWarning("[PillCalibrationDialog] PillCounterController not available for image capture");
+                EZLog.W(EZLog.Module.Calibration, "PillCounterController not available for image capture");
                 return null;
             }
             
             var sourceTexture = pillCounterController.DisplayTexture;
             if (sourceTexture == null)
             {
-                Debug.LogWarning("[PillCalibrationDialog] No display texture available for image capture");
+                EZLog.W(EZLog.Module.Calibration, "No display texture available for image capture");
                 return null;
             }
             
@@ -385,12 +386,12 @@ namespace EZDose.UI
                 byte[] jpgBytes = resizedTexture.EncodeToJPG(85);
                 UnityEngine.Object.Destroy(resizedTexture);
                 
-                Debug.Log($"[PillCalibrationDialog] Captured {targetSize}x{targetSize} JPG image: {jpgBytes.Length} bytes");
+                EZLog.D(EZLog.Module.Calibration, $"Captured {targetSize}x{targetSize} JPG image: {jpgBytes.Length} bytes");
                 return jpgBytes;
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[PillCalibrationDialog] Failed to capture image: {e.Message}");
+                EZLog.E(EZLog.Module.Calibration, "Failed to capture pill image", e);
                 return null;
             }
         }
@@ -439,11 +440,11 @@ namespace EZDose.UI
             if (calibrationManager != null && calibrationManager.IsSystemCalibrated)
             {
                 areaMm2 = calibrationManager.ConvertPixelAreaToMm2(confirmedPixelArea);
-                Debug.Log($"[PillCalibrationDialog] Converted {confirmedPixelArea:F0} pixels to {areaMm2:F1} mm²");
+                EZLog.I(EZLog.Module.Calibration, $"Converted {confirmedPixelArea:F0} pixels to {areaMm2:F1} mm²");
             }
             else
             {
-                Debug.LogWarning("[PillCalibrationDialog] System not calibrated, using pixel area as fallback");
+                EZLog.W(EZLog.Module.Calibration, "System not calibrated, using pixel area as fallback");
             }
             
             // 通知 MainController 校准完成，传入 mm² 面积和图像字节

@@ -62,7 +62,7 @@ namespace EZDose
         {
             if (string.IsNullOrWhiteSpace(url))
             {
-                Debug.LogWarning("[AppConfig] Cannot save empty Server URL.");
+                EZLog.W(EZLog.Module.Config, "Cannot save empty Server URL");
                 return false;
             }
 
@@ -70,14 +70,14 @@ namespace EZDose
             if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
                 !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                Debug.LogWarning("[AppConfig] Invalid Server URL format. Must start with http:// or https://");
+                EZLog.W(EZLog.Module.Config, "Invalid Server URL format, must start with http:// or https://");
                 return false;
             }
 
             ServerUrl = url;
             PlayerPrefs.SetString(KEY_SERVER_URL, ServerUrl);
             PlayerPrefs.Save();
-            Debug.Log($"[AppConfig] Server URL saved: {ServerUrl}");
+            EZLog.I(EZLog.Module.Config, $"Server URL saved: {ServerUrl}");
             return true;
         }
 
@@ -92,13 +92,13 @@ namespace EZDose
             // Validate range
             if (maxDays < 1 || maxDays > 30)
             {
-                Debug.LogWarning("[AppConfig] MaxDispensingDays must be between 1 and 30.");
+                EZLog.W(EZLog.Module.Config, "MaxDispensingDays must be between 1 and 30");
                 return false;
             }
             
             if (expiryThreshold < 1)
             {
-                Debug.LogWarning("[AppConfig] ExpiryDaysThreshold must be greater than 0.");
+                EZLog.W(EZLog.Module.Config, "ExpiryDaysThreshold must be greater than 0");
                 return false;
             }
 
@@ -109,7 +109,7 @@ namespace EZDose
             PlayerPrefs.SetInt(KEY_EXPIRY_DAYS_THRESHOLD, ExpiryDaysThreshold);
             PlayerPrefs.Save();
             
-            Debug.Log($"[AppConfig] Dispensing settings saved: maxDays={MaxDispensingDays}, expiryThreshold={ExpiryDaysThreshold}");
+            EZLog.I(EZLog.Module.Config, $"Dispensing settings saved: maxDays={MaxDispensingDays}, expiryThreshold={ExpiryDaysThreshold}");
             return true;
         }
 

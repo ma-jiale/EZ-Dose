@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.UnityUtils;
+using EZDose;
 
 namespace EZDose.PillCounter
 {
@@ -93,12 +94,12 @@ namespace EZDose.PillCounter
             // 选择摄像头
             if (cameraIndex >= devices.Length)
             {
-                Debug.LogWarning($"Camera index {cameraIndex} out of range, using default camera");
+                EZLog.W(EZLog.Module.PillCount, $"Camera index {cameraIndex} out of range, using default camera");
                 cameraIndex = 0;
             }
             
             string deviceName = devices[cameraIndex].name;
-            Debug.Log($"Using camera: {deviceName}");
+            EZLog.I(EZLog.Module.PillCount, $"Using camera: {deviceName}");
             
             // 创建WebCamTexture
             webCamTexture = new WebCamTexture(deviceName, requestedWidth, requestedHeight, requestedFPS);
@@ -142,7 +143,7 @@ namespace EZDose.PillCounter
             }
             
             UpdateStatus("Camera started, waiting to capture background...");
-            Debug.Log($"Camera resolution: {width}x{height}");
+            EZLog.I(EZLog.Module.PillCount, $"Camera resolution: {width}x{height}");
         }
         
         /// <summary>
@@ -151,7 +152,7 @@ namespace EZDose.PillCounter
         private void InitializePillCounter()
         {
             pillCounter = new PillCounter();
-            Debug.Log("Pill counter initialized");
+            EZLog.I(EZLog.Module.PillCount, "Pill counter initialized");
         }
         
         void Update()
@@ -312,7 +313,7 @@ namespace EZDose.PillCounter
             {
                 statusText.text = message;
             }
-            Debug.Log($"[PillCounter] {message}");
+            EZLog.V(EZLog.Module.PillCount, $"PillCounterCtrl: {message}");
         }
         
         /// <summary>
@@ -331,7 +332,7 @@ namespace EZDose.PillCounter
         /// </summary>
         private void HandleError(string errorMessage)
         {
-            Debug.LogError($"[PillCounter Error] {errorMessage}");
+            EZLog.E(EZLog.Module.PillCount, errorMessage);
             UpdateStatus($"Error: {errorMessage}");
         }
         
@@ -371,7 +372,7 @@ namespace EZDose.PillCounter
                 pillCounter = null;
             }
             
-            Debug.Log("Pill counter resources cleaned up");
+            EZLog.D(EZLog.Module.PillCount, "Pill counter resources cleaned up");
         }
         
         /// <summary>

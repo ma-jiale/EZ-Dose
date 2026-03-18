@@ -3,6 +3,8 @@ using UnityEngine.UI;
 using System.Collections;
 using EZDose.Calibration;
 using EZDose.PillCounter;
+using EZDose.Hardware;
+using EZDose;
 
 namespace EZDose.UI
 {
@@ -61,6 +63,10 @@ namespace EZDose.UI
         [SerializeField] private PillCalibrationManager calibrationManager;
         [SerializeField] private PillCounterController pillCounterController;
 
+        [Header("Hardware Control")]
+        [Tooltip("重置分药摆锤零点按钮")]
+        [SerializeField] private Button resetPendulumButton;
+
         [Header("Settings")]
         [SerializeField] private float messageDisplayTime = 3f;
 
@@ -118,6 +124,12 @@ namespace EZDose.UI
 
             // Initialize calibration UI
             InitializeCalibrationUI();
+
+            // Setup reset pendulum button
+            if (resetPendulumButton != null)
+            {
+                resetPendulumButton.onClick.AddListener(OnResetPendulumClicked);
+            }
         }
 
         private void OnEnable()
@@ -477,6 +489,40 @@ namespace EZDose.UI
 
         #endregion
 
+        #region Hardware Control
+
+        /// <summary>
+        /// 重置分药摆锤零点按钮点击事件
+        /// </summary>
+        private void OnResetPendulumClicked()
+        {
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser == null || !dispenser.IsConnected)
+            {
+                ShowMessage("分药机未连接，无法重置", Color.red);
+                return;
+            }
+
+            EZLog.D(EZLog.Module.UI, "Reset pendulum button clicked");
+            if (resetPendulumButton != null) resetPendulumButton.interactable = false;
+            ShowMessage("正在重置摆锤零点...", Color.yellow);
+
+            dispenser.ResetDispenser((success) =>
+            {
+                if (resetPendulumButton != null) resetPendulumButton.interactable = true;
+                if (success)
+                {
+                    ShowMessage("摆锤零点重置成功", Color.green);
+                }
+                else
+                {
+                    ShowMessage("摆锤零点重置失败，请重试", Color.red);
+                }
+            });
+        }
+
+        #endregion
+
         #region Utility
 
         private void ShowMessage(string message, Color color)
@@ -490,7 +536,7 @@ namespace EZDose.UI
             }
             else
             {
-                Debug.Log($"[ConfigurationUI] {message}");
+                EZLog.D(EZLog.Module.UI, $"ConfigurationUI: {message}");
             }
         }
 

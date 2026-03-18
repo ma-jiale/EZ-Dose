@@ -10,6 +10,7 @@ using EZDose.MainFlow;
 using EZDose.CheckPillBox;
 using EZDose.PillCounter;
 using EZDose.Hardware;
+using EZDose;
 
 namespace EZDose.UI
 {
@@ -126,6 +127,25 @@ namespace EZDose.UI
         
         [Tooltip("跳过当前药物按钮 - 用于临时跳过缺货药物")]
         [SerializeField] private Button skipMedicineButton;
+        
+        [Tooltip("暂停/恢复分药按钮")]
+        [SerializeField] private Button pauseResumeButton;
+        
+        [Tooltip("暂停/恢复按钮文字")]
+        [SerializeField] private Text pauseResumeButtonText;
+        
+        [Header("Skip Confirm Dialog")]
+        [Tooltip("跳过确认对话框")]
+        [SerializeField] private GameObject skipConfirmDialog;
+        
+        [Tooltip("跳过确认按钮")]
+        [SerializeField] private Button skipConfirmButton;
+        
+        [Tooltip("标记为已分发勾选框")]
+        [SerializeField] private Toggle skipMarkDispensedToggle;
+        
+        [Tooltip("跳过对话框显示药物名称")]
+        [SerializeField] private Text skipMedicineNameText;
         
         [Header("Next Medicine Preview")]
         [Tooltip("显示下一个药物信息的文本（名称和数量）")]
@@ -314,11 +334,11 @@ namespace EZDose.UI
                 // Notify subscribers about the page change
                 OnSubPageChanged?.Invoke(targetPage);
 
-                Debug.Log($"[UIManager] Switched to sub-page: {targetPage}");
+                EZLog.D(EZLog.Module.UI, $"Switched to sub-page: {targetPage}");
             }
             else
             {
-                Debug.LogWarning($"[UIManager] Sub-page not found or not assigned: {targetPage}");
+                EZLog.W(EZLog.Module.UI, $"Sub-page not found or not assigned: {targetPage}");
             }
         }
 
@@ -454,11 +474,11 @@ namespace EZDose.UI
             if (deviceManagerUI != null)
             {
                 deviceManagerUI.ShowDialog();
-                Debug.Log("[UIManager] Device management dialog opened");
+                EZLog.D(EZLog.Module.UI, "Device management dialog opened");
             }
             else
             {
-                Debug.LogWarning("[UIManager] DeviceManagerUI not assigned or found");
+                EZLog.W(EZLog.Module.UI, "DeviceManagerUI not assigned or found");
             }
         }
 
@@ -470,7 +490,7 @@ namespace EZDose.UI
             if (deviceManagerUI != null)
             {
                 deviceManagerUI.HideDialog();
-                Debug.Log("[UIManager] Device management dialog closed");
+                EZLog.D(EZLog.Module.UI, "Device management dialog closed");
             }
         }
 
@@ -612,7 +632,7 @@ namespace EZDose.UI
             var dispenser = FindObjectOfType<DispenserController>();
             if (dispenser == null || !dispenser.IsConnected)
             {
-                Debug.LogWarning("[UIManager] Dispenser not connected. Showing prompt.");
+                EZLog.W(EZLog.Module.UI, "Dispenser not connected, showing prompt");
                 if (connectDispenserDialog != null)
                 {
                     connectDispenserDialog.SetActive(true);
@@ -622,7 +642,7 @@ namespace EZDose.UI
 
             if (!main.TrySelectPatient(patientId, out _))
             {
-                Debug.LogWarning("[UIManager] Failed to select patient");
+                EZLog.W(EZLog.Module.UI, "Failed to select patient");
                 return;
             }
 
@@ -721,7 +741,7 @@ namespace EZDose.UI
 
         private void OnScanError(string error)
         {
-            Debug.LogWarning($"[UIManager] Scan error: {error}");
+            EZLog.W(EZLog.Module.UI, $"Scan error: {error}");
             ShowMismatchDialog();
         }
 
@@ -803,9 +823,37 @@ namespace EZDose.UI
                 skipMedicineButton.onClick.AddListener(OnSkipMedicineClicked);
             }
 
+            // Setup pause/resume button
+            if (pauseResumeButton != null)
+            {
+                pauseResumeButton.onClick.AddListener(OnPauseResumeClicked);
+            }
+
+            // Subscribe to pause state changes from dispenser
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser != null)
+            {
+                dispenser.OnPauseStateChanged += UpdatePauseButtonUI;
+                // Initialize button text to current state
+                UpdatePauseButtonUI(dispenser.IsPaused);
+            }
+
             if (main != null)
             {
+                main.SkipConfirmRequired += OnSkipConfirmRequired;
                 FireAndForget(main.StartDispensingAsync());
+            }
+
+            // Setup skip confirm dialog button
+            if (skipConfirmButton != null)
+            {
+                skipConfirmButton.onClick.AddListener(OnSkipConfirmClicked);
+            }
+
+            // Hide skip dialog initially
+            if (skipConfirmDialog != null)
+            {
+                skipConfirmDialog.SetActive(false);
             }
         }
         
@@ -817,7 +865,7 @@ namespace EZDose.UI
             var main = MainController.Instance;
             if (main != null)
             {
-                Debug.Log("[UIManager] Skip button clicked");
+                EZLog.D(EZLog.Module.UI, "Skip button clicked");
                 main.SkipCurrentMedicine();
             }
         }
@@ -827,8 +875,80 @@ namespace EZDose.UI
         /// </summary>
         private void OnMedicineSkipped(string medicineName)
         {
-            Debug.Log($"[UIManager] Medicine skipped: {medicineName}");
-            // Optionally show a toast or feedback to user here
+            EZLog.D(EZLog.Module.UI, $"Medicine skipped: {medicineName}");
+        }
+
+        /// <summary>
+        /// Called when skip command sent — show confirmation dialog
+        /// </summary>
+        private void OnSkipConfirmRequired(string medicineName)
+        {
+            EZLog.D(EZLog.Module.UI, $"Showing skip confirm dialog for: {medicineName}");
+            
+            if (skipMedicineNameText != null)
+            {
+                skipMedicineNameText.text = $"已跳过药物：{medicineName}";
+            }
+            
+            // Reset toggle to unchecked (default: don't mark as dispensed)
+            if (skipMarkDispensedToggle != null)
+            {
+                skipMarkDispensedToggle.isOn = false;
+            }
+            
+            if (skipConfirmDialog != null)
+            {
+                skipConfirmDialog.SetActive(true);
+            }
+        }
+
+        /// <summary>
+        /// Called when user clicks confirm in skip dialog
+        /// </summary>
+        private void OnSkipConfirmClicked()
+        {
+            bool markAsDispensed = skipMarkDispensedToggle != null && skipMarkDispensedToggle.isOn;
+            
+            EZLog.D(EZLog.Module.UI, $"Skip confirmed, markAsDispensed={markAsDispensed}");
+            
+            if (skipConfirmDialog != null)
+            {
+                skipConfirmDialog.SetActive(false);
+            }
+            
+            var main = MainController.Instance;
+            main?.ConfirmSkipReady(markAsDispensed);
+        }
+
+        /// <summary>
+        /// Called when pause/resume button is clicked - toggles dispensing pause state
+        /// </summary>
+        private void OnPauseResumeClicked()
+        {
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser == null) return;
+
+            if (dispenser.IsPaused)
+            {
+                EZLog.D(EZLog.Module.UI, "Resume button clicked");
+                dispenser.ResumeDispensing();
+            }
+            else
+            {
+                EZLog.D(EZLog.Module.UI, "Pause button clicked");
+                dispenser.PauseDispenser();
+            }
+        }
+
+        /// <summary>
+        /// Updates pause button UI based on current pause state
+        /// </summary>
+        private void UpdatePauseButtonUI(bool isPaused)
+        {
+            if (pauseResumeButtonText != null)
+            {
+                pauseResumeButtonText.text = isPaused ? "继续" : "暂停";
+            }
         }
 
         /// <summary>
@@ -836,7 +956,7 @@ namespace EZDose.UI
         /// </summary>
         private void OnPillCalibrationRequired(EZDose.Prescriptions.DispensingMedicine medicine)
         {
-            Debug.Log($"[UIManager] Calibration required for: {medicine.MedicineName}");
+            EZLog.I(EZLog.Module.UI, $"Calibration required for: {medicine.MedicineName}");
             
             if (pillCalibrationDialog != null)
             {
@@ -844,7 +964,7 @@ namespace EZDose.UI
             }
             else
             {
-                Debug.LogError("[UIManager] PillCalibrationDialog is not assigned!");
+                EZLog.E(EZLog.Module.UI, "PillCalibrationDialog is not assigned");
             }
         }
 
@@ -889,19 +1009,19 @@ namespace EZDose.UI
             }
             
             // Load and display drug image if available and different from current
-            Debug.Log($"[UIManager] UpdateDispenseUI - drugImage={drugImage != null}, ImageResourceId='{info.ImageResourceId}', currentId='{currentDrugImageId}'");
+            EZLog.V(EZLog.Module.UI, $"UpdateDispenseUI - drugImage={drugImage != null}, ImageResourceId='{info.ImageResourceId}', currentId='{currentDrugImageId}'");
             if (drugImage != null && !string.IsNullOrEmpty(info.ImageResourceId))
             {
                 if (currentDrugImageId != info.ImageResourceId)
                 {
-                    Debug.Log($"[UIManager] Loading new drug image: {info.ImageResourceId}");
+                    EZLog.D(EZLog.Module.UI, $"Loading new drug image: {info.ImageResourceId}");
                     currentDrugImageId = info.ImageResourceId;
                     LoadDrugImageAsync(info.ImageResourceId);
                 }
             }
             else if (drugImage == null)
             {
-                Debug.LogWarning("[UIManager] drugImage field is not assigned in Inspector!");
+                EZLog.W(EZLog.Module.UI, "drugImage field is not assigned in Inspector");
             }
             
             // Update next medicine preview info
@@ -941,7 +1061,7 @@ namespace EZDose.UI
             var serverUrl = AppConfig.Instance?.ServerUrl;
             if (string.IsNullOrEmpty(serverUrl))
             {
-                Debug.LogWarning("[UIManager] Cannot load drug image - server URL not configured");
+                EZLog.W(EZLog.Module.UI, "Cannot load drug image - server URL not configured");
                 return;
             }
             
@@ -957,7 +1077,7 @@ namespace EZDose.UI
                         new UnityEngine.Rect(0, 0, texture.width, texture.height), 
                         new Vector2(0.5f, 0.5f));
                     drugImage.sprite = sprite;
-                    Debug.Log($"[UIManager] Displayed drug image: {imageResourceId}");
+                    EZLog.D(EZLog.Module.UI, $"Displayed drug image: {imageResourceId}");
                 }
                 else
                 {
@@ -1055,7 +1175,7 @@ namespace EZDose.UI
 
         private void ShowDispenseError(string message)
         {
-            Debug.LogWarning($"[UIManager] Dispense error: {message}");
+            EZLog.W(EZLog.Module.UI, $"Dispense error: {message}");
             // For now, we show the same completion dialog style with the error message logged.
             if (completeDialog != null)
             {
@@ -1079,6 +1199,7 @@ namespace EZDose.UI
                 main.PlateSwitchRequired -= OnPlateSwitchRequired;
                 main.PillCalibrationRequired -= OnPillCalibrationRequired;
                 main.MedicineSkipped -= OnMedicineSkipped;
+                main.SkipConfirmRequired -= OnSkipConfirmRequired;
             }
 
             if (scanner != null)
@@ -1092,6 +1213,7 @@ namespace EZDose.UI
             if (dispenser != null)
             {
                 dispenser.OnConnectionStateChanged -= OnDispenserConnectionChanged;
+                dispenser.OnPauseStateChanged -= UpdatePauseButtonUI;
             }
 
             if (lightBarRoutine != null)
@@ -1110,7 +1232,7 @@ namespace EZDose.UI
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[UIManager] Async error: {e.Message}");
+                    EZLog.E(EZLog.Module.UI, $"Async error: {e.Message}");
                 }
             }
 
@@ -1125,7 +1247,7 @@ namespace EZDose.UI
             var op = SceneManager.LoadSceneAsync(sceneName);
             if (op == null)
             {
-                Debug.LogError($"[UIManager] Failed to load scene: {sceneName}");
+                EZLog.E(EZLog.Module.UI, $"Failed to load scene: {sceneName}");
                 return;
             }
 

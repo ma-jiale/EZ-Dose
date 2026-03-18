@@ -48,7 +48,7 @@ namespace EZDose.UI
         {
             if (device == null)
             {
-                Debug.LogError("[DeviceCardUI] Cannot initialize with null device info");
+                EZLog.E(EZLog.Module.UI, "Cannot initialize DeviceCardUI with null device info");
                 return;
             }
 
@@ -120,7 +120,7 @@ namespace EZDose.UI
 
 
 
-            Debug.Log($"[DeviceCardUI] Updated connection state for {deviceInfo.MacAddress}: {(connected ? "Connected" : "Disconnected")}");
+            EZLog.D(EZLog.Module.UI, $"Device card {deviceInfo.MacAddress} state: {(connected ? "Connected" : "Disconnected")}");
         }
 
         #endregion

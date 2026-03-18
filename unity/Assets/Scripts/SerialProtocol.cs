@@ -11,8 +11,8 @@ namespace EZDose.Hardware
         // 命令定义
         public static class Commands
         {
-            public const byte RESET_DISPENSER = 0x00;       // 摆锤零位设置
-            public const byte PAUSE_DISPENSER = 0x01;       // 暂停分药
+            public const byte SKIP_TASK = 0x00;       // 跳过当前任务
+            public const byte RESET_DISPENSER = 0x01;       // 摆锤零位设置
             public const byte OPEN_TRAY = 0x03;             // 打开舱门
             public const byte CLOSE_TRAY = 0x04;            // 关闭舱门
             public const byte SEND_PILL_MATRIX = 0x05;      // 发送药片矩阵

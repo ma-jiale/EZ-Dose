@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using EZDose.Hardware;
+using EZDose;
 
 /// <summary>
 /// Debug controller for pill dispenser hardware testing.
@@ -90,7 +91,7 @@ public class DispenserDebugger : MonoBehaviour
     /// </summary>
     private void OnCountError()
     {
-        Debug.LogWarning("Count error detected!");
+        EZLog.W(EZLog.Module.Dispenser, "Count error detected");
         ShowStatus("⚠ 计数错误! 正在停止电机...", true);
         
         // Stop the motor to prevent buzzing sound
@@ -160,7 +161,7 @@ public class DispenserDebugger : MonoBehaviour
     /// </summary>
     private void OnDispensingComplete()
     {
-        Debug.Log("✓ Dispensing complete!");
+        EZLog.I(EZLog.Module.Dispenser, "Dispensing complete");
         ShowStatus("✓ 分药完成！正在回到空闲状态...");
         
         // Return dispenser to idle state (reference: MainController.PauseAsync)
@@ -350,9 +351,9 @@ public class DispenserDebugger : MonoBehaviour
     private void ShowStatus(string message, bool isError = false)
     {
         if (isError)
-            Debug.LogWarning(message);
+            EZLog.W(EZLog.Module.Dispenser, message);
         else
-            Debug.Log(message);
+            EZLog.D(EZLog.Module.Dispenser, message);
             
         if (statusText != null)
             statusText.text = message;
@@ -369,9 +370,9 @@ public class DispenserDebugger : MonoBehaviour
         if (pendingServoAngle >= 0)
         {
             float angle = pendingServoAngle;
-            Debug.Log($"Setting servo angle: {angle:F2}");
+            EZLog.D(EZLog.Module.Dispenser, $"Setting servo angle: {angle:F2}");
             controller.SetServoAngle(angle, (success) =>
-                Debug.Log(success ? $"✓ Servo angle set to {angle:F2}" : "✗ Failed to set servo angle"));
+                EZLog.D(EZLog.Module.Dispenser, success ? $"Servo angle set to {angle:F2}" : "Failed to set servo angle"));
         }
     }
     
@@ -393,9 +394,9 @@ public class DispenserDebugger : MonoBehaviour
         if (pendingMotorSpeed >= 0)
         {
             float speed = pendingMotorSpeed;
-            Debug.Log($"Setting motor speed: {speed:F2}");
+            EZLog.D(EZLog.Module.Dispenser, $"Setting motor speed: {speed:F2}");
             controller.SetTurntableSpeed(speed, (success) =>
-                Debug.Log(success ? $"✓ Motor speed set to {speed:F2}" : "✗ Failed to set motor speed"));
+                EZLog.D(EZLog.Module.Dispenser, success ? $"Motor speed set to {speed:F2}" : "Failed to set motor speed"));
         }
     }
     

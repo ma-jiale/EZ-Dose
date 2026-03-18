@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using EZDose;
 
 public class BluetoothTest : MonoBehaviour
 {
@@ -51,7 +52,7 @@ public class BluetoothTest : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError("请求权限失败: " + e.Message);
+            EZLog.E(EZLog.Module.Dispenser, "Permission request failed: " + e.Message);
         }
 #endif
     }
@@ -84,22 +85,22 @@ public class BluetoothTest : MonoBehaviour
         try
         {
             ShowStatus("正在初始化蓝牙...");
-            Debug.Log("开始连接: " + address);
+            EZLog.I(EZLog.Module.Dispenser, "Starting connection: " + address);
             
             // 初始化蓝牙
             if (bluetoothSerial == null)
             {
-                Debug.Log("初始化 BluetoothSerial...");
+                EZLog.D(EZLog.Module.Dispenser, "Initializing BluetoothSerial");
                 AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
                 AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
                 
                 bluetoothSerial = new AndroidJavaObject("com.unity.bluetooth.BluetoothSerial", activity);
-                Debug.Log("BluetoothSerial 初始化成功");
+                EZLog.I(EZLog.Module.Dispenser, "BluetoothSerial initialized successfully");
             }
 
             // 检查蓝牙是否可用
             bool isAvailable = bluetoothSerial.Call<bool>("isBluetoothAvailable");
-            Debug.Log("蓝牙是否可用: " + isAvailable);
+            EZLog.D(EZLog.Module.Dispenser, "Bluetooth available: " + isAvailable);
             
             if (!isAvailable)
             {
@@ -109,7 +110,7 @@ public class BluetoothTest : MonoBehaviour
 
             // 检查蓝牙是否启用
             bool isEnabled = bluetoothSerial.Call<bool>("isBluetoothEnabled");
-            Debug.Log("蓝牙是否启用: " + isEnabled);
+            EZLog.D(EZLog.Module.Dispenser, "Bluetooth enabled: " + isEnabled);
             
             if (!isEnabled)
             {
@@ -118,38 +119,38 @@ public class BluetoothTest : MonoBehaviour
             }
 
             ShowStatus("正在连接 " + address + "...");
-            Debug.Log("调用 connect 方法...");
+            EZLog.D(EZLog.Module.Dispenser, "Calling connect method");
             
             // 连接设备
             bool success = bluetoothSerial.Call<bool>("connect", address);
             
-            Debug.Log("连接结果: " + success);
+            EZLog.D(EZLog.Module.Dispenser, "Connection result: " + success);
             
             if (success)
             {
                 isConnected = true;
                 ShowStatus("✓ 已连接到: " + address);
-                Debug.Log("连接成功!");
+                EZLog.I(EZLog.Module.Dispenser, "Connection succeeded");
             }
             else
             {
                 ShowStatus("❌ 连接失败\n请检查:\n1.设备是否已配对\n2.设备是否在范围内\n3.MAC地址是否正确");
-                Debug.LogError("连接失败");
+                EZLog.E(EZLog.Module.Dispenser, "Connection failed");
             }
         }
         catch (AndroidJavaException aje)
         {
             string errorMsg = "Android异常: " + aje.Message;
             ShowStatus("❌ " + errorMsg);
-            Debug.LogError(errorMsg);
-            Debug.LogError("StackTrace: " + aje.StackTrace);
+            EZLog.E(EZLog.Module.Dispenser, "Android exception: " + aje.Message);
+            EZLog.V(EZLog.Module.Dispenser, "StackTrace: " + aje.StackTrace);
         }
         catch (Exception e)
         {
             string errorMsg = "错误: " + e.Message;
             ShowStatus("❌ " + errorMsg);
-            Debug.LogError(errorMsg);
-            Debug.LogError("StackTrace: " + e.StackTrace);
+            EZLog.E(EZLog.Module.Dispenser, "Error: " + e.Message);
+            EZLog.V(EZLog.Module.Dispenser, "StackTrace: " + e.StackTrace);
         }
 #else
         // 编辑器模式模拟
@@ -191,12 +192,12 @@ public class BluetoothTest : MonoBehaviour
 #if UNITY_ANDROID && !UNITY_EDITOR
         try
         {
-            Debug.Log("发送数据: 1");
+            EZLog.D(EZLog.Module.Protocol, "Sending data: 1");
             
             // 发送字符"1"点亮LED
             bool success = bluetoothSerial.Call<bool>("write", "1");
             
-            Debug.Log("发送结果: " + success);
+            EZLog.D(EZLog.Module.Protocol, "Send result: " + success);
             
             if (success)
             {
@@ -210,7 +211,7 @@ public class BluetoothTest : MonoBehaviour
         catch (Exception e)
         {
             ShowStatus("❌ 发送错误: " + e.Message);
-            Debug.LogError("发送错误: " + e.Message);
+            EZLog.E(EZLog.Module.Protocol, "Send error: " + e.Message);
         }
 #else
         ShowStatus("✓ 模拟发送: 1 (编辑器模式)");
@@ -225,12 +226,12 @@ public class BluetoothTest : MonoBehaviour
             if (bluetoothSerial != null)
             {
                 bluetoothSerial.Call("disconnect");
-                Debug.Log("已断开连接");
+                EZLog.I(EZLog.Module.Dispenser, "Disconnected");
             }
         }
         catch (Exception e)
         {
-            Debug.LogError("断开连接错误: " + e.Message);
+            EZLog.E(EZLog.Module.Dispenser, "Disconnect error: " + e.Message);
         }
 #endif
         
@@ -264,7 +265,7 @@ public class BluetoothTest : MonoBehaviour
         {
             txtStatus.text = message;
         }
-        Debug.Log("状态: " + message);
+        EZLog.D(EZLog.Module.UI, "Status: " + message);
     }
 
     void OnDestroy()

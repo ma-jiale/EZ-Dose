@@ -5,6 +5,7 @@ using UnityEngine;
 using OpenCVForUnity.CoreModule;
 using OpenCVForUnity.ImgprocModule;
 using OpenCVForUnity.UnityUtils;
+using EZDose;
 
 namespace EZDose.PillCounter
 {
@@ -205,12 +206,12 @@ namespace EZDose.PillCounter
                     background = new Mat();
                     Imgproc.GaussianBlur(gray, background, new Size(5, 5), 0);
                     backgroundCaptured = true;
-                    Debug.Log("背景已捕捉");
+                    EZLog.I(EZLog.Module.PillCount, "Background captured");
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"捕捉背景失败: {e.Message}");
+                EZLog.E(EZLog.Module.PillCount, $"Failed to capture background: {e.Message}");
                 throw;
             }
         }
@@ -230,7 +231,7 @@ namespace EZDose.PillCounter
                 background.Dispose();
                 background = null;
             }
-            Debug.Log("背景已重置");
+            EZLog.D(EZLog.Module.PillCount, "Background reset");
         }
         
         /// <summary>
@@ -538,7 +539,7 @@ namespace EZDose.PillCounter
             }
             catch (Exception e)
             {
-                Debug.LogError($"计数失败: {e.Message}");
+                EZLog.E(EZLog.Module.PillCount, $"Pill counting failed: {e.Message}");
                 return (0, frame.clone(), new CountingDebugInfo());
             }
         }
@@ -580,12 +581,12 @@ namespace EZDose.PillCounter
                     return (false, 0f, "无法获取药片面积");
                 }
                 
-                Debug.Log($"[PillCounter] Single pill calibration: pre-erosion area = {preErosionArea:.1f} pixels (post-erosion was {debugInfo.ReferenceArea:.1f})");
+                EZLog.D(EZLog.Module.PillCount, $"Single pill calibration: pre-erosion area = {preErosionArea:.1f} pixels (post-erosion was {debugInfo.ReferenceArea:.1f})");
                 return (true, preErosionArea, $"检测成功: {preErosionArea:.1f} 像素");
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PillCounter] Calibration failed: {e.Message}");
+                EZLog.E(EZLog.Module.PillCount, $"Calibration failed: {e.Message}");
                 return (false, 0f, $"校准失败: {e.Message}");
             }
         }

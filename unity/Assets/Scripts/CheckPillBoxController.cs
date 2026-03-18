@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using ZXing;
 using ZXing.Common;
+using EZDose;
 
 namespace EZDose.CheckPillBox
 {
@@ -211,7 +212,7 @@ namespace EZDose.CheckPillBox
             {
                 statusText.text = message;
             }
-            Debug.Log("[CheckPillBox] " + message);
+            EZLog.I(EZLog.Module.Scanner, message);
         }
     }
 }
