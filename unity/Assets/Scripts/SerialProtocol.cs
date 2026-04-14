@@ -113,6 +113,29 @@ namespace EZDose.Hardware
         }
 
         /// <summary>
+        /// 将命令字节转换为人类可读名称
+        /// </summary>
+        public static string GetCommandName(byte command)
+        {
+            switch (command)
+            {
+                case Commands.SKIP_TASK:             return "SKIP_TASK";
+                case Commands.RESET_DISPENSER:       return "RESET_DISPENSER";
+                case Commands.OPEN_TRAY:             return "OPEN_TRAY";
+                case Commands.CLOSE_TRAY:            return "CLOSE_TRAY";
+                case Commands.SEND_PILL_MATRIX:      return "SEND_PILL_MATRIX";
+                case Commands.SET_OPTOCOUPLER_THRESH:return "SET_OPTOCOUPLER_THRESH";
+                case Commands.SET_OPTOCOUPLER_NORESP:return "SET_OPTOCOUPLER_NORESP";
+                case Commands.SET_MOTOR_SPEED:       return "SET_MOTOR_SPEED";
+                case Commands.SET_MOTOR_DELAY_STOP:  return "SET_MOTOR_DELAY_STOP";
+                case Commands.ACK:                   return "ACK";
+                case Commands.SET_CLEAN_SPEED:       return "SET_CLEAN_SPEED";
+                case Commands.SET_CLEAN_DELAY:       return "SET_CLEAN_DELAY";
+                default:                             return $"UNKNOWN(0x{command:X2})";
+            }
+        }
+
+        /// <summary>
         /// 解析反馈消息
         /// </summary>
         public static class FeedbackParser
@@ -130,6 +153,8 @@ namespace EZDose.Hardware
                     return null;
 
                 message = message.Trim();
+                // User wants to see the raw message regardless of EZLog configuration
+                UnityEngine.Debug.LogWarning($"[SERIAL RAW DATA] {message}");
 
                 if (message == MACHINE_INIT)
                     return new FeedbackMessage { Type = FeedbackType.MachineInit };
@@ -159,6 +184,53 @@ namespace EZDose.Hardware
                 if (message == DONE_MSG)
                     return new FeedbackMessage { Type = FeedbackType.DONE };
 
+                // "number:N width:W" (with sequence number from STM32)
+                if (message.StartsWith("number:"))
+                {
+                    // Parse "number:9,width:20" or "number:9 width:20" format
+                    int seqNum = 0;
+                    int pulseWidth2 = 0;
+                    bool parsed = false;
+                    
+                    var parts = message.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var part in parts)
+                    {
+                        if (part.StartsWith("number:"))
+                        {
+                            int.TryParse(part.Substring("number:".Length), out seqNum);
+                        }
+                        else if (part.StartsWith("width:"))
+                        {
+                            parsed = int.TryParse(part.Substring("width:".Length), out pulseWidth2);
+                        }
+                    }
+                    
+                    if (parsed)
+                    {
+                        return new FeedbackMessage
+                        {
+                            Type = FeedbackType.OptoPulseWidth,
+                            PillCount = pulseWidth2,    // Pulse width value
+                            SequenceNumber = seqNum      // Hardware-reported sequence number
+                        };
+                    }
+                }
+
+                // // Legacy format: "lowerOpt pulse width:W" (backward compatibility)
+                // if (message.StartsWith("lowerOpt pulse width:"))
+                // {
+                //     string widthStr = message.Substring("lowerOpt pulse width:".Length).Trim();
+                //     if (int.TryParse(widthStr, out int pulseWidth))
+                //     {
+                //         return new FeedbackMessage
+                //         {
+                //             Type = FeedbackType.OptoPulseWidth,
+                //             PillCount = pulseWidth,      // Pulse width value
+                //             SequenceNumber = -1           // No sequence number in legacy format
+                //         };
+                //     }
+                // }
+
                 return new FeedbackMessage
                 {
                     Type = FeedbackType.Unknown,
@@ -179,7 +251,8 @@ namespace EZDose.Hardware
         StateCountError,
         PillsOut,
         ACK,
-        DONE
+        DONE,
+        OptoPulseWidth
     }
 
     /// <summary>
@@ -189,6 +262,11 @@ namespace EZDose.Hardware
     {
         public FeedbackType Type { get; set; }
         public int PillCount { get; set; }
+        /// <summary>
+        /// Hardware-reported sequence number for opto pulse messages.
+        /// -1 indicates legacy format (no sequence number available).
+        /// </summary>
+        public int SequenceNumber { get; set; } = -1;
         public string RawMessage { get; set; }
     }
 }

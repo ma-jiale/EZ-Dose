@@ -98,8 +98,16 @@ namespace EZDose.MainFlow
 
         private string currentMedicineName = string.Empty;
         private string currentMedicineImageResourceId = string.Empty;
+        private float currentMedicineArea = 0f;
         private int currentPlate = 1;
         private int currentMedicineTotal = 0;
+        private readonly List<int> optoPulseWidths = new List<int>();
+        private int validPulseCount = 0;  // Count of valid pulse widths (5-200) for progress tracking (legacy fallback)
+        private int lastReceivedSequenceNumber = -1;  // Last received sequence number for duplicate detection
+        
+        // Valid pulse width range for counting pills
+        private const int MIN_VALID_PULSE_WIDTH = 5;
+        private const int MAX_VALID_PULSE_WIDTH = 200;
         
         // Next medicine info for UI preview (set during dispensing)
         private string nextMedicineName = string.Empty;
@@ -163,13 +171,15 @@ namespace EZDose.MainFlow
             {
                 dispenserController.OnDispensingComplete += OnMachineDispensingComplete;
                 dispenserController.OnCountError += OnMachineCountError;
-                dispenserController.OnPillCountUpdate += OnMachinePillCountUpdate;
+                // Progress bar now driven by OnOptoPulseReceived instead of OnPillCountUpdate
+                // to reduce bluetooth message count
+                dispenserController.OnOptoPulseReceived += OnMachineOptoPulseReceived;
             }
             else
             {
                 dispenserController.OnDispensingComplete -= OnMachineDispensingComplete;
                 dispenserController.OnCountError -= OnMachineCountError;
-                dispenserController.OnPillCountUpdate -= OnMachinePillCountUpdate;
+                dispenserController.OnOptoPulseReceived -= OnMachineOptoPulseReceived;
             }
         }
 
@@ -663,9 +673,8 @@ namespace EZDose.MainFlow
                 EZLog.I(EZLog.Module.Main, "Opening tray for pill collection");
                 await OpenTrayAsync();
 
-                // 等待舱门机械结构运动完成（出药舱弹出）
                 EZLog.D(EZLog.Module.Main, "Waiting for tray mechanical movement to complete...");
-                await Task.Delay(2000); // 根据实际机械行程调整，这里暂定2秒
+                await Task.Delay(2000); 
 
                 EZLog.I(EZLog.Module.Main, "All medicines dispensed, pausing turntable motor");
                 await PauseAsync();
@@ -782,6 +791,7 @@ namespace EZDose.MainFlow
             currentMedicineTotal = CountPills(matrix);
             currentMedicineName = med.MedicineName;
             currentMedicineImageResourceId = med.ImageResourceId ?? string.Empty;
+            currentMedicineArea = med.PillSizeArea;
             currentPlate = plate;
 
             var progress = new DispensingProgressInfo
@@ -794,12 +804,18 @@ namespace EZDose.MainFlow
                 Progress = 0f,
                 ImageResourceId = med.ImageResourceId,
                 NextMedicineName = nextMedicineName,
-                NextMedicinePillCount = nextMedicinePillCount
+                NextMedicinePillCount = nextMedicinePillCount,
+                CurrentPillArea = currentMedicineArea
             };
             DispensingProgressChanged?.Invoke(progress);
 
             // Reset error flag before starting
             hasCountError = false;
+            
+            // Reset opto pulse width collection for this medicine
+            optoPulseWidths.Clear();
+            validPulseCount = 0;  // Reset valid pulse counter for progress tracking
+            lastReceivedSequenceNumber = -1;  // Reset sequence number tracking
             
             // Reset skip task for this medicine
             skipCurrentMedicineTcs = new TaskCompletionSource<bool>();
@@ -845,6 +861,9 @@ namespace EZDose.MainFlow
             if (success)
             {
                 prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                
+                // Save average opto pulse width as pill area to server for future use
+                await SaveAveragePulseWidthAsAreaAsync(med);
             }
 
             return success;
@@ -910,14 +929,14 @@ namespace EZDose.MainFlow
             
             if (calibrationMgr != null)
             {
-                (motorSpeed, servoAngle) = calibrationMgr.CalculateDispenserSettings(pillAreaMm2);
+                (motorSpeed, servoAngle) = calibrationMgr.GetDispenserSettingsOrDefault(pillAreaMm2);
             }
             else
             {
-                // Fallback to default Medium settings if no calibration manager
-                EZLog.W(EZLog.Module.Main, "No calibration manager found, using default Medium settings");
-                motorSpeed = 0.5f;
-                servoAngle = 0.5f;
+                // Fallback to default settings if no calibration manager
+                EZLog.W(EZLog.Module.Main, "No calibration manager found, using default settings");
+                motorSpeed = 0.3f;
+                servoAngle = 0.7f;
             }
 
             EZLog.D(EZLog.Module.Main, $"Pill area {pillAreaMm2:.1f}mm² -> motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
@@ -1135,22 +1154,148 @@ namespace EZDose.MainFlow
             // The recovery logic in DispenseMedicineAsync will handle the UI prompt.
         }
 
-        private void OnMachinePillCountUpdate(int dispensed)
+        // OnMachinePillCountUpdate removed - progress bar now driven by OnMachineOptoPulseReceived
+        // to reduce bluetooth message count (reuses lowerOpt pulse width data stream)
+
+        /// <summary>
+        /// Collect opto pulse widths during dispensing (STM32 handles auto-speed).
+        /// Uses hardware-reported sequence number for progress tracking when available.
+        /// Falls back to client-side valid pulse counting for legacy format.
+        /// </summary>
+        private void OnMachineOptoPulseReceived(int pulseWidth, int sequenceNumber)
         {
+            // Only process pulses if we are actively waiting for dispensing to complete.
+            // This prevents stray pulses (from noise or delayed bluetooth messages) from corrupting the new medicine counting.
+            if (!isWaitingForDispensingComplete)
+            {
+                EZLog.V(EZLog.Module.Main, $"Ignoring extra opto pulse because not in active dispensing state: width={pulseWidth}, seq={sequenceNumber}");
+                return;
+            }
+
+            // Duplicate detection using sequence number
+            if (sequenceNumber >= 0 && sequenceNumber <= lastReceivedSequenceNumber)
+            {
+                EZLog.W(EZLog.Module.Main, $"Ignoring duplicate/out-of-order pulse: seq={sequenceNumber} (last={lastReceivedSequenceNumber})");
+                return;
+            }
+
+            // Update last received sequence number
+            if (sequenceNumber >= 0)
+            {
+                lastReceivedSequenceNumber = sequenceNumber;
+            }
+
+            // Filter out anomalous pulse widths to prevent skewing the pill area estimation
+            if (pulseWidth >= MIN_VALID_PULSE_WIDTH && pulseWidth <= MAX_VALID_PULSE_WIDTH)
+            {
+                optoPulseWidths.Add(pulseWidth);
+            }
+            else
+            {
+                EZLog.D(EZLog.Module.Main, $"Opto pulse width {pulseWidth} out of valid range ({MIN_VALID_PULSE_WIDTH}-{MAX_VALID_PULSE_WIDTH}), excluded from average calculation.");
+            }
+
+            EZLog.D(EZLog.Module.Main, $"Opto pulse width seq={sequenceNumber}: {pulseWidth}");
+            
+            // Determine dispensed pill count for progress:
+            // - If sequence number available (new format): use it directly as the pill count
+            // - If legacy format (sequenceNumber == -1): fall back to client-side counting of valid pulses
+            int dispensedCount;
+
+            if (sequenceNumber >= 0)
+            {
+                // New format: sequence number IS the dispensed pill count (1-based from STM32)
+                dispensedCount = sequenceNumber;
+                EZLog.D(EZLog.Module.Main, $"Using hardware sequence number for progress: {dispensedCount}/{currentMedicineTotal}");
+            }
+            else
+            {
+                // Legacy format: count valid pulse widths client-side
+                if (pulseWidth >= MIN_VALID_PULSE_WIDTH && pulseWidth <= MAX_VALID_PULSE_WIDTH)
+                {
+                    validPulseCount++;
+                    EZLog.D(EZLog.Module.Main, $"Valid pill detected (pulse={pulseWidth}), count={validPulseCount}/{currentMedicineTotal}");
+                }
+                else
+                {
+                    EZLog.D(EZLog.Module.Main, $"Ignoring out-of-range pulse width {pulseWidth} (valid range: {MIN_VALID_PULSE_WIDTH}-{MAX_VALID_PULSE_WIDTH})");
+                    return;  // Don't update progress for invalid pulses in legacy mode
+                }
+                dispensedCount = validPulseCount;
+            }
+
+            // Clamp progress to [0, 1] to prevent UI overflow
+            float progressValue = currentMedicineTotal > 0
+                ? Mathf.Clamp01((float)dispensedCount / currentMedicineTotal)
+                : 0f;
+
+            // Update progress bar
             var progress = new DispensingProgressInfo
             {
                 PatientName = currentPatient?.PatientName ?? string.Empty,
                 MedicineName = currentMedicineName,
                 PlateNumber = currentPlate,
                 TotalPills = currentMedicineTotal,
-                DispensedPills = dispensed,
-                Progress = currentMedicineTotal > 0 ? (float)dispensed / currentMedicineTotal : 0f,
+                DispensedPills = dispensedCount,
+                Progress = progressValue,
                 ImageResourceId = currentMedicineImageResourceId,
                 NextMedicineName = nextMedicineName,
-                NextMedicinePillCount = nextMedicinePillCount
+                NextMedicinePillCount = nextMedicinePillCount,
+                CurrentPillArea = currentMedicineArea
             };
-
+            
             DispensingProgressChanged?.Invoke(progress);
+        }
+
+        /// <summary>
+        /// After dispensing completes, compute average pulse width, convert to area,
+        /// and save to server for future dispensing of this medicine.
+        /// </summary>
+        private async Task SaveAveragePulseWidthAsAreaAsync(Prescriptions.DispensingMedicine med)
+        {
+            if (optoPulseWidths.Count == 0)
+            {
+                EZLog.D(EZLog.Module.Main, "No opto pulse widths collected, skipping area calculation");
+                return;
+            }
+
+            // Calculate average pulse width
+            float sum = 0;
+            foreach (var pw in optoPulseWidths)
+            {
+                sum += pw;
+            }
+            float averagePulseWidth = sum / optoPulseWidths.Count;
+
+            EZLog.I(EZLog.Module.Main, $"Average opto pulse width: {averagePulseWidth:F2} (from {optoPulseWidths.Count} samples)");
+
+            // Convert average pulse width to area
+            var calibrationMgr = calibrationManager ?? FindObjectOfType<EZDose.Calibration.PillCalibrationManager>();
+            if (calibrationMgr == null)
+            {
+                EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute area from pulse width");
+                return;
+            }
+
+            float newArea = calibrationMgr.CalculateAreaFromPulseWidth((int)averagePulseWidth);
+            EZLog.I(EZLog.Module.Main, $"Calculated pill area from average pulse: {newArea:F2} mm²");
+
+            // Update current medicine area for UI display
+            currentMedicineArea = newArea;
+
+            // Save to server for future use
+            if (med != null && med.PrescriptionId > 0)
+            {
+                bool updated = await calibrationMgr.UpdatePillSizeOnServerAsync(med.PrescriptionId, newArea);
+                if (updated)
+                {
+                    EZLog.I(EZLog.Module.Main, $"Saved pill area {newArea:F2}mm² to server for '{med.MedicineName}'");
+                }
+                else
+                {
+                    EZLog.W(EZLog.Module.Main, $"Failed to save pill area to server for '{med.MedicineName}'");
+                }
+            }
         }
 
         public Task<bool> OpenTrayAsync()
@@ -1183,16 +1328,6 @@ namespace EZDose.MainFlow
             }
 
             return RunDispenserAction(dispenserController.PauseDispenser);
-        }
-
-        public Task<bool> ResetDispenserAsync()
-        {
-            if (dispenserController == null)
-            {
-                return Task.FromResult(false);
-            }
-
-            return RunDispenserAction(dispenserController.ResetDispenser);
         }
 
         private Task<bool> RunDispenserAction(Action<Action<bool>> action)
@@ -1305,5 +1440,8 @@ namespace EZDose.MainFlow
         // Next medicine info for user preview
         public string NextMedicineName;    // Name of the next medicine to dispense (empty if this is the last one)
         public int NextMedicinePillCount;  // Total pills for the next medicine
+        
+        // Current pill tuning area
+        public float CurrentPillArea;
     }
 }

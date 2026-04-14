@@ -10,6 +10,8 @@ using EZDose.MainFlow;
 using EZDose.CheckPillBox;
 using EZDose.PillCounter;
 using EZDose.Hardware;
+using EZDose.Calibration;
+using UnityEngine.EventSystems;
 using EZDose;
 
 namespace EZDose.UI
@@ -104,6 +106,11 @@ namespace EZDose.UI
         [SerializeField] private Button mismatchHomeButton;
         [SerializeField] private Button mismatchRetryButton;
 
+        [Tooltip("切换前置/后置摄像头按钮")]
+        [SerializeField] private Button switchCameraButton;
+        [Tooltip("切换摄像头按钮文字（可选，用于显示当前摄像头方向）")]
+        [SerializeField] private Text switchCameraButtonText;
+
         [Header("Dispense UI")]
         [SerializeField] private Text totalPillsText;
         [SerializeField] private Text medicineNameText;
@@ -122,6 +129,13 @@ namespace EZDose.UI
         [Tooltip("药片校准对话框")]
         [SerializeField] private PillCalibrationDialog pillCalibrationDialog;
         
+        [Header("Manual Pill Tuning")]
+        [Tooltip("用于手动调整当前分发药片面积的滑动条 (范围10-160)")]
+        [SerializeField] private Slider pillAreaTuningSlider;
+        [Tooltip("显示当前设置面积的文本")]
+        [SerializeField] private Text pillAreaTuningText;
+        
+        [Header("Dispense UI (Drug & Controls)")]
         [Tooltip("分药界面药物图像显示 (img-drug)")]
         [SerializeField] private Image drugImage;
         
@@ -150,6 +164,8 @@ namespace EZDose.UI
         [Header("Next Medicine Preview")]
         [Tooltip("显示下一个药物信息的文本（名称和数量）")]
         [SerializeField] private Text nextMedicineText;
+
+        private string _lastTunedMedicineName = string.Empty;
 
         private readonly List<GameObject> spawnedPatientButtons = new List<GameObject>();
         private Coroutine lightBarRoutine;
@@ -671,10 +687,38 @@ namespace EZDose.UI
                 scanner.StartScanner(patient.PatientId);
             }
 
+            // Setup camera switch button
+            if (switchCameraButton != null)
+            {
+                switchCameraButton.onClick.AddListener(OnSwitchCameraClicked);
+                UpdateSwitchCameraButtonText();
+            }
+
             if (lightBar != null)
             {
                 lightBarRoutine = StartCoroutine(AnimateLightBar());
             }
+        }
+
+        /// <summary>
+        /// 点击切换摄像头按钮时调用，切换前置/后置摄像头
+        /// </summary>
+        private void OnSwitchCameraClicked()
+        {
+            if (scanner == null) return;
+
+            scanner.SwitchCamera();
+            UpdateSwitchCameraButtonText();
+            EZLog.D(EZLog.Module.UI, $"Camera switched, isFrontFacing={scanner.IsFrontFacing}");
+        }
+
+        /// <summary>
+        /// 更新切换摄像头按钮的显示文字
+        /// </summary>
+        private void UpdateSwitchCameraButtonText()
+        {
+            if (switchCameraButtonText == null || scanner == null) return;
+            switchCameraButtonText.text = scanner.IsFrontFacing ? "切换后置" : "切换前置";
         }
 
         private IEnumerator AnimateLightBar()
@@ -855,8 +899,69 @@ namespace EZDose.UI
             {
                 skipConfirmDialog.SetActive(false);
             }
+
+            // Setup manual pill area tuning slider
+            if (pillAreaTuningSlider != null)
+            {
+                pillAreaTuningSlider.minValue = 10f;
+                pillAreaTuningSlider.maxValue = 160f;
+                pillAreaTuningSlider.onValueChanged.AddListener(OnPillAreaTuningChanged);
+
+                var trigger = pillAreaTuningSlider.gameObject.GetComponent<EventTrigger>() ?? 
+                              pillAreaTuningSlider.gameObject.AddComponent<EventTrigger>();
+                
+                var entry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+                entry.callback.AddListener((data) => { OnPillAreaTuningReleased(); });
+                trigger.triggers.Add(entry);
+            }
         }
         
+        private bool isUpdatingSliderFromCode = false;
+
+        /// <summary>
+        /// Called when the pill area slider is dragged (updates UI text only)
+        /// </summary>
+        private void OnPillAreaTuningChanged(float newArea)
+        {
+            if (pillAreaTuningText != null)
+            {
+                pillAreaTuningText.text = $"面积：{Mathf.RoundToInt(newArea)} mm²";
+            }
+        }
+
+        /// <summary>
+        /// Called when the user releases the slider pointer, sending command to STM32.
+        /// </summary>
+        private void OnPillAreaTuningReleased()
+        {
+            if (pillAreaTuningSlider == null || isUpdatingSliderFromCode) return;
+
+            float newArea = pillAreaTuningSlider.value;
+            FireAndForget(ApplyTuningAsync(newArea));
+        }
+
+        private async Task ApplyTuningAsync(float newArea)
+        {
+            var dispenser = FindObjectOfType<DispenserController>();
+            var calibrationMgr = FindObjectOfType<PillCalibrationManager>();
+            
+            if (dispenser != null && calibrationMgr != null && dispenser.IsConnected)
+            {
+                var (motorSpeed, servoAngle) = calibrationMgr.CalculateDispenserSettings(newArea);
+                EZLog.I(EZLog.Module.UI, $"Manual tuning released: Area {newArea}mm² -> motor={motorSpeed:F2}, servo={servoAngle:F2}");
+                
+                // var motorTcs = new TaskCompletionSource<bool>();
+                // dispenser.SetTurntableSpeed(motorSpeed, success => { motorTcs.TrySetResult(success); });
+                // await motorTcs.Task;
+
+                await Task.Delay(100);
+
+                var servoTcs = new TaskCompletionSource<bool>();
+                dispenser.SetServoAngle(servoAngle, success => { servoTcs.TrySetResult(success); });
+                await servoTcs.Task;
+            }
+        }
+
         /// <summary>
         /// Called when skip button is clicked - skips current medicine
         /// </summary>
@@ -994,7 +1099,8 @@ namespace EZDose.UI
 
             if (progressPercentText != null)
             {
-                var percent = Mathf.RoundToInt(info.Progress * 100f);
+                var clampedProgress = Mathf.Clamp01(info.Progress);
+                var percent = Mathf.RoundToInt(clampedProgress * 100f);
                 progressPercentText.text = $"{percent}%";
             }
 
@@ -1026,6 +1132,23 @@ namespace EZDose.UI
             
             // Update next medicine preview info
             UpdateNextMedicinePreview(info);
+            
+            // Update manual tuning slider if medicine changed
+            if (pillAreaTuningSlider != null && _lastTunedMedicineName != info.MedicineName)
+            {
+                _lastTunedMedicineName = info.MedicineName;
+                isUpdatingSliderFromCode = true;
+                
+                float areaToSet = info.CurrentPillArea > 0 ? info.CurrentPillArea : 50f;
+                pillAreaTuningSlider.value = Mathf.Clamp(areaToSet, pillAreaTuningSlider.minValue, pillAreaTuningSlider.maxValue);
+                
+                if (pillAreaTuningText != null)
+                {
+                    pillAreaTuningText.text = $"面积：{Mathf.RoundToInt(pillAreaTuningSlider.value)} mm²";
+                }
+                
+                isUpdatingSliderFromCode = false;
+            }
         }
         
         /// <summary>

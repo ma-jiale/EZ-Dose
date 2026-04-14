@@ -196,6 +196,42 @@ namespace EZDose.Calibration
             return actualArea;
         }
 
+        /// <summary>
+        /// Convert lower optocoupler pulse width to estimated pill area
+        /// based on experimental linear interpolation data.
+        /// </summary>
+        public float CalculateAreaFromPulseWidth(int pulseWidth)
+        {
+            float length = 10f; // Default
+
+            if (pulseWidth <= 9.5f)
+            {
+                // Extrapolate below 9.5
+                length = Mathf.Lerp(0f, 6.4f, pulseWidth / 9.5f); 
+            }
+            else if (pulseWidth <= 13.0f)
+            {
+                // Interpolate between Small Pill (9.5) and White Pill (13.0)
+                float t = (pulseWidth - 9.5f) / (13.0f - 9.5f);
+                length = Mathf.Lerp(6.4f, 10.0f, t);
+            }
+            else if (pulseWidth <= 23.0f)
+            {
+                // Interpolate between White Pill (13.0) and Amoxicillin (23.0)
+                float t = (pulseWidth - 13.0f) / (23.0f - 13.0f);
+                length = Mathf.Lerp(10.0f, 18.5f, t);
+            }
+            else
+            {
+                // Extrapolate above 23.0 based on 13->23 slope (0.85 mm per pulse unit)
+                length = 18.5f + (pulseWidth - 23.0f) * 0.85f;
+            }
+
+            // Estimate area assuming circular profile
+            float radius = length / 2f;
+            return Mathf.PI * radius * radius;
+        }
+
         #endregion
 
         #region Dispenser Settings Calculation
@@ -233,9 +269,9 @@ namespace EZDose.Calibration
         {
             if (pillAreaMm2 <= 0)
             {
-                // Default to Medium settings
-                EZLog.W(EZLog.Module.Calibration, "Using default Medium settings for uncalibrated pill");
-                return (0.5f, 0.5f);
+                // Default settings
+                EZLog.W(EZLog.Module.Calibration, "Using default settings for uncalibrated pill (motor=0.3, servo=0.7)");
+                return (0.3f, 0.7f);
             }
             
             return CalculateDispenserSettings(pillAreaMm2);

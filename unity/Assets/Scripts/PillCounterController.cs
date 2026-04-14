@@ -157,7 +157,7 @@ namespace EZDose.PillCounter
         
         void Update()
         {
-            if (webCamTexture == null || !webCamTexture.didUpdateThisFrame || isProcessing)
+            if (webCamTexture == null || !webCamTexture.didUpdateThisFrame || isProcessing || frameMat == null)
                 return;
             
             try

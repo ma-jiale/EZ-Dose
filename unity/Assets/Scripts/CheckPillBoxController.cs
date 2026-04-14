@@ -14,7 +14,7 @@ namespace EZDose.CheckPillBox
     public class CheckPillBoxController : MonoBehaviour
     {
         [Header("Camera")]
-        [SerializeField] private int cameraIndex = 0;
+        [SerializeField] private int cameraIndex = 1;
         [SerializeField] private int requestedWidth = 1280;
         [SerializeField] private int requestedHeight = 720;
         [SerializeField] private int requestedFps = 30;
@@ -30,6 +30,20 @@ namespace EZDose.CheckPillBox
         private BarcodeReader barcodeReader;
         private bool isScanning;
         private string expectedPatientId; // We expect box id == patient id
+
+        /// <summary>
+        /// Returns true if the currently active camera is front-facing.
+        /// </summary>
+        public bool IsFrontFacing
+        {
+            get
+            {
+                var devices = WebCamTexture.devices;
+                if (devices != null && cameraIndex < devices.Length)
+                    return devices[cameraIndex].isFrontFacing;
+                return false;
+            }
+        }
 
         // Events for integration with the main dispensing flow
         public event Action<string> OnBoxVerified;      // called with decoded text when it matches expectation
@@ -102,6 +116,35 @@ namespace EZDose.CheckPillBox
                 Destroy(webCamTexture);
                 webCamTexture = null;
             }
+        }
+
+        /// <summary>
+        /// Switches between available cameras (front/back) without stopping the scan loop.
+        /// </summary>
+        public void SwitchCamera()
+        {
+            var devices = WebCamTexture.devices;
+            if (devices == null || devices.Length < 2)
+            {
+                EZLog.W(EZLog.Module.Scanner, "Only one camera available, cannot switch.");
+                return;
+            }
+
+            // Stop current camera (but do NOT set isScanning = false)
+            if (webCamTexture != null)
+            {
+                if (webCamTexture.isPlaying)
+                    webCamTexture.Stop();
+                Destroy(webCamTexture);
+                webCamTexture = null;
+            }
+
+            // Cycle to next camera
+            cameraIndex = (cameraIndex + 1) % devices.Length;
+            EZLog.I(EZLog.Module.Scanner, $"Switching to camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
+
+            // Restart with new camera
+            StartCamera();
         }
 
         private void StartCamera()

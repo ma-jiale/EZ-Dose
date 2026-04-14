@@ -35,6 +35,10 @@ namespace EZDose.Hardware
         private bool isSendingPackage = false;
         private bool isPaused = false;
         
+        // 心跳检测
+        private Coroutine heartbeatCoroutine;
+        private const float HEARTBEAT_INTERVAL = 1f;  // 每1秒检测一次
+        
         // 机器状态 0:空闲 1:工作中 2:暂停 3:完成
         private int machineState = 0;
         
@@ -58,6 +62,7 @@ namespace EZDose.Hardware
         public event Action OnCountError;
         public event Action<string> OnBTError; 
         public event Action<string> OnError; 
+        public event Action<int, int> OnOptoPulseReceived;  // (pulseWidth, sequenceNumber)
         public event Action<int> OnPillCountUpdate;
         public event Action<bool> OnPauseStateChanged;
 
@@ -97,6 +102,7 @@ namespace EZDose.Hardware
                 }
 
                 StartReceiving();
+                StartHeartbeat();
                 EZLog.I(EZLog.Module.Dispenser, "Initialization succeeded");
                 return true;
             }
@@ -167,6 +173,7 @@ namespace EZDose.Hardware
         /// </summary>
         public void Disconnect()
         {
+            StopHeartbeat();
             isReceiving = false;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -202,6 +209,27 @@ namespace EZDose.Hardware
             isSendingPackage = false;
             isPaused = false;
             receiveBuffer.Clear();
+        }
+
+        /// <summary>
+        /// 检测到连接丢失时的统一处理（防重入）
+        /// 由心跳检测或发送失败触发，自动清理状态并通知 UI
+        /// </summary>
+        private void HandleConnectionLost(string reason)
+        {
+            if (!isConnected) return; // 已断开，防止重复触发
+
+            EZLog.W(EZLog.Module.Dispenser, $"Connection lost detected: {reason}");
+
+            StopHeartbeat();
+            isConnected = false;
+            isReceiving = false;
+            connectedDevice = null;
+            ResetState();
+
+            // 通知 UI 层更新连接状态
+            OnConnectionStateChanged?.Invoke("Disconnected");
+            OnBTError?.Invoke($"连接已断开: {reason}");
         }
 
         #endregion
@@ -537,6 +565,11 @@ namespace EZDose.Hardware
                     OnPillCountUpdate?.Invoke(feedback.PillCount);
                     break;
 
+                case FeedbackType.OptoPulseWidth:
+                    EZLog.I(EZLog.Module.Dispenser, $"Lower Opto Pulse Width received: {feedback.PillCount}, seq={feedback.SequenceNumber}");
+                    OnOptoPulseReceived?.Invoke(feedback.PillCount, feedback.SequenceNumber);
+                    break;
+
                 case FeedbackType.Unknown:
                     EZLog.W(EZLog.Module.Protocol, $"Unknown message: {feedback.RawMessage}");
                     break;
@@ -578,6 +611,11 @@ namespace EZDose.Hardware
                     EZLog.D(EZLog.Module.Protocol, $"Retrying send ({attempt}/{retryCount})");
                 }
 
+                // 记录发送的命令和数据
+                string cmdName = package.Length > 2 ? SerialProtocol.GetCommandName(package[2]) : "EMPTY";
+                string decodedInfo = DecodePackagePayload(package);
+                EZLog.I(EZLog.Module.Protocol, $">>> Sending to STM32: [{cmdName}]{decodedInfo} HEX: {BitConverter.ToString(package)}");
+
                 // 发送数据
                 if (!SendBytes(package))
                 {
@@ -605,6 +643,8 @@ namespace EZDose.Hardware
             {
                 EZLog.E(EZLog.Module.Protocol, $"Send failed, no ACK after {retryCount} retries");
                 errorCode = 1;
+                // 全部重试失败，判定为设备断连
+                HandleConnectionLost("发送命令无响应");
             }
 
             isSendingPackage = false;
@@ -675,6 +715,69 @@ namespace EZDose.Hardware
             callback?.Invoke(doneReceived);
         }
 
+        /// <summary>
+        /// 解码数据包负载为人类可读信息，用于日志输出
+        /// 包格式: [0xAA, 0xBB, CMD, ...DATA..., CRC_L, CRC_H]
+        /// </summary>
+        private string DecodePackagePayload(byte[] package)
+        {
+            if (package == null || package.Length < 5) return "";
+
+            byte cmd = package[2];
+            // 数据区域: 跳过包头(2) + 命令(1)，去掉尾部CRC(2)
+            int dataLen = package.Length - 5;
+
+            switch (cmd)
+            {
+                case SerialProtocol.Commands.SET_MOTOR_SPEED:
+                    if (dataLen >= 5)
+                    {
+                        byte deviceId = package[3];
+                        string deviceName = deviceId == SerialProtocol.DeviceID.TURNTABLE_MOTOR ? "转盘电机" :
+                                            deviceId == SerialProtocol.DeviceID.SERVO_MOTOR ? "舵机" :
+                                            $"未知设备(0x{deviceId:X2})";
+                        float value = BitConverter.ToSingle(package, 4);
+                        return $" Device={deviceName} Value={value:F2}";
+                    }
+                    break;
+
+                case SerialProtocol.Commands.SET_MOTOR_DELAY_STOP:
+                    if (dataLen >= 4)
+                    {
+                        float delay = BitConverter.ToSingle(package, 3);
+                        return $" Delay={delay:F2}";
+                    }
+                    break;
+
+                case SerialProtocol.Commands.SET_CLEAN_SPEED:
+                    if (dataLen >= 4)
+                    {
+                        float speed = BitConverter.ToSingle(package, 3);
+                        return $" CleanSpeed={speed:F2}";
+                    }
+                    break;
+
+                case SerialProtocol.Commands.SET_CLEAN_DELAY:
+                    if (dataLen >= 4)
+                    {
+                        uint delayMs = BitConverter.ToUInt32(package, 3);
+                        return $" CleanDelay={delayMs}ms";
+                    }
+                    break;
+
+                case SerialProtocol.Commands.SEND_PILL_MATRIX:
+                    if (dataLen >= 28)
+                    {
+                        int total = 0;
+                        for (int i = 3; i < 3 + 28; i++) total += package[i];
+                        return $" Pills={total}";
+                    }
+                    break;
+            }
+
+            return "";
+        }
+
         #endregion
 
         #region 分药机控制命令
@@ -710,6 +813,23 @@ namespace EZDose.Hardware
             pillRemain = totalPills;
 
             EZLog.I(EZLog.Module.Dispenser, $"Sending pill matrix, total pills: {totalPills}");
+
+            // 打印矩阵详情（4行=早中晚睡前，7列=周一到周日）
+            string[] rowLabels = { "morning  ", "noon  ", "evening  ", "sleep" };
+            var matrixLog = new System.Text.StringBuilder();
+            matrixLog.AppendLine(">>> Pill Matrix Detail:");
+            matrixLog.AppendLine("       Mon Tue Wed Thu Fri Sat Sun");
+            for (int row = 0; row < 4; row++)
+            {
+                matrixLog.Append($"  {rowLabels[row]} ");
+                for (int col = 0; col < 7; col++)
+                {
+                    matrixLog.Append($"  {matrix[row, col],2} ");
+                }
+                matrixLog.AppendLine();
+            }
+            matrixLog.Append($"  Total: {totalPills}");
+            EZLog.I(EZLog.Module.Dispenser, matrixLog.ToString());
 
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.SEND_PILL_MATRIX, matrixData);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, callback));
@@ -898,6 +1018,86 @@ namespace EZDose.Hardware
 
             EZLog.W(EZLog.Module.Dispenser, "Not connected, attempting reconnect");
             return Initialize();
+        }
+
+        #endregion
+
+        #region 心跳检测
+
+        /// <summary>
+        /// 启动心跳检测协程
+        /// </summary>
+        private void StartHeartbeat()
+        {
+            StopHeartbeat();
+            heartbeatCoroutine = StartCoroutine(HeartbeatCoroutine());
+            EZLog.D(EZLog.Module.Dispenser, "Heartbeat started");
+        }
+
+        /// <summary>
+        /// 停止心跳检测协程
+        /// </summary>
+        private void StopHeartbeat()
+        {
+            if (heartbeatCoroutine != null)
+            {
+                StopCoroutine(heartbeatCoroutine);
+                heartbeatCoroutine = null;
+            }
+        }
+
+        /// <summary>
+        /// 心跳检测协程 - 通过写探测检测蓝牙连接是否存活
+        /// 发送一个 0x00 探测字节，STM32 会丢弃（不匹配 0xAA 0xBB 包头）
+        /// 若远端设备已断电，writeBytes 会触发 IOException → Java 层 closeConnection()
+        /// </summary>
+        private IEnumerator HeartbeatCoroutine()
+        {
+            // 探测数据：单个 0x00 字节，STM32 协议解析器会丢弃非 0xAA 开头的数据
+            sbyte[] probeData = new sbyte[] { 0x00 };
+
+            while (isConnected)
+            {
+                yield return new WaitForSeconds(HEARTBEAT_INTERVAL);
+
+                if (!isConnected) yield break;
+
+                // 正在发送命令时跳过探测，避免串口数据冲突
+                if (isSendingPackage) continue;
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+                try
+                {
+                    if (bluetoothSerial == null)
+                    {
+                        HandleConnectionLost("蓝牙对象丢失");
+                        yield break;
+                    }
+
+                    // 发送探测字节：如果设备断电，Java writeBytes 会抛 IOException
+                    // 并调用 closeConnection()，使 isConnected() 返回 false
+                    bool writeOk = bluetoothSerial.Call<bool>("writeBytes", probeData);
+
+                    if (!writeOk)
+                    {
+                        // 写入失败，确认连接状态
+                        bool stillConnected = bluetoothSerial.Call<bool>("isConnected");
+                        if (!stillConnected)
+                        {
+                            EZLog.W(EZLog.Module.Dispenser, "Heartbeat: write probe failed, device disconnected");
+                            HandleConnectionLost("设备已断开连接");
+                            yield break;
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    EZLog.W(EZLog.Module.Dispenser, $"Heartbeat exception: {e.Message}");
+                    HandleConnectionLost("心跳检测异常");
+                    yield break;
+                }
+#endif
+            }
         }
 
         #endregion
