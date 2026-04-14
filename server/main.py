@@ -1387,7 +1387,7 @@ def manage_prescriptions():
 @permission_required('can_edit_prescriptions')
 def add_prescription():
     """
-    Handle adding a new prescription.
+    Handle adding a new prescription with optional medicine image upload.
     """
     conn = get_db_connection()
     patients = conn.execute('SELECT id, patient_name, bed_number FROM patients ORDER BY patient_name').fetchall()
@@ -1409,10 +1409,29 @@ def add_prescription():
             request.form['start_date'],
             int(request.form.get('duration_days', 7)),
             1 if request.form.get('is_active') else 0,
-            None  # pill_size_area is calibrated on device, not set in web admin
+            float(request.form['pill_size_area']) if request.form.get('pill_size_area') else None
         ))
         conn.commit()
         new_rx_id = cursor.lastrowid
+        
+        # Handle medicine image upload if provided
+        image_resource_id = None
+        if 'medicine_image' in request.files:
+            file = request.files['medicine_image']
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                new_filename = f"med_{new_rx_id}_{int(time.time())}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+                file.save(filepath)
+                image_resource_id = new_filename
+                
+                # Update the just-inserted record with image_resource_id
+                cursor.execute(
+                    'UPDATE prescriptions SET image_resource_id = ? WHERE id = ?',
+                    (image_resource_id, new_rx_id)
+                )
+                conn.commit()
+                logger.info(f"Saved medicine image for new prescription {new_rx_id}: {new_filename}")
         
         # Get patient name for log
         patient = conn.execute('SELECT patient_name FROM patients WHERE id = ?', 
@@ -1422,7 +1441,7 @@ def add_prescription():
         
         log_operation('add', 'prescription', '处方', target_id=new_rx_id, 
                      target_name=request.form['medicine_name'],
-                     details=f"患者: {patient_name}")
+                     details=f"患者: {patient_name}" + (f", 图片: {image_resource_id}" if image_resource_id else ""))
         
         return redirect(URL_PREFIX + url_for('manage_prescriptions'))
     
@@ -1435,7 +1454,7 @@ def add_prescription():
 @permission_required('can_edit_prescriptions')
 def edit_prescription(prescription_id):
     """
-    Handle editing an existing prescription.
+    Handle editing an existing prescription with optional medicine image upload/delete.
     """
     conn = get_db_connection()
     prescription = conn.execute('SELECT * FROM prescriptions WHERE id = ?', (prescription_id,)).fetchone()
@@ -1447,10 +1466,50 @@ def edit_prescription(prescription_id):
 
     if request.method == 'POST':
         cursor = conn.cursor()
+        pill_size_area = float(request.form['pill_size_area']) if request.form.get('pill_size_area') else None
+        
+        # Determine the image_resource_id to save
+        current_image_id = prescription['image_resource_id']
+        image_resource_id = current_image_id  # Default: keep existing
+        
+        # Check if user wants to delete current image
+        if request.form.get('delete_image'):
+            # Delete the file from disk
+            if current_image_id:
+                old_path = os.path.join(app.config['UPLOAD_FOLDER'], current_image_id)
+                if os.path.exists(old_path):
+                    try:
+                        os.remove(old_path)
+                        logger.info(f"Deleted medicine image: {current_image_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to delete medicine image {current_image_id}: {e}")
+            image_resource_id = None
+        
+        # Handle new image upload (overrides delete if both are set)
+        if 'medicine_image' in request.files:
+            file = request.files['medicine_image']
+            if file and file.filename and allowed_file(file.filename):
+                # Delete old image file if it exists
+                if current_image_id:
+                    old_path = os.path.join(app.config['UPLOAD_FOLDER'], current_image_id)
+                    if os.path.exists(old_path):
+                        try:
+                            os.remove(old_path)
+                        except Exception as e:
+                            logger.error(f"Failed to delete old medicine image {current_image_id}: {e}")
+                
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                new_filename = f"med_{prescription_id}_{int(time.time())}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+                file.save(filepath)
+                image_resource_id = new_filename
+                logger.info(f"Updated medicine image for prescription {prescription_id}: {new_filename}")
+        
         cursor.execute('''
             UPDATE prescriptions SET
                 patient_id=?, medicine_name=?, morning_dosage=?, noon_dosage=?, evening_dosage=?,
-                meal_timing=?, start_date=?, duration_days=?, is_active=?
+                meal_timing=?, start_date=?, duration_days=?, is_active=?, pill_size_area=?,
+                image_resource_id=?
             WHERE id=?
         ''', (
             request.form['patient_id'],
@@ -1462,6 +1521,8 @@ def edit_prescription(prescription_id):
             request.form['start_date'],
             int(request.form.get('duration_days', 7)),
             1 if request.form.get('is_active') else 0,
+            pill_size_area,
+            image_resource_id,
             prescription_id
         ))
         conn.commit()

@@ -1,13 +1,12 @@
 # EZ-Dose 服务器端
 
-EZ-Dose养老院分药给药管理系统的后端服务器，基于Flask框架开发，使用SQLite数据库存储数据，为移动端护工应用、分药机控制软件和处方管理软件提供API服务，同时提供Web管理后台。
+EZ-Dose养老院摆药机的后端服务器，基于Flask框架开发，使用SQLite数据库存储数据，为摆药机控制软件提供API服务，同时提供Web管理后台。
 
 ## 🏗️ 系统架构
 
 ```
 EZ-Dose Server
 ├── 分药机API接口     # 设备端数据同步
-├── 护工移动端API     # 手机App数据接口  
 ├── Web管理后台       # 浏览器管理界面
 └── SQLite数据库      # 数据持久化存储
 ```
@@ -126,17 +125,7 @@ server/
 pip install flask werkzeug
 ```
 
-2. **配置部署环境**
-编辑 `main.py` 第17-18行：
-```python
-# 本地开发
-URL_PREFIX = ''
-
-# 远程部署时取消下面注释
-# URL_PREFIX = '/flask'
-```
-
-3. **启动服务器**
+2. **启动服务器**
 ```bash
 python main.py
 ```
@@ -157,7 +146,3 @@ python main.py
 - API请求记录
 - 数据库操作状态
 - 错误信息详情
-
-## 📞 技术支持
-
-欢迎提issue给我！
