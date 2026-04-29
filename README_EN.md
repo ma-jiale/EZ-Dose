@@ -57,8 +57,8 @@ EZ-Dose System Architecture Diagram
 
 ### Prerequisites
 
-- Python 3.7+
-- Unity 2021.3 LTS or higher
+- Python 3.7+ (for hardware configuration scripts; see the separate `EZ_Dose_server` repository for the backend)
+- Unity 6.3 (this project currently uses Unity 6000.3.2f1)
 - Huawei MatePad running HarmonyOS 4 (Android-based)
 - HC-06 Bluetooth Serial Module
 - STM32-based Automatic Pill Dispenser
@@ -121,23 +121,20 @@ Pin Connection Diagram
 
 > **✅ Verification**: The Bluetooth module indicator LED flashing continuously after power-on indicates successful connection
 
-### 3️⃣ Run Server
+### 3️⃣ Prepare Backend Server
 
 ```bash
-cd server
-
-# Install dependencies
-pip install flask werkzeug
-
-# Start server
-python main.py
+# Backend code lives in a separate repository
+git clone https://github.com/your-username/EZ_Dose_server.git
+cd EZ_Dose_server
 ```
 
-The server will start at `http://localhost:5050`.
+Follow the `EZ_Dose_server` README to start the Flask backend, then set the corresponding server address in the APP settings page.
+The Unity client default server URL remains `http://127.0.0.1:5000`; on an Android tablet, this usually needs to be changed to the LAN IP of the backend server.
 
 #### Public Access (Optional)
 
-For external access, use Nginx reverse proxy or tunneling tools (ngrok, frp). Edit `main.py` lines 17-18 to configure the URL prefix:
+For external access, use Nginx reverse proxy or tunneling tools (ngrok, frp). The URL prefix, port, and deployment details should follow the `EZ_Dose_server` repository configuration:
 
 ```python
 # Uncomment for remote deployment
@@ -147,8 +144,7 @@ URL_PREFIX = '/flask'
 ### 4️⃣ Build Dispensing Control APP
 
 1. Open the `unity` directory with Unity Hub
-2. **Import OpenCVForUnity Package** (too large to include in repository)  
-   📥 Download: [Google Drive](https://drive.google.com/drive/u/0/folders/1FenmNGtCij93hQ0P-I8fsYGWgDltwT0e)
+2. Confirm `Assets/OpenCVForUnity`, `Assets/Plugins/Zxing`, and `Assets/Plugins/Android/bluetooth-serial.aar` are present
 3. Select **File → Build Settings**, switch platform to **Android**
 4. Click **Build And Run** to compile and install on MatePad
 
@@ -170,7 +166,7 @@ EZ-Dose System Workflow Diagram
 
 #### Login
 
-After starting the server, visit `http://server-address:5050/login`
+After starting the backend server, visit the configured login address, for example `http://server-address/login`; the port and URL prefix should follow the `EZ_Dose_server` deployment configuration.
 
 Login Page
 
@@ -371,11 +367,7 @@ Dispensing Complete
 
 ```
 EZ-Dose/
-├── 📂 server/              # Flask backend server
-│   ├── main.py             # Main entry point
-│   ├── data/               # SQLite database
-│   ├── static/             # Static resources
-│   └── templates/          # Page templates
+├── 📂 99_archive/          # Historical versions and old experiments (legacy server / GUI / Android app)
 ├── 📂 unity/               # Unity dispensing control APP
 │   ├── Assets/             # Unity assets
 │   ├── Packages/           # Dependencies
@@ -383,11 +375,11 @@ EZ-Dose/
 ├── 📂 hardware/            # Hardware configuration tools
 │   ├── hc06_baudrate_configurator.py   # Baud rate configuration
 │   └── hc06_name_configurator.py       # Bluetooth name configuration
-├── 📂 print_service/       # Label printing service
-│   └── jcPrinterSdk_*.exe  # NIIMBOT Print SDK
 ├── 📂 images/              # Documentation images
 └── 📂 docs/                # Project documentation
 ```
+
+> The backend server is maintained outside this repository. Use the separate `EZ_Dose_server` repository for current backend development. The legacy backend in `99_archive/server` is kept only as historical reference.
 
 ---
 
@@ -397,7 +389,7 @@ EZ-Dose/
 |-------|----------|
 | Bluetooth connection failed | Verify HC-06 baud rate is 115200, confirm Bluetooth is paired |
 | APP cannot discover device | Enable "Nearby Devices Access" permission, ensure Bluetooth is discoverable |
-| Server startup failed | Check if port 5050 is in use, ensure Flask is installed |
+| Server startup failed | Check the port, dependencies, and startup logs in the `EZ_Dose_server` repository |
 | Database locked | Close other processes accessing the database |
 | Label printing failed | Confirm printer is connected via USB, SDK is properly installed |
 | Prescription cards not showing | Check server URL in APP settings |

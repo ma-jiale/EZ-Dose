@@ -15,7 +15,7 @@
 
 ---
 
-## 📖 项目简介
+## 项目简介
 
 EZ-Dose 是一个面向康养机构的**智能药物管理系统**，为搭载 STM32 的自动分药机设计并实现了一套完整的"**处方管理—分药控制—操作记录**"多端交互系统。
 
@@ -33,7 +33,7 @@ EZ-Dose 是一个面向康养机构的**智能药物管理系统**，为搭载 S
 
 ---
 
-## 🏗️ 系统架构
+## 系统架构
 
 EZ-Dose 系统整体架构图
 
@@ -41,7 +41,7 @@ EZ-Dose 系统整体架构图
 
 ---
 
-## 📋 功能特性
+## 功能特性
 
 - ✅ **患者管理** - 管理患者基本信息，支持药盒标签打印
 - ✅ **处方管理** - 录入和管理患者处方，支持多时段用药
@@ -57,20 +57,20 @@ EZ-Dose 系统整体架构图
 
 ### 前置要求
 
-- Python 3.7+
-- Unity 2021.3 LTS 或更高版本
+- Python 3.7+（用于硬件配置脚本；后端请参见 `EZ_Dose_server` 仓库）
+- Unity 6.3（项目当前使用 Unity 6000.3.2f1）
 - 运行 HarmonyOS 4（基于 Android）的华为 MatePad
 - HC-06 蓝牙串口模块
 - 搭载 STM32 的自动分药机
 
-### 1️⃣ 克隆仓库
+### 1️.克隆仓库
 
 ```bash
 git clone https://github.com/your-username/EZ-Dose.git
 cd EZ-Dose
 ```
 
-### 2️⃣ 配置蓝牙模块
+### 2️.配置蓝牙模块
 
 由于自动分药机搭载的 STM32 单片机没有蓝牙功能，需要加装 HC-06 蓝牙串口模块。
 
@@ -121,34 +121,30 @@ python hardware/hc06_name_configurator.py --port COM6 --name "PillDispenserXX"
 
 > **✅ 验证**：上电后蓝牙模块指示灯持续闪烁表示连接成功
 
-### 3️⃣ 运行服务器
+### 3️.准备后端服务器
 
 ```bash
-cd server
-
-# 安装依赖
-pip install flask werkzeug
-
-# 启动服务器
-python main.py
+# 后端代码位于独立仓库
+git clone https://github.com/ma-jiale/EZ_Dose_server.git
+cd EZ_Dose_server
 ```
 
-服务器将在 `http://localhost:5050` 启动。
+请按 `EZ_Dose_server` 仓库 README 启动 Flask 后端，并在 APP 设置页填写对应服务器地址。
+Unity 客户端默认服务器地址保留为 `http://127.0.0.1:5000`，实际部署到 Android 平板时通常需要改为实际服务器 IP。
 
 #### 公网访问（可选）
 
-如需从外网访问，可以使用 Nginx 反向代理或内网穿透工具（如 ngrok、frp）。编辑 `main.py` 第 17-18 行配置 URL 前缀：
+如需从外网访问，可以使用 Nginx 反向代理或内网穿透工具（如 ngrok、frp）。后端的 URL 前缀、端口和部署方式以 `EZ_Dose_server` 仓库配置为准：
 
 ```python
 # 远程部署时取消下面注释
 URL_PREFIX = '/flask'
 ```
 
-### 4️⃣ 编译分药控制 APP
+### 4️.编译分药控制 APP
 
 1. 使用 Unity Hub 打开 `unity` 目录
-2. **导入 OpenCVForUnity 包**（文件过大未包含在仓库中）  
-   📥 下载地址：[Google Drive](https://drive.google.com/drive/u/0/folders/1FenmNGtCij93hQ0P-I8fsYGWgDltwT0e)
+2. 确认 `Assets/OpenCVForUnity`、`Assets/Plugins/Zxing` 和 `Assets/Plugins/Android/bluetooth-serial.aar` 已存在
 3. 选择 **File → Build Settings**，切换平台到 **Android**
 4. 点击 **Build And Run** 编译并安装到 MatePad
 
@@ -166,11 +162,11 @@ EZ-Dose 系统使用流程图
 
 ---
 
-### 🌐 处方管理网站
+### 处方管理网站
 
 #### 登录系统
 
-运行服务器后访问 `http://服务器地址:5050/login`
+运行后端服务器后访问对应登录地址，例如 `http://服务器地址/login`；端口和 URL 前缀以 `EZ_Dose_server` 的部署配置为准。
 
 登录界面
 
@@ -367,15 +363,11 @@ APP 首页
 
 ---
 
-## 📁 项目结构
+## 项目结构
 
 ```
 EZ-Dose/
-├── 📂 server/              # Flask 后端服务器
-│   ├── main.py             # 主程序入口
-│   ├── data/               # SQLite 数据库
-│   ├── static/             # 静态资源
-│   └── templates/          # 页面模板
+├── 📂 99_archive/          # 历史版本与旧实验实现（旧 server / GUI / Android app）
 ├── 📂 unity/               # Unity 分药控制 APP
 │   ├── Assets/             # Unity 资源文件
 │   ├── Packages/           # 依赖包
@@ -383,40 +375,40 @@ EZ-Dose/
 ├── 📂 hardware/            # 硬件配置工具
 │   ├── hc06_baudrate_configurator.py   # 波特率配置
 │   └── hc06_name_configurator.py       # 蓝牙名称配置
-├── 📂 print_service/       # 标签打印服务
-│   └── jcPrinterSdk_*.exe  # 精臣打印 SDK
 ├── 📂 images/              # 文档图片资源
 └── 📂 docs/                # 项目文档
 ```
 
+> 后端服务器不在本仓库维护，当前请使用独立仓库 `EZ_Dose_server`。本仓库中的旧后端实现仅保留在 `99_archive/server` 作为历史参考。
+
 ---
 
-## 🔧 故障排除
+## 故障排除
 
 | 问题 | 解决方案 |
 |------|----------|
 | 蓝牙连接失败 | 检查 HC-06 波特率是否为 115200，确认蓝牙已配对 |
 | APP 无法发现设备 | 开启"附近设备访问"权限，确保蓝牙处于可发现状态 |
-| 服务器启动失败 | 检查 5050 端口是否被占用，确保 Flask 已安装 |
+| 服务器启动失败 | 请在 `EZ_Dose_server` 仓库中检查端口、依赖和启动日志 |
 | 数据库锁定 | 关闭其他访问数据库的进程 |
 | 标签打印失败 | 确认打印机已通过 USB 连接，SDK 已正确安装 |
 | 处方卡片不显示 | 检查 APP 设置中的服务器 URL 是否正确 |
 
 ---
 
-## 📄 许可证
+## 许可证
 
 本项目采用 [MIT License](./LICENSE) 开源许可证。
 
 ---
 
-## 📞 联系方式
+## 联系方式
 
-如有问题或建议，欢迎提交 [Issue](https://github.com/your-username/EZ-Dose/issues)！
+如有问题或建议，欢迎提交 [Issue](https://github.com/ma-jiale/EZ-Dose/issues)！
 
 ---
 
 <p align="center">
-  <sub>Made with ❤️ by Jiale Ma</sub>
+  <sub>Made by Jiale Ma</sub>
 </p>
 

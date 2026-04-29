@@ -12,8 +12,8 @@ EZ-Dose 是一个养老院自动分药系统完整解决方案，核心目标是
 
 | 组件 | 技术栈 | 职责 |
 |------|--------|------|
-| **Server（后端服务器）** | Python / Flask / SQLite | 数据存储、Web 管理后台、REST API |
-| **Unity App（Android 控制端）** | Unity / C# / OpenCV | 安卓平板 GUI、蓝牙通信、摄像头药片计数 |
+| **Server（后端服务器）** | Python / Flask / SQLite | 数据存储、Web 管理后台、REST API；当前位于独立仓库 `EZ_Dose_server` |
+| **Unity App（Android 控制端）** | Unity 6.3 / C# / OpenCV | 安卓平板 GUI、蓝牙通信、摄像头药片计数 |
 | **Hardware（分药机硬件）** | STM32 / 蓝牙串口 | 电机驱动、光耦计数、舱门控制 |
 
 ```mermaid
@@ -73,7 +73,7 @@ graph TB
    └── 确保护工拿的是正确患者的药盒
 
 3. 分药页 (Dispense)
-   ├── 系统按处方生成"4×7 药片矩阵"（4行=早中晚+备用，7列=7天）
+   ├── 系统按处方生成"4×7 药片矩阵"（当前映射：行0=早、行1=晚、行2=午、行3=备用；物理盘从上到下为午/晚/早）
    ├── 药物按"饭前/随意吃"(盘1) 和 "饭后"(盘2) 分盘
    ├── 逐个药物发送矩阵给 STM32：
    │     ├── 若药物未校准（pill_size_area 为空）→ 弹出校准对话框
@@ -94,27 +94,7 @@ graph TB
 ```
 Assets/Scripts/
 │
-├── server/                          # ===== 后端服务器（Python） =====
-│   ├── main.py                      # Flask 主程序（API + Web 后台, ~1660行）
-│   ├── data/
-│   │   └── ezdose.db                # SQLite 数据库（自动创建）
-│   ├── static/
-│   │   ├── styles.css               # Web 后台样式
-│   │   ├── images/                  # 患者照片 / 药片图片存储
-│   │   └── js/                      # 前端 JavaScript
-│   └── templates/                   # Jinja2 HTML 模板
-│       ├── base.html                # 基础模板（导航栏、布局）
-│       ├── login.html               # 登录页面
-│       ├── dashboard.html           # 仪表板首页
-│       ├── patients.html            # 患者管理列表
-│       ├── patient_form.html        # 患者新增/编辑表单
-│       ├── prescriptions.html       # 处方列表
-│       ├── prescription_form.html   # 处方新增/编辑表单
-│       ├── users.html               # 用户管理列表
-│       ├── user_form.html           # 用户新增/编辑表单
-│       ├── dispense_logs.html       # 分药记录
-│       ├── operation_logs.html      # 操作审计日志
-│       └── access_denied.html       # 权限不足提示
+├── （后端服务器位于独立仓库 EZ_Dose_server；本仓库不维护当前后端代码）
 │
 ├── MainController.cs                # ===== 核心控制器 =====
 │                                    # 分药流程主协调器（单例），管理患者列表、
@@ -375,7 +355,7 @@ PatientCard (默认) ←→ CountPills ←→ Setting
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | [id](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/DeviceManagerUI.cs#146-157) | INTEGER (PK) | 自增主键 |
-| [patient_id](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/server/main.py#89-117) | TEXT (FK) | 关联 patients.id |
+| `patient_id` | TEXT (FK) | 关联 patients.id |
 | `medicine_name` | TEXT | 药品名称 |
 | `morning_dosage` | REAL | 早餐剂量（颗） |
 | `noon_dosage` | REAL | 午餐剂量 |
@@ -407,7 +387,7 @@ PatientCard (默认) ←→ CountPills ←→ Setting
 |------|------|------|
 | [id](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/DeviceManagerUI.cs#146-157) | INTEGER (PK) | 自增主键 |
 | `dispense_date` | DATE | 分药日期 |
-| [patient_id](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/server/main.py#89-117) | TEXT (FK) | 患者 ID |
+| `patient_id` | TEXT (FK) | 患者 ID |
 | `prescription_id` | INTEGER (FK) | 处方 ID |
 | `medicine_name` | TEXT | 药品名称 |
 | `dosage` | REAL | 剂量 |
@@ -479,27 +459,18 @@ PatientCard (默认) ←→ CountPills ←→ Setting
 
 ### 服务器部署
 
-**环境要求：** Python 3.7+
+当前后端位于独立仓库 `EZ_Dose_server`，请在该仓库中安装依赖、启动 Flask 服务并查看 API/数据库说明。
 
 ```bash
-# 1. 安装依赖
-pip install flask werkzeug
-
-# 2. 进入服务器目录
-cd Assets/Scripts/server
-
-# 3. 启动
-python main.py
+# 示例
+git clone https://github.com/your-username/EZ_Dose_server.git
+cd EZ_Dose_server
 ```
 
-服务器启动后：
-- API 地址：`http://<IP>:5050`
-- 数据库自动创建于 `data/ezdose.db`
-- 默认管理员：用户名 [admin](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/server/main.py#993-1019) / 密码 `admin123`
-- 日志文件：`data/ezdose.log`（10MB 轮转，保留 5 份）
+Unity 客户端通过设置页配置服务器 URL。当前默认值仍为 `http://127.0.0.1:5000`，部署到 Android 平板时通常需要改成后端所在机器的局域网 IP。
 
 **远程部署（反向代理）：**
-修改 [main.py](file:///d:/Documents/Unity/Projects/EZ-Dose/Assets/Scripts/server/main.py) 中的 `URL_PREFIX`：
+URL 前缀、端口和反向代理配置以 `EZ_Dose_server` 仓库为准：
 ```python
 # URL_PREFIX = ''           # 本地开发
 URL_PREFIX = '/flask'       # Nginx 反向代理时取消注释
@@ -507,7 +478,7 @@ URL_PREFIX = '/flask'       # Nginx 反向代理时取消注释
 
 ### Unity 客户端
 
-1. 用 Unity 打开项目（推荐版本参见 ProjectSettings）
+1. 用 Unity 6.3 打开项目（当前 ProjectSettings 为 Unity 6000.3.2f1）
 2. 切换平台为 **Android**
 3. 确保已导入以下插件：
    - **OpenCV for Unity** — 药片计数算法
@@ -537,7 +508,7 @@ URL_PREFIX = '/flask'       # Nginx 反向代理时取消注释
 2. **蓝牙权限**：Android 12+ 需要运行时申请 `BLUETOOTH_CONNECT` 和 `BLUETOOTH_SCAN`
 3. **摄像头权限**：条码扫描和药片计数均需要摄像头权限
 4. **SQLite 并发**：SQLite 单写多读，高并发场景下可能需迁移到 PostgreSQL
-5. **药片矩阵行顺序**：矩阵行顺序为 `[0]=早上(MorningDosage), [1]=晚上(EveningDosage), [2]=中午(NoonDosage), [3]=备用`，**不是**直觉的早中晚顺序。这是因为物理药盘从底到顶为 `早→晚→中`，分药机从顶部(中午)开始分药，对应养老院第一餐是午餐的工作流程
+5. **药片矩阵行顺序**：当前矩阵行顺序为 `[0]=早上(MorningDosage), [1]=晚上(EveningDosage), [2]=中午(NoonDosage), [3]=备用`，**不是**直觉的早中晚顺序。物理药盘从上到下为 `午→晚→早`，等价于从底到顶 `早→晚→午`；分药机从顶部(中午)开始分药，对应养老院第一餐是午餐的工作流程
 
 ---
 
