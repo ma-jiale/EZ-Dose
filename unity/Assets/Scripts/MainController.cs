@@ -614,6 +614,7 @@ namespace EZDose.MainFlow
             }
 
             isDispensing = true;
+            dispenserController.ResetPauseStateForNewDispensing();
 
             // Build a flat list of all medicines with their plate numbers for easier indexing
             var allMedicines = new List<(DispensingMedicine med, int plate)>();

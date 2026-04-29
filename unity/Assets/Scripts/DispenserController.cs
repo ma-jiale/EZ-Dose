@@ -949,6 +949,22 @@ namespace EZDose.Hardware
         }
 
         /// <summary>
+        /// Clears the previous dispensing pause flag when a new dispensing run starts.
+        /// This only syncs software state; motor speed is configured by the dispensing flow.
+        /// </summary>
+        public void ResetPauseStateForNewDispensing()
+        {
+            if (!isPaused && machineState == 1)
+            {
+                return;
+            }
+
+            isPaused = false;
+            machineState = 1;
+            OnPauseStateChanged?.Invoke(false);
+        }
+
+        /// <summary>
         /// 复位分药机摆锤（阻塞操作，需等待DONE）
         /// </summary>
         public void ResetDispenser(Action<bool> callback = null)
