@@ -158,6 +158,9 @@ namespace EZDose.UI
         [Tooltip("标记为已分发勾选框")]
         [SerializeField] private Toggle skipMarkDispensedToggle;
         
+        [Tooltip("清洁托盘药片勾选框")]
+        [SerializeField] private Toggle skipCleanTrayToggle;
+        
         [Tooltip("跳过对话框显示药物名称")]
         [SerializeField] private Text skipMedicineNameText;
         
@@ -1001,6 +1004,12 @@ namespace EZDose.UI
                 skipMarkDispensedToggle.isOn = false;
             }
             
+            // Reset clean tray toggle to unchecked (default: don't clean)
+            if (skipCleanTrayToggle != null)
+            {
+                skipCleanTrayToggle.isOn = false;
+            }
+            
             if (skipConfirmDialog != null)
             {
                 skipConfirmDialog.SetActive(true);
@@ -1013,8 +1022,9 @@ namespace EZDose.UI
         private void OnSkipConfirmClicked()
         {
             bool markAsDispensed = skipMarkDispensedToggle != null && skipMarkDispensedToggle.isOn;
+            bool cleanTray = skipCleanTrayToggle != null && skipCleanTrayToggle.isOn;
             
-            EZLog.D(EZLog.Module.UI, $"Skip confirmed, markAsDispensed={markAsDispensed}");
+            EZLog.D(EZLog.Module.UI, $"Skip confirmed, markAsDispensed={markAsDispensed}, cleanTray={cleanTray}");
             
             if (skipConfirmDialog != null)
             {
@@ -1022,7 +1032,7 @@ namespace EZDose.UI
             }
             
             var main = MainController.Instance;
-            main?.ConfirmSkipReady(markAsDispensed);
+            main?.ConfirmSkipReady(markAsDispensed, cleanTray);
         }
 
         /// <summary>

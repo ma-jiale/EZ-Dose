@@ -65,6 +65,7 @@ namespace EZDose.Hardware
         public event Action<int, int> OnOptoPulseReceived;  // (pulseWidth, sequenceNumber)
         public event Action<int> OnPillCountUpdate;
         public event Action<bool> OnPauseStateChanged;
+        public event Action<int> OnCleanCompleted;  // cleaned pills count
 
         
         // Bluetooth device discovery events
@@ -573,6 +574,11 @@ namespace EZDose.Hardware
                 case FeedbackType.Unknown:
                     EZLog.W(EZLog.Module.Protocol, $"Unknown message: {feedback.RawMessage}");
                     break;
+
+                case FeedbackType.CleanedPills:
+                    EZLog.I(EZLog.Module.Dispenser, $"Cleaned pills: {feedback.PillCount}");
+                    OnCleanCompleted?.Invoke(feedback.PillCount);
+                    break;
             }
         }
 
@@ -872,6 +878,38 @@ namespace EZDose.Hardware
             EZLog.I(EZLog.Module.Dispenser, "Sending SKIP_TASK command");
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.SKIP_TASK);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, callback));
+        }
+
+        /// <summary>
+        /// 清理转盘药片 — 发送 CLEAN_PILLS (0x02) 命令
+        /// STM32 运行转盘直到3秒内无颗粒检测，然后返回 DONE + "cleaned pills:xx"
+        /// </summary>
+        public void CleanPills(Action<bool> callback = null)
+        {
+            EZLog.I(EZLog.Module.Dispenser, "Sending CLEAN_PILLS command");
+            byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.CLEAN_PILLS);
+            StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (ackSuccess) =>
+            {
+                if (!ackSuccess)
+                {
+                    callback?.Invoke(false);
+                    return;
+                }
+
+                // 等待DONE信号（清理可能需要较长时间）
+                StartCoroutine(WaitForDone(30f, (doneSuccess) =>
+                {
+                    if (doneSuccess)
+                    {
+                        EZLog.I(EZLog.Module.Dispenser, "Clean pills completed");
+                    }
+                    else
+                    {
+                        EZLog.W(EZLog.Module.Dispenser, "Clean pills timed out");
+                    }
+                    callback?.Invoke(doneSuccess);
+                }));
+            }));
         }
 
         /// <summary>

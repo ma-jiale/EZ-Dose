@@ -13,6 +13,7 @@ namespace EZDose.Hardware
         {
             public const byte SKIP_TASK = 0x00;       // 跳过当前任务
             public const byte RESET_DISPENSER = 0x01;       // 摆锤零位设置
+            public const byte CLEAN_PILLS = 0x02;           // 清理转盘药片（运行直到3秒无颗粒检测）
             public const byte OPEN_TRAY = 0x03;             // 打开舱门
             public const byte CLOSE_TRAY = 0x04;            // 关闭舱门
             public const byte SEND_PILL_MATRIX = 0x05;      // 发送药片矩阵
@@ -121,6 +122,7 @@ namespace EZDose.Hardware
             {
                 case Commands.SKIP_TASK:             return "SKIP_TASK";
                 case Commands.RESET_DISPENSER:       return "RESET_DISPENSER";
+                case Commands.CLEAN_PILLS:           return "CLEAN_PILLS";
                 case Commands.OPEN_TRAY:             return "OPEN_TRAY";
                 case Commands.CLOSE_TRAY:            return "CLOSE_TRAY";
                 case Commands.SEND_PILL_MATRIX:      return "SEND_PILL_MATRIX";
@@ -144,6 +146,7 @@ namespace EZDose.Hardware
             public const string MACHINE_STATE_FINISH = "machine_state:FINISH";
             public const string MACHINE_STATE_CNT_ERR = "machine_state:CNT_ERR";
             public const string PILLS_OUT_PREFIX = "pills out:";
+            public const string CLEANED_PILLS_PREFIX = "cleaned pills:";
             public const string ACK_MSG = "ACK";
             public const string DONE_MSG = "DONE";
 
@@ -174,6 +177,19 @@ namespace EZDose.Hardware
                         {
                             Type = FeedbackType.PillsOut,
                             PillCount = count
+                        };
+                    }
+                }
+
+                if (message.StartsWith(CLEANED_PILLS_PREFIX))
+                {
+                    string countStr = message.Substring(CLEANED_PILLS_PREFIX.Length).Trim();
+                    if (int.TryParse(countStr, out int cleanedCount))
+                    {
+                        return new FeedbackMessage
+                        {
+                            Type = FeedbackType.CleanedPills,
+                            PillCount = cleanedCount
                         };
                     }
                 }
@@ -252,7 +268,8 @@ namespace EZDose.Hardware
         PillsOut,
         ACK,
         DONE,
-        OptoPulseWidth
+        OptoPulseWidth,
+        CleanedPills
     }
 
     /// <summary>

@@ -14,7 +14,7 @@ namespace EZDose.CheckPillBox
     public class CheckPillBoxController : MonoBehaviour
     {
         [Header("Camera")]
-        [SerializeField] private int cameraIndex = 1;
+        [SerializeField] private int cameraIndex = -1; // -1 = auto-detect front camera on first use
         [SerializeField] private int requestedWidth = 1280;
         [SerializeField] private int requestedHeight = 720;
         [SerializeField] private int requestedFps = 30;
@@ -152,6 +152,21 @@ namespace EZDose.CheckPillBox
             var devices = WebCamTexture.devices;
             if (devices == null || devices.Length == 0)
                 throw new Exception("No camera found");
+
+            // Auto-detect front-facing camera on first use
+            if (cameraIndex < 0)
+            {
+                cameraIndex = 0; // fallback to first camera
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    if (devices[i].isFrontFacing)
+                    {
+                        cameraIndex = i;
+                        break;
+                    }
+                }
+                EZLog.I(EZLog.Module.Scanner, $"Auto-selected camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
+            }
 
             if (cameraIndex >= devices.Length)
                 cameraIndex = 0;
