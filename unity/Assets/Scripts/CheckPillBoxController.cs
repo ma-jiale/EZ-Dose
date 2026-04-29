@@ -9,7 +9,7 @@ using EZDose;
 namespace EZDose.CheckPillBox
 {
     /// <summary>
-    /// Simple barcode/QR scanner to verify the pill box before dispensing.
+    /// barcode/QR scanner to verify the pill box before dispensing.
     /// </summary>
     public class CheckPillBoxController : MonoBehaviour
     {
@@ -19,7 +19,7 @@ namespace EZDose.CheckPillBox
         [SerializeField] private int requestedHeight = 720;
         [SerializeField] private int requestedFps = 30;
 
-        [Header("UI (optional)")]
+        [Header("UI")]
         [SerializeField] private RawImage preview;
         [SerializeField] private Text statusText;
 
@@ -29,6 +29,7 @@ namespace EZDose.CheckPillBox
         private WebCamTexture webCamTexture;
         private BarcodeReader barcodeReader;
         private bool isScanning;
+        private bool hasSelectedCamera;
         private string expectedPatientId; // We expect box id == patient id
 
         /// <summary>
@@ -39,7 +40,7 @@ namespace EZDose.CheckPillBox
             get
             {
                 var devices = WebCamTexture.devices;
-                if (devices != null && cameraIndex < devices.Length)
+                if (devices != null && cameraIndex >= 0 && cameraIndex < devices.Length)
                     return devices[cameraIndex].isFrontFacing;
                 return false;
             }
@@ -140,7 +141,13 @@ namespace EZDose.CheckPillBox
             }
 
             // Cycle to next camera
+            if (!hasSelectedCamera || cameraIndex < 0 || cameraIndex >= devices.Length)
+            {
+                cameraIndex = GetPreferredCameraIndex(devices);
+            }
+
             cameraIndex = (cameraIndex + 1) % devices.Length;
+            hasSelectedCamera = true;
             EZLog.I(EZLog.Module.Scanner, $"Switching to camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
 
             // Restart with new camera
@@ -153,23 +160,13 @@ namespace EZDose.CheckPillBox
             if (devices == null || devices.Length == 0)
                 throw new Exception("No camera found");
 
-            // Auto-detect front-facing camera on first use
-            if (cameraIndex < 0)
+            // Prefer the front-facing camera on first use, even if a scene has an old serialized index.
+            if (!hasSelectedCamera || cameraIndex < 0 || cameraIndex >= devices.Length)
             {
-                cameraIndex = 0; // fallback to first camera
-                for (int i = 0; i < devices.Length; i++)
-                {
-                    if (devices[i].isFrontFacing)
-                    {
-                        cameraIndex = i;
-                        break;
-                    }
-                }
+                cameraIndex = GetPreferredCameraIndex(devices);
+                hasSelectedCamera = true;
                 EZLog.I(EZLog.Module.Scanner, $"Auto-selected camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
             }
-
-            if (cameraIndex >= devices.Length)
-                cameraIndex = 0;
 
             webCamTexture = new WebCamTexture(devices[cameraIndex].name, requestedWidth, requestedHeight, requestedFps);
             webCamTexture.Play();
@@ -178,6 +175,17 @@ namespace EZDose.CheckPillBox
             {
                 preview.texture = webCamTexture;
             }
+        }
+
+        private static int GetPreferredCameraIndex(WebCamDevice[] devices)
+        {
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (devices[i].isFrontFacing)
+                    return i;
+            }
+
+            return 0;
         }
 
         private IEnumerator ScanLoop()
