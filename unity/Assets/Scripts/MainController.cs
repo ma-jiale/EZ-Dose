@@ -45,6 +45,7 @@ namespace EZDose.MainFlow
         public event Action<string> DispensingError;
         public event Action DispensingCompleted;
         public event Action<int> PlateSwitchRequired;
+        public event Action<string> DeviceLost;
         
         // Event to trigger the manual error resolution dialog in UI
         public event Action<string> ErrorResolutionRequired;
@@ -70,6 +71,8 @@ namespace EZDose.MainFlow
         private DispensingPlan currentPlan;
 
         private bool isDispensing;
+        private bool isDeviceLostAbort;
+        private bool hasPendingDeviceLost;
         private TaskCompletionSource<bool> dispenseTcs;
         private TaskCompletionSource<bool> plateReadyTcs;
 
@@ -174,12 +177,14 @@ namespace EZDose.MainFlow
                 // Progress bar now driven by OnOptoPulseReceived instead of OnPillCountUpdate
                 // to reduce bluetooth message count
                 dispenserController.OnOptoPulseReceived += OnMachineOptoPulseReceived;
+                dispenserController.OnBTError += OnDispenserDeviceLost;
             }
             else
             {
                 dispenserController.OnDispensingComplete -= OnMachineDispensingComplete;
                 dispenserController.OnCountError -= OnMachineCountError;
                 dispenserController.OnOptoPulseReceived -= OnMachineOptoPulseReceived;
+                dispenserController.OnBTError -= OnDispenserDeviceLost;
             }
         }
 
@@ -613,6 +618,7 @@ namespace EZDose.MainFlow
                 }
             }
 
+            isDeviceLostAbort = false;
             isDispensing = true;
             dispenserController.ResetPauseStateForNewDispensing();
 
@@ -633,6 +639,11 @@ namespace EZDose.MainFlow
 
             for (int i = 0; i < allMedicines.Count; i++)
             {
+                if (isDeviceLostAbort)
+                {
+                    return FinishDeviceLostAbort();
+                }
+
                 var (med, plate) = allMedicines[i];
                 
                 // Determine next medicine info (if any)
@@ -648,22 +659,39 @@ namespace EZDose.MainFlow
                     // Open tray so user can remove old plate
                     var openTcs = new TaskCompletionSource<bool>();
                     dispenserController.OpenTray(success => openTcs.TrySetResult(success));
-                    await openTcs.Task;
+                    var opened = await openTcs.Task;
+                    if (!opened || isDeviceLostAbort)
+                    {
+                        return FinishDeviceLostAbort();
+                    }
                     
                     // Ask the user to swap the plate before continuing.
                     PlateSwitchRequired?.Invoke(plate);
                     plateReadyTcs = new TaskCompletionSource<bool>();
-                    await plateReadyTcs.Task;
+                    var plateReady = await plateReadyTcs.Task;
+                    if (!plateReady || isDeviceLostAbort)
+                    {
+                        return FinishDeviceLostAbort();
+                    }
                     
                     // Close tray after new plate is inserted
                     var closeTcs = new TaskCompletionSource<bool>();
                     dispenserController.CloseTray(success => closeTcs.TrySetResult(success));
-                    await closeTcs.Task;
+                    var closed = await closeTcs.Task;
+                    if (!closed || isDeviceLostAbort)
+                    {
+                        return FinishDeviceLostAbort();
+                    }
                 }
 
                 var ok = await DispenseMedicineAsync(med, plate, nextMed);
                 if (!ok)
                 {
+                    if (isDeviceLostAbort)
+                    {
+                        return FinishDeviceLostAbort();
+                    }
+
                     isDispensing = false;
                     return false;
                 }
@@ -672,13 +700,25 @@ namespace EZDose.MainFlow
                 // All medicines dispensed successfully
                 
                 EZLog.I(EZLog.Module.Main, "Opening tray for pill collection");
-                await OpenTrayAsync();
+                var trayOpened = await OpenTrayAsync();
+                if (!trayOpened || isDeviceLostAbort)
+                {
+                    return FinishDeviceLostAbort();
+                }
 
                 EZLog.D(EZLog.Module.Main, "Waiting for tray mechanical movement to complete...");
                 await Task.Delay(2000); 
+                if (isDeviceLostAbort)
+                {
+                    return FinishDeviceLostAbort();
+                }
 
                 EZLog.I(EZLog.Module.Main, "All medicines dispensed, pausing turntable motor");
-                await PauseAsync();
+                var paused = await PauseAsync();
+                if (!paused || isDeviceLostAbort)
+                {
+                    return FinishDeviceLostAbort();
+                }
             
             // Update server and mark patient complete
             await prescriptionManager.PushAllChangesAsync();
@@ -705,6 +745,76 @@ namespace EZDose.MainFlow
         public void ConfirmErrorResolution()
         {
             errorResolutionTcs?.TrySetResult(true);
+        }
+
+        private void OnDispenserDeviceLost(string reason)
+        {
+            const string disconnectedPrefix = "连接已断开:";
+            if (string.IsNullOrEmpty(reason) || !reason.StartsWith(disconnectedPrefix, StringComparison.Ordinal))
+            {
+                EZLog.W(EZLog.Module.Main, $"Ignoring non-disconnect Bluetooth error: {reason}");
+                return;
+            }
+
+            EZLog.W(EZLog.Module.Main, $"Device lost: {reason}");
+
+            isDeviceLostAbort = true;
+            AbortCurrentDispensing();
+
+            if (hasPendingDeviceLost)
+            {
+                return;
+            }
+
+            hasPendingDeviceLost = true;
+            DeviceLost?.Invoke(reason);
+        }
+
+        private void AbortCurrentDispensing()
+        {
+            isDispensing = false;
+            isWaitingForDispensingComplete = false;
+            hasCountError = false;
+
+            dispenseTcs?.TrySetResult(false);
+            plateReadyTcs?.TrySetResult(false);
+            errorResolutionTcs?.TrySetResult(false);
+            pillCalibrationTcs?.TrySetResult(0f);
+            skipConfirmTcs?.TrySetResult((false, false));
+        }
+
+        private bool FinishDeviceLostAbort()
+        {
+            EZLog.W(EZLog.Module.Main, "Dispensing aborted because device was lost");
+            isDispensing = false;
+            currentPlan = null;
+            return false;
+        }
+
+        public async Task ResetAfterDeviceLostAsync()
+        {
+            AbortCurrentDispensing();
+            currentPlan = null;
+            currentPatient = null;
+            currentMedicineName = string.Empty;
+            currentMedicineImageResourceId = string.Empty;
+            currentMedicineArea = 0f;
+            currentMedicineTotal = 0;
+            nextMedicineName = string.Empty;
+            nextMedicinePillCount = 0;
+            optoPulseWidths.Clear();
+            validPulseCount = 0;
+            lastReceivedSequenceNumber = -1;
+            ResumeAutoRefresh();
+
+            if (dispenserController != null)
+            {
+                dispenserController.Disconnect();
+            }
+
+            prescriptionManager = new PrescriptionManager(AppConfig.Instance.ServerUrl);
+            await RefreshPatientsAsync(false);
+            hasPendingDeviceLost = false;
         }
 
         private async Task<bool> DispenseMedicineAsync(DispensingMedicine med, int plate, DispensingMedicine nextMed = null)
@@ -737,6 +847,10 @@ namespace EZDose.MainFlow
                 // Wait for calibration to complete (UI calls CompletePillCalibration)
                 pillCalibrationTcs = new TaskCompletionSource<float>();
                 float calibratedAreaMm2 = await pillCalibrationTcs.Task;
+                if (isDeviceLostAbort)
+                {
+                    return false;
+                }
                 
                 if (calibratedAreaMm2 <= 0)
                 {
@@ -783,6 +897,11 @@ namespace EZDose.MainFlow
             // Configure dispenser hardware based on pill area
             EZLog.D(EZLog.Module.Main, $"Configuring dispenser for pill area: {med.PillSizeArea:.1f}mm²");
             var configured = await ConfigureDispenserForPillArea(med.PillSizeArea);
+            if (isDeviceLostAbort)
+            {
+                return false;
+            }
+
             if (!configured)
             {
                 EZLog.W(EZLog.Module.Main, $"Failed to configure for pill area {med.PillSizeArea:.1f}mm², continuing anyway");
@@ -822,6 +941,10 @@ namespace EZDose.MainFlow
             skipCurrentMedicineTcs = new TaskCompletionSource<bool>();
 
             var (success, wasSkipped, markAsDispensed) = await SendMatrixAndWaitAsync(matrix);
+            if (isDeviceLostAbort)
+            {
+                return false;
+            }
             
             // If skipped by user
             if (wasSkipped)
@@ -847,7 +970,11 @@ namespace EZDose.MainFlow
                 
                 // 3. Wait for user confirmation (ConfirmErrorResolution called by UI)
                 errorResolutionTcs = new TaskCompletionSource<bool>();
-                await errorResolutionTcs.Task;
+                var resolved = await errorResolutionTcs.Task;
+                if (!resolved || isDeviceLostAbort)
+                {
+                    return false;
+                }
                 
                 // Note: We intentionally do NOT close the tray here.
                 // - For single medicine: tray stays open until user confirms completion dialog
@@ -1029,6 +1156,11 @@ namespace EZDose.MainFlow
 
         private async Task<(bool success, bool wasSkipped, bool markAsDispensed)> SendMatrixAndWaitAsync(byte[,] matrix)
         {
+            if (isDeviceLostAbort)
+            {
+                return (false, false, false);
+            }
+
             // Create a fresh TaskCompletionSource for this specific dispensing operation
             // This ensures we only respond to FINISH messages for THIS matrix send
             dispenseTcs = new TaskCompletionSource<bool>();
@@ -1048,6 +1180,10 @@ namespace EZDose.MainFlow
             if (!sendSuccess)
             {
                 EZLog.W(EZLog.Module.Main, "Failed to send pill matrix");
+                return (false, false, false);
+            }
+            if (isDeviceLostAbort)
+            {
                 return (false, false, false);
             }
 
@@ -1091,6 +1227,10 @@ namespace EZDose.MainFlow
                 // Wait for user to confirm in dialog
                 skipConfirmTcs = new TaskCompletionSource<(bool markAsDispensed, bool cleanTray)>();
                 var (markAsDispensed, cleanTray) = await skipConfirmTcs.Task;
+                if (isDeviceLostAbort)
+                {
+                    return (false, false, false);
+                }
                 
                 // Execute clean tray command if requested
                 if (cleanTray && dispenserController != null)

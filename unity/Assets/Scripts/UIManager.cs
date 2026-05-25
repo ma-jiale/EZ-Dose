@@ -62,6 +62,14 @@ namespace EZDose.UI
         [Tooltip("Confirm button in the connection required dialog")]
         [SerializeField] private Button connectDialogConfirmButton;
 
+        [Header("Device Lost Dialog")]
+        [Tooltip("Dialog shown when the dispenser becomes unreachable during scan or dispensing")]
+        [SerializeField] private GameObject deviceLostDialog;
+        [Tooltip("Confirm button in the device lost dialog")]
+        [SerializeField] private Button deviceLostConfirmButton;
+        [Tooltip("Optional message text in the device lost dialog")]
+        [SerializeField] private Text deviceLostMessageText;
+
         [Header("Home Sub-Pages (Right Panel)")]
         [Tooltip("Reference to the PatientCard sub-page container. This page shows patient information.")]
         [SerializeField] private GameObject patientCardPage;
@@ -185,6 +193,7 @@ namespace EZDose.UI
 
         // Dictionary mapping sub-page enum to its corresponding button
         private Dictionary<HomeSubPage, Button> subPageButtonMap;
+        private bool deviceLostDialogVisible;
 
         /// <summary>
         /// Event fired when the active Home sub-page changes.
@@ -199,6 +208,13 @@ namespace EZDose.UI
 
         private void Start()
         {
+            SetupDeviceLostDialog();
+            var main = MainController.Instance;
+            if (main != null)
+            {
+                main.DeviceLost += OnDeviceLost;
+            }
+
             var scene = SceneManager.GetActiveScene().name;
             if (scene == homeSceneName)
             {
@@ -761,7 +777,11 @@ namespace EZDose.UI
             var main = MainController.Instance;
             if (main != null)
             {
-                await main.OpenTrayAsync();
+                var opened = await main.OpenTrayAsync();
+                if (!opened)
+                {
+                    return;
+                }
             }
 
             if (correctBoxDialog != null)
@@ -1280,7 +1300,11 @@ namespace EZDose.UI
             var main = MainController.Instance;
             if (main != null)
             {
-                await main.OpenTrayAsync();
+                var opened = await main.OpenTrayAsync();
+                if (!opened)
+                {
+                    return;
+                }
             }
 
             if (completeDialog != null)
@@ -1300,7 +1324,11 @@ namespace EZDose.UI
             var main = MainController.Instance;
             if (main != null)
             {
-                await main.CloseTrayAsync();
+                var closed = await main.CloseTrayAsync();
+                if (!closed)
+                {
+                    return;
+                }
             }
 
             await LoadSceneAsyncSafe(homeSceneName);
@@ -1320,6 +1348,71 @@ namespace EZDose.UI
 
         #region Helpers
 
+        private void SetupDeviceLostDialog()
+        {
+            if (deviceLostDialog != null)
+            {
+                deviceLostDialog.SetActive(false);
+            }
+
+            if (deviceLostConfirmButton != null)
+            {
+                deviceLostConfirmButton.onClick.RemoveAllListeners();
+                deviceLostConfirmButton.onClick.AddListener(OnDeviceLostConfirmClicked);
+            }
+        }
+
+        private void OnDeviceLost(string reason)
+        {
+            EZLog.W(EZLog.Module.UI, $"Device lost: {reason}");
+
+            if (deviceLostDialogVisible)
+            {
+                return;
+            }
+
+            deviceLostDialogVisible = true;
+
+            if (deviceLostMessageText != null)
+            {
+                deviceLostMessageText.text = "设备失联，请重启分药机。";
+            }
+
+            if (deviceLostDialog != null)
+            {
+                deviceLostDialog.SetActive(true);
+            }
+            else
+            {
+                FireAndForget(ResetAndReturnHomeAfterDeviceLostAsync());
+            }
+        }
+
+        private void OnDeviceLostConfirmClicked()
+        {
+            FireAndForget(ResetAndReturnHomeAfterDeviceLostAsync());
+        }
+
+        private async Task ResetAndReturnHomeAfterDeviceLostAsync()
+        {
+            if (deviceLostDialog != null)
+            {
+                deviceLostDialog.SetActive(false);
+            }
+            deviceLostDialogVisible = false;
+
+            var main = MainController.Instance;
+            if (main != null)
+            {
+                await main.ResetAfterDeviceLostAsync();
+            }
+
+            if (SceneManager.GetActiveScene().name != homeSceneName)
+            {
+                await LoadSceneAsyncSafe(homeSceneName);
+            }
+        }
+
         private void UnsubscribeEvents()
         {
             var main = MainController.Instance;
@@ -1333,6 +1426,7 @@ namespace EZDose.UI
                 main.PillCalibrationRequired -= OnPillCalibrationRequired;
                 main.MedicineSkipped -= OnMedicineSkipped;
                 main.SkipConfirmRequired -= OnSkipConfirmRequired;
+                main.DeviceLost -= OnDeviceLost;
             }
 
             if (scanner != null)
