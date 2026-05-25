@@ -33,6 +33,8 @@ namespace EZDose.UI
         [Header("Status Display")]
         [Tooltip("Text showing current scanning status")]
         [SerializeField] private Text statusText;
+        [Tooltip("Fixed color for the status text")]
+        [SerializeField] private Color statusTextColor = Color.gray;
 
 
 
@@ -439,14 +441,14 @@ namespace EZDose.UI
 
 
         /// <summary>
-        /// Update status text with color
+        /// Update status text. The color is kept fixed for visual consistency.
         /// </summary>
         private void UpdateStatusText(string message, Color color)
         {
             if (statusText != null)
             {
                 statusText.text = message;
-                statusText.color = color;
+                statusText.color = statusTextColor;
             }
         }
 
