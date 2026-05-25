@@ -47,6 +47,8 @@ namespace EZDose.UI
         [Header("Device Management")]
         [Tooltip("Button to open device management dialog")]
         [SerializeField] private Button manageDevicesButton;
+        [Tooltip("Button to clean pills from the turntable")]
+        [SerializeField] private Button cleanTurntableButton;
 
         [Header("Device Button Visuals")]
         [SerializeField] private Image connectedIcon;
@@ -162,6 +164,8 @@ namespace EZDose.UI
         
         [Tooltip("跳过确认按钮")]
         [SerializeField] private Button skipConfirmButton;
+        [Tooltip("Button to clean pills from the turntable while the skip confirm dialog is open")]
+        [SerializeField] private Button skipCleanTurntableButton;
         
         [Tooltip("标记为已分发勾选框")]
         [SerializeField] private Toggle skipMarkDispensedToggle;
@@ -255,6 +259,11 @@ namespace EZDose.UI
             if (manageDevicesButton != null)
             {
                 manageDevicesButton.onClick.AddListener(OpenDeviceManagementDialog);
+            }
+
+            if (cleanTurntableButton != null)
+            {
+                cleanTurntableButton.onClick.AddListener(() => FireAndForget(CleanTurntableAsync(cleanTurntableButton)));
             }
 
             // Setup connection required dialog confirm button
@@ -580,6 +589,44 @@ namespace EZDose.UI
             }
 
             await main.RefreshPatientsAsync();
+        }
+
+        private async Task CleanTurntableAsync(Button sourceButton)
+        {
+            var main = MainController.Instance;
+            if (main == null)
+            {
+                return;
+            }
+
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser == null || !dispenser.IsConnected)
+            {
+                EZLog.W(EZLog.Module.UI, "Dispenser not connected, showing prompt");
+                if (connectDispenserDialog != null)
+                {
+                    connectDispenserDialog.SetActive(true);
+                }
+                return;
+            }
+
+            if (sourceButton != null)
+            {
+                sourceButton.interactable = false;
+            }
+
+            try
+            {
+                bool success = await main.CleanTurntableAsync();
+                EZLog.I(EZLog.Module.UI, success ? "Turntable cleaned successfully" : "Turntable cleaning failed");
+            }
+            finally
+            {
+                if (sourceButton != null)
+                {
+                    sourceButton.interactable = true;
+                }
+            }
         }
 
         private void RenderPatientButtons(List<PatientStatus> patients)
@@ -915,6 +962,11 @@ namespace EZDose.UI
             if (skipConfirmButton != null)
             {
                 skipConfirmButton.onClick.AddListener(OnSkipConfirmClicked);
+            }
+
+            if (skipCleanTurntableButton != null)
+            {
+                skipCleanTurntableButton.onClick.AddListener(() => FireAndForget(CleanTurntableAsync(skipCleanTurntableButton)));
             }
 
             // Hide skip dialog initially

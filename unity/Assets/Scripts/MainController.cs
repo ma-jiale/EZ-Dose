@@ -1479,6 +1479,17 @@ namespace EZDose.MainFlow
             return RunDispenserAction(dispenserController.CloseTray);
         }
 
+        public Task<bool> CleanTurntableAsync()
+        {
+            if (dispenserController == null || !dispenserController.IsConnected)
+            {
+                EZLog.E(EZLog.Module.Main, "Cannot clean turntable - dispenser not connected");
+                return Task.FromResult(false);
+            }
+
+            return RunDispenserAction(dispenserController.CleanPills, TimeSpan.FromSeconds(35));
+        }
+
         public Task<bool> PauseAsync()
         {
             if (dispenserController == null)
@@ -1489,7 +1500,7 @@ namespace EZDose.MainFlow
             return RunDispenserAction(dispenserController.PauseDispenser);
         }
 
-        private Task<bool> RunDispenserAction(Action<Action<bool>> action)
+        private Task<bool> RunDispenserAction(Action<Action<bool>> action, TimeSpan? timeout = null)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -1504,7 +1515,7 @@ namespace EZDose.MainFlow
                 tcs.TrySetResult(success);
             });
 
-            return WaitWithTimeout(tcs.Task, TimeSpan.FromSeconds(10));
+            return WaitWithTimeout(tcs.Task, timeout ?? TimeSpan.FromSeconds(10));
         }
 
         private void MarkPatientCompleted(string patientId)

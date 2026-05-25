@@ -256,14 +256,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EZDose.UI.DeviceCardUI
   deviceNameText: {fileID: 4474098522800463450}
   macAddressText: {fileID: 595946833562159474}
-  signalStrengthText: {fileID: 0}
-  signalStrengthIcon: {fileID: 0}
   connectButton: {fileID: 5235761115515534355}
   disconnectButton: {fileID: 3449284258666041254}
-  connectedColor: {r: 0.4, g: 0.8, b: 0.4, a: 0.3}
-  disconnectedColor: {r: 1, g: 1, b: 1, a: 0.1}
-  backgroundImage: {fileID: 0}
-  pairedBadge: {fileID: 0}
 --- !u!1 &639370675815147778
 GameObject:
   m_ObjectHideFlags: 0
@@ -322,15 +316,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.5176471}
+  m_Color: {r: 0.8490566, g: 0.8490566, b: 0.8490566, a: 0.48235294}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 3c29e7e2000040800000000000000000, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
