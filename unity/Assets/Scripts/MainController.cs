@@ -93,8 +93,7 @@ namespace EZDose.MainFlow
         private TaskCompletionSource<bool> skipCurrentMedicineTcs;
         
         // Task for waiting for user to confirm skip in dialog
-        // Result: (markAsDispensed, cleanTray)
-        private TaskCompletionSource<(bool markAsDispensed, bool cleanTray)> skipConfirmTcs;
+        private TaskCompletionSource<bool> skipConfirmTcs;
         
         // Pending image bytes from pill calibration for server upload
         private byte[] pendingCalibrationImageBytes;
@@ -780,7 +779,7 @@ namespace EZDose.MainFlow
             plateReadyTcs?.TrySetResult(false);
             errorResolutionTcs?.TrySetResult(false);
             pillCalibrationTcs?.TrySetResult(0f);
-            skipConfirmTcs?.TrySetResult((false, false));
+            skipConfirmTcs?.TrySetResult(false);
         }
 
         private bool FinishDeviceLostAbort()
@@ -1031,11 +1030,10 @@ namespace EZDose.MainFlow
         /// Called by UI when user confirms skip in the dialog.
         /// </summary>
         /// <param name="markAsDispensed">If true, the skipped medicine will be marked as dispensed</param>
-        /// <param name="cleanTray">If true, send CLEAN_PILLS command to clear remaining pills from tray</param>
-        public void ConfirmSkipReady(bool markAsDispensed, bool cleanTray = false)
+        public void ConfirmSkipReady(bool markAsDispensed)
         {
-            EZLog.D(EZLog.Module.Main, $"Skip confirmed, markAsDispensed={markAsDispensed}, cleanTray={cleanTray}");
-            skipConfirmTcs?.TrySetResult((markAsDispensed, cleanTray));
+            EZLog.D(EZLog.Module.Main, $"Skip confirmed, markAsDispensed={markAsDispensed}");
+            skipConfirmTcs?.TrySetResult(markAsDispensed);
         }
 
         /// <summary>
@@ -1225,28 +1223,11 @@ namespace EZDose.MainFlow
                 MedicineSkipped?.Invoke(currentMedicineName);
                 
                 // Wait for user to confirm in dialog
-                skipConfirmTcs = new TaskCompletionSource<(bool markAsDispensed, bool cleanTray)>();
-                var (markAsDispensed, cleanTray) = await skipConfirmTcs.Task;
+                skipConfirmTcs = new TaskCompletionSource<bool>();
+                bool markAsDispensed = await skipConfirmTcs.Task;
                 if (isDeviceLostAbort)
                 {
                     return (false, false, false);
-                }
-                
-                // Execute clean tray command if requested
-                if (cleanTray && dispenserController != null)
-                {
-                    EZLog.I(EZLog.Module.Main, "User requested tray cleaning after skip, sending CLEAN_PILLS command");
-                    var cleanTcs = new TaskCompletionSource<bool>();
-                    dispenserController.CleanPills(s => cleanTcs.TrySetResult(s));
-                    bool cleanSuccess = await cleanTcs.Task;
-                    if (cleanSuccess)
-                    {
-                        EZLog.I(EZLog.Module.Main, "Tray cleaning completed successfully");
-                    }
-                    else
-                    {
-                        EZLog.W(EZLog.Module.Main, "Tray cleaning failed or timed out");
-                    }
                 }
                 
                 // No need to CloseTray here — SendPillMatrix for the next medicine

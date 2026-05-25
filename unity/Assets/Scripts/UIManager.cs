@@ -116,9 +116,9 @@ namespace EZDose.UI
         [SerializeField] private Button mismatchHomeButton;
         [SerializeField] private Button mismatchRetryButton;
 
-        [Tooltip("切换前置/后置摄像头按钮")]
+        [Tooltip("Button to switch camera")]
         [SerializeField] private Button switchCameraButton;
-        [Tooltip("切换摄像头按钮文字（可选，用于显示当前摄像头方向）")]
+        [Tooltip("Text for camera switch button")]
         [SerializeField] private Text switchCameraButtonText;
 
         [Header("Dispense UI")]
@@ -126,7 +126,7 @@ namespace EZDose.UI
         [SerializeField] private Text medicineNameText;
         [SerializeField] private Text patientNameText;
         [SerializeField] private Text progressPercentText;
-        [Tooltip("进度条填充图片，需设置 Image Type 为 Filled")]
+        [Tooltip("Progress fill image, should use Image Type Filled")]
         [SerializeField] private Image progressFillImage;
         [SerializeField] private RawImage pillPreview;
         [SerializeField] private Button captureBackgroundButton;
@@ -136,50 +136,46 @@ namespace EZDose.UI
         [SerializeField] private Button completeDialogConfirmButton;
         [SerializeField] private PillCounterController pillCounterController;
         
-        [Tooltip("药片校准对话框")]
+        [Tooltip("Pill calibration dialog")]
         [SerializeField] private PillCalibrationDialog pillCalibrationDialog;
         
         [Header("Manual Pill Tuning")]
-        [Tooltip("用于手动调整当前分发药片面积的滑动条 (范围10-160)")]
+        [Tooltip("Slider for manually tuning the current pill area")]
         [SerializeField] private Slider pillAreaTuningSlider;
-        [Tooltip("显示当前设置面积的文本")]
+        [Tooltip("Text showing the current pill area setting")]
         [SerializeField] private Text pillAreaTuningText;
         
         [Header("Dispense UI (Drug & Controls)")]
-        [Tooltip("分药界面药物图像显示 (img-drug)")]
+        [Tooltip("Image for the current drug")]
         [SerializeField] private Image drugImage;
         
-        [Tooltip("跳过当前药物按钮 - 用于临时跳过缺货药物")]
+        [Tooltip("Button to skip the current medicine")]
         [SerializeField] private Button skipMedicineButton;
         
-        [Tooltip("暂停/恢复分药按钮")]
+        [Tooltip("Pause/resume dispensing button")]
         [SerializeField] private Button pauseResumeButton;
         
-        [Tooltip("暂停/恢复按钮文字")]
+        [Tooltip("Pause/resume button text")]
         [SerializeField] private Text pauseResumeButtonText;
         
         [Header("Skip Confirm Dialog")]
-        [Tooltip("跳过确认对话框")]
+        [Tooltip("Skip confirmation dialog")]
         [SerializeField] private GameObject skipConfirmDialog;
         
-        [Tooltip("跳过确认按钮")]
+        [Tooltip("Skip confirmation button")]
         [SerializeField] private Button skipConfirmButton;
         [Tooltip("Button to clean pills from the turntable while the skip confirm dialog is open")]
         [SerializeField] private Button skipCleanTurntableButton;
         
-        [Tooltip("标记为已分发勾选框")]
+        [Tooltip("Toggle to mark the skipped medicine as dispensed")]
         [SerializeField] private Toggle skipMarkDispensedToggle;
-        
-        [Tooltip("清洁托盘药片勾选框")]
-        [SerializeField] private Toggle skipCleanTrayToggle;
-        
-        [Tooltip("跳过对话框显示药物名称")]
+
+        [Tooltip("Text showing the skipped medicine name")]
         [SerializeField] private Text skipMedicineNameText;
         
         [Header("Next Medicine Preview")]
-        [Tooltip("显示下一个药物信息的文本（名称和数量）")]
+        [Tooltip("Text showing next medicine information")]
         [SerializeField] private Text nextMedicineText;
-
         private string _lastTunedMedicineName = string.Empty;
 
         private readonly List<GameObject> spawnedPatientButtons = new List<GameObject>();
@@ -1076,12 +1072,6 @@ namespace EZDose.UI
                 skipMarkDispensedToggle.isOn = false;
             }
             
-            // Reset clean tray toggle to unchecked (default: don't clean)
-            if (skipCleanTrayToggle != null)
-            {
-                skipCleanTrayToggle.isOn = false;
-            }
-            
             if (skipConfirmDialog != null)
             {
                 skipConfirmDialog.SetActive(true);
@@ -1094,9 +1084,8 @@ namespace EZDose.UI
         private void OnSkipConfirmClicked()
         {
             bool markAsDispensed = skipMarkDispensedToggle != null && skipMarkDispensedToggle.isOn;
-            bool cleanTray = skipCleanTrayToggle != null && skipCleanTrayToggle.isOn;
             
-            EZLog.D(EZLog.Module.UI, $"Skip confirmed, markAsDispensed={markAsDispensed}, cleanTray={cleanTray}");
+            EZLog.D(EZLog.Module.UI, $"Skip confirmed, markAsDispensed={markAsDispensed}");
             
             if (skipConfirmDialog != null)
             {
@@ -1104,7 +1093,7 @@ namespace EZDose.UI
             }
             
             var main = MainController.Instance;
-            main?.ConfirmSkipReady(markAsDispensed, cleanTray);
+            main?.ConfirmSkipReady(markAsDispensed);
         }
 
         /// <summary>
