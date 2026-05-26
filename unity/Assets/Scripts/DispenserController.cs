@@ -16,13 +16,19 @@ namespace EZDose.Hardware
     {
         [Header("蓝牙配置")]
         [SerializeField] private string deviceMacAddress = "00:00:00:00:00:00";
+        [Header("Windows Serial Port")]
+        [SerializeField] private int windowsBaudRate = 115200;
+        [SerializeField] private int serialReadTimeoutMs = 50;
+        [SerializeField] private int serialWriteTimeoutMs = 200;
         [Header("分药机配置")]
         [SerializeField] private int maxRetryCount = 5;
         [SerializeField] private float ackTimeout = 0.2f;
+        [SerializeField] private float windowsAckTimeout = 1.0f;
         [SerializeField] private float resetDoneTimeout = 10f;
 
         // 蓝牙通信对象
         private AndroidJavaObject bluetoothSerial;
+        private IDispenserTransport transport;
         
         // Currently connected device info
         private BluetoothDeviceInfo connectedDevice;
@@ -83,7 +89,7 @@ namespace EZDose.Hardware
         }
 
         /// <summary>
-        /// Initialize dispenser controller and connect to Bluetooth device
+        /// Initialize dispenser controller and connect to the configured device.
         /// </summary>
         public bool Initialize(string macAddress = null)
         {
@@ -163,10 +169,39 @@ namespace EZDose.Hardware
             }
 #else
             // 编辑器模式模拟连接
-            EZLog.I(EZLog.Module.Dispenser, "Editor mode - Simulated connection succeeded");
-            isConnected = true;
-            return true;
+            return ConnectWindowsTransport();
 #endif
+        }
+
+        private bool ConnectWindowsTransport()
+        {
+            try
+            {
+                bool connected = GetOrCreateWindowsTransport().Connect(deviceMacAddress);
+                isConnected = connected;
+
+                if (connected)
+                {
+                    EZLog.I(EZLog.Module.Dispenser, $"Connected to serial port: {deviceMacAddress}");
+                }
+
+                return connected;
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.Dispenser, "Windows serial connection exception", e);
+                return false;
+            }
+        }
+
+        private IDispenserTransport GetOrCreateWindowsTransport()
+        {
+            if (transport == null)
+            {
+                transport = new WindowsSerialTransport(windowsBaudRate, serialReadTimeoutMs, serialWriteTimeoutMs);
+            }
+
+            return transport;
         }
 
         /// <summary>
@@ -189,6 +224,21 @@ namespace EZDose.Hardware
             catch (Exception e)
             {
                 EZLog.E(EZLog.Module.Dispenser, "Disconnect exception", e);
+            }
+#endif
+
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            try
+            {
+                if (transport != null)
+                {
+                    transport.Disconnect();
+                }
+                EZLog.I(EZLog.Module.Dispenser, "Serial port disconnected");
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.Dispenser, "Serial disconnect exception", e);
             }
 #endif
 
@@ -280,12 +330,46 @@ namespace EZDose.Hardware
                 OnBTError?.Invoke($"Discovery failed: {e.Message}");
             }
 #else
-            // Editor mode - simulate discovery
-            EZLog.I(EZLog.Module.Dispenser, "Editor mode - Simulating device discovery");
+            StartCoroutine(WindowsSerialDiscoveryCoroutine());
+#endif
+        }
+
+        private IEnumerator WindowsSerialDiscoveryCoroutine()
+        {
             discoveredDevices.Clear();
             OnDiscoveryStarted?.Invoke();
-            StartCoroutine(SimulateDiscoveryCoroutine());
-#endif
+            EZLog.I(EZLog.Module.Dispenser, "Starting Windows serial port discovery");
+
+            Exception discoveryException = null;
+            List<BluetoothDeviceInfo> devices = null;
+
+            try
+            {
+                devices = GetOrCreateWindowsTransport().DiscoverDevices();
+            }
+            catch (Exception e)
+            {
+                discoveryException = e;
+                EZLog.E(EZLog.Module.Dispenser, "Serial discovery exception", e);
+            }
+
+            yield return new WaitForSeconds(0.2f);
+
+            if (discoveryException != null)
+            {
+                OnBTError?.Invoke($"搜索串口失败: {discoveryException.Message}");
+                OnDiscoveryCompleted?.Invoke();
+                yield break;
+            }
+
+            if (devices != null)
+            {
+                discoveredDevices.AddRange(devices);
+            }
+
+            OnDevicesFound?.Invoke(new List<BluetoothDeviceInfo>(discoveredDevices));
+            OnDiscoveryCompleted?.Invoke();
+            EZLog.I(EZLog.Module.Dispenser, $"Serial discovery completed, found {discoveredDevices.Count} ports");
         }
 
         /// <summary>
@@ -480,6 +564,23 @@ namespace EZDose.Hardware
                     EZLog.W(EZLog.Module.Protocol, $"Receive data exception: {e.Message}");
                 }
 #endif
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+                try
+                {
+                    if (transport != null)
+                    {
+                        string data = transport.Read();
+                        if (!string.IsNullOrEmpty(data))
+                        {
+                            ProcessReceivedData(data);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    EZLog.W(EZLog.Module.Protocol, $"Serial receive data exception: {e.Message}");
+                }
+#endif
                 yield return new WaitForSeconds(0.05f); // 20Hz 接收频率
             }
         }
@@ -631,7 +732,8 @@ namespace EZDose.Hardware
 
                 // 等待ACK
                 float waitTime = 0f;
-                while (waitTime < ackTimeout && !ackReceived)
+                float currentAckTimeout = GetCurrentAckTimeout();
+                while (waitTime < currentAckTimeout && !ackReceived)
                 {
                     yield return new WaitForSeconds(0.01f);
                     waitTime += 0.01f;
@@ -699,10 +801,29 @@ namespace EZDose.Hardware
         return false;
     }
 #else
-    EZLog.D(EZLog.Module.Protocol, $"Editor mode - Simulated send: {BitConverter.ToString(data)}");
-    return true;
+            if (transport == null)
+            {
+                EZLog.E(EZLog.Module.Protocol, "Serial transport is null");
+                return false;
+            }
+
+            bool serialSuccess = transport.Write(data);
+            if (serialSuccess)
+            {
+                EZLog.V(EZLog.Module.Protocol, $"Sent {data.Length} bytes: [{string.Join(" ", data.Select(b => $"0x{b:X2}"))}]");
+            }
+            return serialSuccess;
 #endif
-}
+        }
+
+        private float GetCurrentAckTimeout()
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            return windowsAckTimeout;
+#else
+            return ackTimeout;
+#endif
+        }
 
         /// <summary>
         /// 等待DONE信号
@@ -1148,6 +1269,13 @@ namespace EZDose.Hardware
                 {
                     EZLog.W(EZLog.Module.Dispenser, $"Heartbeat exception: {e.Message}");
                     HandleConnectionLost("心跳检测异常");
+                    yield break;
+                }
+#endif
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+                if (transport == null || !transport.IsConnected)
+                {
+                    HandleConnectionLost("串口连接已断开");
                     yield break;
                 }
 #endif
