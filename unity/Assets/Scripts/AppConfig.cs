@@ -18,7 +18,7 @@ namespace EZDose
         private const string KEY_EXPIRY_DAYS_THRESHOLD = "AppConfig_ExpiryDaysThreshold";
 
         // Default values
-        private const string DEFAULT_SERVER_URL = "http://127.0.0.1:5000";
+        private const string DEFAULT_SERVER_URL = "https://ixd.sjtu.edu.cn/nursing-rx/";
         private const int DEFAULT_MAX_DISPENSING_DAYS = 7;
         private const int DEFAULT_EXPIRY_DAYS_THRESHOLD = 2;
 

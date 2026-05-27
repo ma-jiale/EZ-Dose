@@ -2445,15 +2445,15 @@ RectTransform:
   m_GameObject: {fileID: 916209204}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.785, y: 0.785, z: 0.785}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 2065528317}
   m_Father: {fileID: 1082517978}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1100, y: -720}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2800, y: 1840}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &916209206
@@ -2823,6 +2823,7 @@ MonoBehaviour:
   refreshButton: {fileID: 0}
   homeHintText: {fileID: 0}
   manageDevicesButton: {fileID: 0}
+  cleanTurntableButton: {fileID: 0}
   connectedIcon: {fileID: 0}
   disconnectedIcon: {fileID: 0}
   manageDevicesButtonText: {fileID: 0}
@@ -2874,8 +2875,8 @@ MonoBehaviour:
   pauseResumeButtonText: {fileID: 0}
   skipConfirmDialog: {fileID: 0}
   skipConfirmButton: {fileID: 0}
+  skipCleanTurntableButton: {fileID: 0}
   skipMarkDispensedToggle: {fileID: 0}
-  skipCleanTrayToggle: {fileID: 0}
   skipMedicineNameText: {fileID: 0}
   nextMedicineText: {fileID: 0}
 --- !u!4 &958609295
@@ -2920,15 +2921,15 @@ RectTransform:
   m_GameObject: {fileID: 964054655}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.785, y: 0.785, z: 0.785}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 453179574}
   m_Father: {fileID: 1082517978}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1100, y: -720}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2800, y: 1840}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &964054657
@@ -4993,15 +4994,15 @@ RectTransform:
   m_GameObject: {fileID: 1455939984}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.785, y: 0.785, z: 0.785}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1247396900}
   m_Father: {fileID: 1082517978}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1100, y: -720}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2800, y: 1840}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1455939986
@@ -6941,16 +6942,16 @@ RectTransform:
   m_GameObject: {fileID: 1928746983}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.78499997, y: 0.78499997, z: 0.78499997}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 433061555}
   - {fileID: 1551287748}
   m_Father: {fileID: 1082517978}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1100, y: -720}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2800, y: 1840}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1928746985
@@ -7890,7 +7891,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2105591978
 RectTransform:
   m_ObjectHideFlags: 0
