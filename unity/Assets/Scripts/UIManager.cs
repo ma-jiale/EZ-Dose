@@ -738,7 +738,7 @@ namespace EZDose.UI
 
             if (backToHomeButton != null)
             {
-                backToHomeButton.onClick.AddListener(() => SceneManager.LoadScene(homeSceneName));
+                backToHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
             }
 
             if (scanner != null && patient != null)
@@ -865,7 +865,7 @@ namespace EZDose.UI
             if (mismatchHomeButton != null)
             {
                 mismatchHomeButton.onClick.RemoveAllListeners();
-                mismatchHomeButton.onClick.AddListener(() => SceneManager.LoadScene(homeSceneName));
+                mismatchHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
             }
 
             if (mismatchRetryButton != null)
@@ -903,6 +903,17 @@ namespace EZDose.UI
             }
 
             await LoadSceneAsyncSafe(dispenseSceneName);
+        }
+
+        private async Task ReturnHomeFromScanAsync()
+        {
+            if (scanner != null)
+            {
+                scanner.StopScanner();
+            }
+
+            await Task.Delay(200);
+            await LoadSceneAsyncSafe(homeSceneName);
         }
 
         #endregion

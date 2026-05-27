@@ -78,6 +78,11 @@ namespace EZDose.CheckPillBox
             StopScanner();
         }
 
+        private void OnDisable()
+        {
+            StopScanner();
+        }
+
         /// <summary>
         /// Start scanning; we expect the box code to equal the patient ID.
         /// </summary>
@@ -112,10 +117,18 @@ namespace EZDose.CheckPillBox
             if (webCamTexture != null)
             {
                 if (webCamTexture.isPlaying)
+                {
                     webCamTexture.Stop();
+                }
+
+                if (preview != null && preview.texture == webCamTexture)
+                {
+                    preview.texture = null;
+                }
 
                 Destroy(webCamTexture);
                 webCamTexture = null;
+                EZLog.I(EZLog.Module.Scanner, "Camera released.");
             }
         }
 
