@@ -110,6 +110,7 @@ namespace EZDose.MainFlow
         // Valid pulse width range for counting pills
         private const int MIN_VALID_PULSE_WIDTH = 5;
         private const int MAX_VALID_PULSE_WIDTH = 200;
+        private const int MOTOR_RECONFIGURE_STOP_DELAY_MS = 100;
         
         // Next medicine info for UI preview (set during dispensing)
         private string nextMedicineName = string.Empty;
@@ -148,6 +149,17 @@ namespace EZDose.MainFlow
             FireAndForget(RefreshPatientsAsync());
             // Start automatic refresh if enabled
             StartAutoRefresh();
+        }
+
+        private PillCalibrationManager GetCalibrationManager()
+        {
+            if (calibrationManager != null)
+            {
+                return calibrationManager;
+            }
+
+            calibrationManager = FindObjectOfType<PillCalibrationManager>();
+            return calibrationManager;
         }
 
         private void OnDestroy()
@@ -863,7 +875,7 @@ namespace EZDose.MainFlow
                 prescriptionManager?.UpdatePillSizeAreaLocally(med.PrescriptionId, med.MedicineName, calibratedAreaMm2);
                 
                 // Update server with new pill size and image (find calibration manager at runtime)
-                var calibrationMgr = calibrationManager ?? FindObjectOfType<PillCalibrationManager>();
+                var calibrationMgr = GetCalibrationManager();
                 if (calibrationMgr != null)
                 {
                     // Use the new method that uploads image along with pill size
@@ -1053,7 +1065,7 @@ namespace EZDose.MainFlow
             float servoAngle;
             
             // Find calibration manager at runtime (it may be in a different scene)
-            var calibrationMgr = calibrationManager ?? FindObjectOfType<PillCalibrationManager>();
+            var calibrationMgr = GetCalibrationManager();
             
             if (calibrationMgr != null)
             {
@@ -1077,24 +1089,35 @@ namespace EZDose.MainFlow
             {
                 EZLog.D(EZLog.Module.Main, $"Setting motor speed: {motorSpeed}, servo angle: {servoAngle}");
 
-                // Set turntable motor speed first (controls how fast pills rotate)
-                var speedResult = await RunDispenserAction(callback => 
-                    dispenserController.SetTurntableSpeed(motorSpeed, callback));
-                
-                if (!speedResult)
+                var stopResult = await RunDispenserAction(callback =>
+                    dispenserController.SetTurntableSpeed(0f, callback));
+
+                if (!stopResult)
                 {
-                    EZLog.W(EZLog.Module.Main, "Failed to set motor speed");
+                    EZLog.W(EZLog.Module.Main, "Failed to stop motor before applying new speed");
                     return false;
                 }
 
-                // Then set servo angle (controls opening size for pills to drop through)
-                // Must wait for previous command to finish before sending next one
-                var angleResult = await RunDispenserAction(callback => 
+                EZLog.I(EZLog.Module.Main, $"Motor stopped before reconfigure, waiting {MOTOR_RECONFIGURE_STOP_DELAY_MS}ms");
+                await Task.Delay(MOTOR_RECONFIGURE_STOP_DELAY_MS);
+
+                // Set servo angle while the turntable is stopped.
+                var angleResult = await RunDispenserAction(callback =>
                     dispenserController.SetServoAngle(servoAngle, callback));
 
                 if (!angleResult)
                 {
                     EZLog.W(EZLog.Module.Main, "Failed to set servo angle");
+                    return false;
+                }
+
+                // Start turntable after the new servo position is applied.
+                var speedResult = await RunDispenserAction(callback =>
+                    dispenserController.SetTurntableSpeed(motorSpeed, callback));
+
+                if (!speedResult)
+                {
+                    EZLog.W(EZLog.Module.Main, "Failed to set motor speed");
                     return false;
                 }
                 
@@ -1411,7 +1434,7 @@ namespace EZDose.MainFlow
             EZLog.I(EZLog.Module.Main, $"Average opto pulse width: {averagePulseWidth:F2} (from {optoPulseWidths.Count} samples)");
 
             // Convert average pulse width to area
-            var calibrationMgr = calibrationManager ?? FindObjectOfType<EZDose.Calibration.PillCalibrationManager>();
+            var calibrationMgr = GetCalibrationManager();
             if (calibrationMgr == null)
             {
                 EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute area from pulse width");

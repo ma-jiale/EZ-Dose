@@ -984,7 +984,7 @@ namespace EZDose.UI
             if (servoAngleTuningSlider != null)
             {
                 servoAngleTuningSlider.minValue = 0.1f;
-                servoAngleTuningSlider.maxValue = 1.4f;
+                servoAngleTuningSlider.maxValue = 1.2f;
                 servoAngleTuningSlider.value = 0.7f;
                 servoAngleTuningSlider.onValueChanged.AddListener(OnServoAngleTuningChanged);
                 OnServoAngleTuningChanged(servoAngleTuningSlider.value);

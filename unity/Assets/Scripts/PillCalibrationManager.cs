@@ -17,8 +17,8 @@ namespace EZDose.Calibration
         private const float MAX_VALID_AREA_MM2 = 300f;
         
         // Dispenser settings range
-        private const float MIN_MOTOR_SPEED = 0.1f;
-        private const float MAX_MOTOR_SPEED = 1.4f;
+        private const float MIN_MOTOR_SPEED = 0f;
+        private const float MAX_MOTOR_SPEED = 1.0f;
         private const float MIN_SERVO_ANGLE = 0.1f;
         private const float MAX_SERVO_ANGLE = 1.0f;
         
