@@ -5546,7 +5546,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1596589618}
   m_FillRect: {fileID: 1432359343}
   m_HandleRect: {fileID: 1596589617}
-  m_Direction: 0
+  m_Direction: 1
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
@@ -17208,8 +17208,8 @@ MonoBehaviour:
   completeDialogConfirmButton: {fileID: 482212534}
   pillCounterController: {fileID: 559372901}
   pillCalibrationDialog: {fileID: 713741596}
-  pillAreaTuningSlider: {fileID: 616851741}
-  pillAreaTuningText: {fileID: 0}
+  servoAngleTuningSlider: {fileID: 616851741}
+  servoAngleTuningText: {fileID: 0}
   drugImage: {fileID: 918901597}
   skipMedicineButton: {fileID: 125839996}
   pauseResumeButton: {fileID: 124389966}
@@ -17928,7 +17928,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.25}
   m_AnchorMax: {x: 1, y: 0.75}
-  m_AnchoredPosition: {x: -5, y: 0}
+  m_AnchoredPosition: {x: 5, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2036819643

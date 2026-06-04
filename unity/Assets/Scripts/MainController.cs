@@ -860,6 +860,7 @@ namespace EZDose.MainFlow
                 
                 // Update medicine with calibrated area
                 med.PillSizeArea = calibratedAreaMm2;
+                prescriptionManager?.UpdatePillSizeAreaLocally(med.PrescriptionId, med.MedicineName, calibratedAreaMm2);
                 
                 // Update server with new pill size and image (find calibration manager at runtime)
                 var calibrationMgr = calibrationManager ?? FindObjectOfType<PillCalibrationManager>();
@@ -1422,6 +1423,11 @@ namespace EZDose.MainFlow
 
             // Update current medicine area for UI display
             currentMedicineArea = newArea;
+            if (med != null)
+            {
+                med.PillSizeArea = newArea;
+                prescriptionManager?.UpdatePillSizeAreaLocally(med.PrescriptionId, med.MedicineName, newArea);
+            }
 
             // Save to server for future use
             if (med != null && med.PrescriptionId > 0)
