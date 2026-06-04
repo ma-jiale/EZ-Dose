@@ -119,6 +119,81 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &11427432
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 11427433}
+  - component: {fileID: 11427435}
+  - component: {fileID: 11427434}
+  m_Layer: 5
+  m_Name: Image
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &11427433
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 11427432}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2105591978}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 120, y: 120}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &11427434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 11427432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 435d1fe0000040800000000000000000, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &11427435
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 11427432}
+  m_CullTransparentMesh: 1
 --- !u!1 &16604383
 GameObject:
   m_ObjectHideFlags: 0
@@ -685,7 +760,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &233572587
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2823,6 +2898,7 @@ MonoBehaviour:
   refreshButton: {fileID: 0}
   homeHintText: {fileID: 0}
   manageDevicesButton: {fileID: 0}
+  cleanTurntableButton: {fileID: 0}
   connectedIcon: {fileID: 0}
   disconnectedIcon: {fileID: 0}
   manageDevicesButtonText: {fileID: 0}
@@ -2866,16 +2942,16 @@ MonoBehaviour:
   completeDialogConfirmButton: {fileID: 0}
   pillCounterController: {fileID: 0}
   pillCalibrationDialog: {fileID: 0}
-  pillAreaTuningSlider: {fileID: 0}
-  pillAreaTuningText: {fileID: 0}
+  servoAngleTuningSlider: {fileID: 0}
+  servoAngleTuningText: {fileID: 0}
   drugImage: {fileID: 0}
   skipMedicineButton: {fileID: 0}
   pauseResumeButton: {fileID: 0}
   pauseResumeButtonText: {fileID: 0}
   skipConfirmDialog: {fileID: 0}
   skipConfirmButton: {fileID: 0}
+  skipCleanTurntableButton: {fileID: 0}
   skipMarkDispensedToggle: {fileID: 0}
-  skipCleanTrayToggle: {fileID: 0}
   skipMedicineNameText: {fileID: 0}
   nextMedicineText: {fileID: 0}
 --- !u!4 &958609295
@@ -7904,12 +7980,13 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 233572587}
+  - {fileID: 11427433}
   m_Father: {fileID: 453179574}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 1241, y: -702}
-  m_SizeDelta: {x: 216.051, y: 66.9427}
+  m_SizeDelta: {x: 120, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2105591979
 MonoBehaviour:
