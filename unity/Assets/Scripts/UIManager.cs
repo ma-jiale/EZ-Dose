@@ -139,11 +139,11 @@ namespace EZDose.UI
         [Tooltip("Pill calibration dialog")]
         [SerializeField] private PillCalibrationDialog pillCalibrationDialog;
         
-        [Header("Manual Pill Tuning")]
-        [Tooltip("Slider for manually tuning the current pill area")]
-        [SerializeField] private Slider pillAreaTuningSlider;
-        [Tooltip("Text showing the current pill area setting")]
-        [SerializeField] private Text pillAreaTuningText;
+        [Header("Manual Servo Tuning")]
+        [Tooltip("Slider for directly tuning the servo angle")]
+        [SerializeField] private Slider servoAngleTuningSlider;
+        [Tooltip("Text showing the current servo angle setting")]
+        [SerializeField] private Text servoAngleTuningText;
         
         [Header("Dispense UI (Drug & Controls)")]
         [Tooltip("Image for the current drug")]
@@ -176,8 +176,6 @@ namespace EZDose.UI
         [Header("Next Medicine Preview")]
         [Tooltip("Text showing next medicine information")]
         [SerializeField] private Text nextMedicineText;
-        private string _lastTunedMedicineName = string.Empty;
-
         private readonly List<GameObject> spawnedPatientButtons = new List<GameObject>();
         private Coroutine lightBarRoutine;
 
@@ -738,7 +736,7 @@ namespace EZDose.UI
 
             if (backToHomeButton != null)
             {
-                backToHomeButton.onClick.AddListener(() => SceneManager.LoadScene(homeSceneName));
+                backToHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
             }
 
             if (scanner != null && patient != null)
@@ -865,7 +863,7 @@ namespace EZDose.UI
             if (mismatchHomeButton != null)
             {
                 mismatchHomeButton.onClick.RemoveAllListeners();
-                mismatchHomeButton.onClick.AddListener(() => SceneManager.LoadScene(homeSceneName));
+                mismatchHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
             }
 
             if (mismatchRetryButton != null)
@@ -903,6 +901,17 @@ namespace EZDose.UI
             }
 
             await LoadSceneAsyncSafe(dispenseSceneName);
+        }
+
+        private async Task ReturnHomeFromScanAsync()
+        {
+            if (scanner != null)
+            {
+                scanner.StopScanner();
+            }
+
+            await Task.Delay(200);
+            await LoadSceneAsyncSafe(homeSceneName);
         }
 
         #endregion
@@ -971,61 +980,53 @@ namespace EZDose.UI
                 skipConfirmDialog.SetActive(false);
             }
 
-            // Setup manual pill area tuning slider
-            if (pillAreaTuningSlider != null)
+            // Setup manual servo angle tuning slider
+            if (servoAngleTuningSlider != null)
             {
-                pillAreaTuningSlider.minValue = 10f;
-                pillAreaTuningSlider.maxValue = 160f;
-                pillAreaTuningSlider.onValueChanged.AddListener(OnPillAreaTuningChanged);
+                servoAngleTuningSlider.minValue = 0.1f;
+                servoAngleTuningSlider.maxValue = 1.2f;
+                servoAngleTuningSlider.value = 0.7f;
+                servoAngleTuningSlider.onValueChanged.AddListener(OnServoAngleTuningChanged);
+                OnServoAngleTuningChanged(servoAngleTuningSlider.value);
 
-                var trigger = pillAreaTuningSlider.gameObject.GetComponent<EventTrigger>() ?? 
-                              pillAreaTuningSlider.gameObject.AddComponent<EventTrigger>();
+                var trigger = servoAngleTuningSlider.gameObject.GetComponent<EventTrigger>() ?? 
+                              servoAngleTuningSlider.gameObject.AddComponent<EventTrigger>();
                 
                 var entry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-                entry.callback.AddListener((data) => { OnPillAreaTuningReleased(); });
+                entry.callback.AddListener((data) => { OnServoAngleTuningReleased(); });
                 trigger.triggers.Add(entry);
             }
         }
         
-        private bool isUpdatingSliderFromCode = false;
-
         /// <summary>
-        /// Called when the pill area slider is dragged (updates UI text only)
+        /// Called when the servo angle slider is dragged (updates UI text only)
         /// </summary>
-        private void OnPillAreaTuningChanged(float newArea)
+        private void OnServoAngleTuningChanged(float servoAngle)
         {
-            if (pillAreaTuningText != null)
+            if (servoAngleTuningText != null)
             {
-                pillAreaTuningText.text = $"面积：{Mathf.RoundToInt(newArea)} mm²";
+                servoAngleTuningText.text = $"舵机：{servoAngle:F2}";
             }
         }
 
         /// <summary>
         /// Called when the user releases the slider pointer, sending command to STM32.
         /// </summary>
-        private void OnPillAreaTuningReleased()
+        private void OnServoAngleTuningReleased()
         {
-            if (pillAreaTuningSlider == null || isUpdatingSliderFromCode) return;
+            if (servoAngleTuningSlider == null) return;
 
-            float newArea = pillAreaTuningSlider.value;
-            FireAndForget(ApplyTuningAsync(newArea));
+            float servoAngle = servoAngleTuningSlider.value;
+            FireAndForget(ApplyServoAngleTuningAsync(servoAngle));
         }
 
-        private async Task ApplyTuningAsync(float newArea)
+        private async Task ApplyServoAngleTuningAsync(float servoAngle)
         {
             var dispenser = FindObjectOfType<DispenserController>();
-            var calibrationMgr = FindObjectOfType<PillCalibrationManager>();
             
-            if (dispenser != null && calibrationMgr != null && dispenser.IsConnected)
+            if (dispenser != null && dispenser.IsConnected)
             {
-                var (motorSpeed, servoAngle) = calibrationMgr.CalculateDispenserSettings(newArea);
-                EZLog.I(EZLog.Module.UI, $"Manual tuning released: Area {newArea}mm² -> motor={motorSpeed:F2}, servo={servoAngle:F2}");
-                
-                // var motorTcs = new TaskCompletionSource<bool>();
-                // dispenser.SetTurntableSpeed(motorSpeed, success => { motorTcs.TrySetResult(success); });
-                // await motorTcs.Task;
-
-                await Task.Delay(100);
+                EZLog.I(EZLog.Module.UI, $"Manual servo tuning released: servo={servoAngle:F2}");
 
                 var servoTcs = new TaskCompletionSource<bool>();
                 dispenser.SetServoAngle(servoAngle, success => { servoTcs.TrySetResult(success); });
@@ -1204,22 +1205,6 @@ namespace EZDose.UI
             // Update next medicine preview info
             UpdateNextMedicinePreview(info);
             
-            // Update manual tuning slider if medicine changed
-            if (pillAreaTuningSlider != null && _lastTunedMedicineName != info.MedicineName)
-            {
-                _lastTunedMedicineName = info.MedicineName;
-                isUpdatingSliderFromCode = true;
-                
-                float areaToSet = info.CurrentPillArea > 0 ? info.CurrentPillArea : 50f;
-                pillAreaTuningSlider.value = Mathf.Clamp(areaToSet, pillAreaTuningSlider.minValue, pillAreaTuningSlider.maxValue);
-                
-                if (pillAreaTuningText != null)
-                {
-                    pillAreaTuningText.text = $"面积：{Mathf.RoundToInt(pillAreaTuningSlider.value)} mm²";
-                }
-                
-                isUpdatingSliderFromCode = false;
-            }
         }
         
         /// <summary>

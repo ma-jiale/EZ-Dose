@@ -141,6 +141,43 @@ namespace EZDose.Prescriptions
 
         public IReadOnlyList<PrescriptionRecord> CachedRecords => allRecords;
 
+        public bool UpdatePillSizeAreaLocally(int prescriptionId, string medicineName, float pillSizeAreaMm2)
+        {
+            if (pillSizeAreaMm2 <= 0)
+            {
+                return false;
+            }
+
+            var updated = false;
+            var hasPrescriptionId = prescriptionId > 0;
+
+            if (currentPrescription?.Medicines != null)
+            {
+                foreach (var medicine in currentPrescription.Medicines)
+                {
+                    if (MatchesPrescription(medicine.PrescriptionId, medicine.MedicineName, prescriptionId, medicineName, hasPrescriptionId))
+                    {
+                        medicine.PillSizeArea = pillSizeAreaMm2;
+                        updated = true;
+                    }
+                }
+            }
+
+            if (allRecords != null)
+            {
+                foreach (var record in allRecords)
+                {
+                    if (MatchesPrescription(record.id, record.medicine_name, prescriptionId, medicineName, hasPrescriptionId))
+                    {
+                        record.pill_size_area = pillSizeAreaMm2;
+                        updated = true;
+                    }
+                }
+            }
+
+            return updated;
+        }
+
         public async Task<bool> RefreshFromServerAsync()
         {
             // Pull all prescriptions from the server; no local files are used
@@ -392,6 +429,17 @@ namespace EZDose.Prescriptions
                 var response = JsonUtility.FromJson<UploadResponse>(request.downloadHandler.text);
                 return response != null && response.success;
             }
+        }
+
+        private static bool MatchesPrescription(int candidatePrescriptionId, string candidateMedicineName, int prescriptionId, string medicineName, bool hasPrescriptionId)
+        {
+            if (hasPrescriptionId)
+            {
+                return candidatePrescriptionId == prescriptionId;
+            }
+
+            return !string.IsNullOrWhiteSpace(medicineName) &&
+                   string.Equals(candidateMedicineName, medicineName, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
