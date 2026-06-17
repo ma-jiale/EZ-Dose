@@ -144,6 +144,10 @@ namespace EZDose.UI
         [SerializeField] private Slider servoAngleTuningSlider;
         [Tooltip("Text showing the current servo angle setting")]
         [SerializeField] private Text servoAngleTuningText;
+        [Tooltip("Keyboard step for servo angle tuning with Left/Right arrows.")]
+        [SerializeField] private float servoKeyboardStep = 0.02f;
+        [Tooltip("Repeat interval while holding Left/Right arrows.")]
+        [SerializeField] private float servoKeyboardRepeatInterval = 0.08f;
         
         [Header("Dispense UI (Drug & Controls)")]
         [Tooltip("Image for the current drug")]
@@ -191,6 +195,9 @@ namespace EZDose.UI
 
         // Dictionary mapping sub-page enum to its corresponding button
         private Dictionary<HomeSubPage, Button> subPageButtonMap;
+        private bool isServoKeyboardTuning;
+        private bool servoKeyboardValueChanged;
+        private float nextServoKeyboardStepTime;
         private bool deviceLostDialogVisible;
 
         /// <summary>
@@ -231,6 +238,35 @@ namespace EZDose.UI
         private void OnDestroy()
         {
             UnsubscribeEvents();
+        }
+
+        private void Update()
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            if (ShortcutInput.IsTextInputFocused())
+            {
+                return;
+            }
+
+            var scene = SceneManager.GetActiveScene().name;
+            if (HandleGlobalDialogShortcuts())
+            {
+                return;
+            }
+
+            if (scene == homeSceneName)
+            {
+                HandleHomeShortcuts();
+            }
+            else if (scene == scanSceneName)
+            {
+                HandleScanShortcuts();
+            }
+            else if (scene == dispenseSceneName)
+            {
+                HandleDispenseShortcuts();
+            }
+#endif
         }
 
         #region Home
@@ -988,6 +1024,9 @@ namespace EZDose.UI
                 servoAngleTuningSlider.value = 0.7f;
                 servoAngleTuningSlider.onValueChanged.AddListener(OnServoAngleTuningChanged);
                 OnServoAngleTuningChanged(servoAngleTuningSlider.value);
+                var sliderNavigation = servoAngleTuningSlider.navigation;
+                sliderNavigation.mode = Navigation.Mode.None;
+                servoAngleTuningSlider.navigation = sliderNavigation;
 
                 var trigger = servoAngleTuningSlider.gameObject.GetComponent<EventTrigger>() ?? 
                               servoAngleTuningSlider.gameObject.AddComponent<EventTrigger>();
@@ -1373,6 +1412,222 @@ namespace EZDose.UI
         #endregion
 
         #region Helpers
+
+        private bool HandleGlobalDialogShortcuts()
+        {
+            if (IsActive(deviceLostDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(deviceLostConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return true;
+            }
+
+            return false;
+        }
+
+        private void HandleHomeShortcuts()
+        {
+            if (deviceManagerUI != null && deviceManagerUI.IsDialogVisible())
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(refreshButton, KeyCode.R))
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(manageDevicesButton, KeyCode.D))
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(cleanTurntableButton, KeyCode.C))
+            {
+                return;
+            }
+
+            if (ShortcutInput.GetAnyKeyDown(KeyCode.Alpha1, KeyCode.Keypad1))
+            {
+                ShowSubPage(HomeSubPage.PatientCard);
+                return;
+            }
+
+            if (ShortcutInput.GetAnyKeyDown(KeyCode.Alpha2, KeyCode.Keypad2))
+            {
+                ShowSubPage(HomeSubPage.Setting);
+            }
+        }
+
+        private void HandleScanShortcuts()
+        {
+            if (IsActive(correctBoxDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(correctDialogConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (IsActive(mismatchDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(mismatchRetryButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(backToHomeButton, KeyCode.Escape))
+            {
+                return;
+            }
+
+            ShortcutInput.InvokeButtonIfKeyDown(switchCameraButton, KeyCode.LeftShift, KeyCode.RightShift);
+        }
+
+        private void HandleDispenseShortcuts()
+        {
+            if (IsActive(skipConfirmDialog))
+            {
+                if (ShortcutInput.InvokeButtonIfKeyDown(skipConfirmButton, KeyCode.Return, KeyCode.KeypadEnter))
+                {
+                    return;
+                }
+
+                ShortcutInput.InvokeButtonIfKeyDown(skipCleanTurntableButton, KeyCode.C);
+                return;
+            }
+
+            if (IsActive(plateSwitchDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(plateSwitchConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (IsActive(completeDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(completeDialogConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (HandleServoKeyboardTuning())
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(pauseResumeButton, KeyCode.Space))
+            {
+                return;
+            }
+
+            ShortcutInput.InvokeButtonIfKeyDown(skipMedicineButton, KeyCode.P);
+        }
+
+        private bool HandleServoKeyboardTuning()
+        {
+            bool leftHeld = Input.GetKey(KeyCode.LeftArrow);
+            bool rightHeld = Input.GetKey(KeyCode.RightArrow);
+            bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
+            bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
+            bool released = Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow);
+
+            if (!leftHeld && !rightHeld)
+            {
+                if (released && isServoKeyboardTuning)
+                {
+                    CommitServoKeyboardTuning();
+                    return true;
+                }
+
+                isServoKeyboardTuning = false;
+                servoKeyboardValueChanged = false;
+                return released;
+            }
+
+            if (!CanUseServoKeyboardTuning())
+            {
+                ResetServoKeyboardTuningState();
+                return leftPressed || rightPressed || released;
+            }
+
+            if (!isServoKeyboardTuning)
+            {
+                isServoKeyboardTuning = true;
+                servoKeyboardValueChanged = false;
+                nextServoKeyboardStepTime = 0f;
+            }
+
+            bool shouldStep = leftPressed || rightPressed || Time.unscaledTime >= nextServoKeyboardStepTime;
+            if (!shouldStep)
+            {
+                return true;
+            }
+
+            int direction = 0;
+            if (rightHeld && !leftHeld)
+            {
+                direction = -1;
+            }
+            else if (leftHeld && !rightHeld)
+            {
+                direction = 1;
+            }
+
+            if (direction != 0 && ApplyServoKeyboardStep(direction))
+            {
+                servoKeyboardValueChanged = true;
+            }
+
+            nextServoKeyboardStepTime = Time.unscaledTime + Mathf.Max(0.01f, servoKeyboardRepeatInterval);
+            return true;
+        }
+
+        private bool ApplyServoKeyboardStep(int direction)
+        {
+            if (!CanUseServoKeyboardTuning())
+            {
+                return false;
+            }
+
+            float currentValue = servoAngleTuningSlider.value;
+            float nextValue = Mathf.Clamp(
+                currentValue + direction * Mathf.Abs(servoKeyboardStep),
+                servoAngleTuningSlider.minValue,
+                servoAngleTuningSlider.maxValue);
+
+            if (Mathf.Approximately(currentValue, nextValue))
+            {
+                return false;
+            }
+
+            servoAngleTuningSlider.value = nextValue;
+            return true;
+        }
+
+        private void CommitServoKeyboardTuning()
+        {
+            if (servoKeyboardValueChanged)
+            {
+                OnServoAngleTuningReleased();
+            }
+
+            ResetServoKeyboardTuningState();
+        }
+
+        private void ResetServoKeyboardTuningState()
+        {
+            isServoKeyboardTuning = false;
+            servoKeyboardValueChanged = false;
+            nextServoKeyboardStepTime = 0f;
+        }
+
+        private bool CanUseServoKeyboardTuning()
+        {
+            return servoAngleTuningSlider != null &&
+                   servoAngleTuningSlider.isActiveAndEnabled &&
+                   servoAngleTuningSlider.gameObject.activeInHierarchy &&
+                   servoAngleTuningSlider.interactable;
+        }
+
+        private static bool IsActive(GameObject target)
+        {
+            return target != null && target.activeInHierarchy;
+        }
 
         private void SetupDeviceLostDialog()
         {
