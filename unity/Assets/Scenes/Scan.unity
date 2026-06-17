@@ -2867,8 +2867,10 @@ MonoBehaviour:
   completeDialogConfirmButton: {fileID: 0}
   pillCounterController: {fileID: 0}
   pillCalibrationDialog: {fileID: 0}
-  pillAreaTuningSlider: {fileID: 0}
-  pillAreaTuningText: {fileID: 0}
+  servoAngleTuningSlider: {fileID: 0}
+  servoAngleTuningText: {fileID: 0}
+  servoKeyboardStep: 0.02
+  servoKeyboardRepeatInterval: 0.08
   drugImage: {fileID: 0}
   skipMedicineButton: {fileID: 0}
   pauseResumeButton: {fileID: 0}
@@ -7891,7 +7893,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2105591978
 RectTransform:
   m_ObjectHideFlags: 0
