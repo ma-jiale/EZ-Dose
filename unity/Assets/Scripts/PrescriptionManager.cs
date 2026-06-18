@@ -544,9 +544,9 @@ namespace EZDose.Prescriptions
                 // Server stores as REAL but hardware needs whole pill counts
                 // Physical plate order (top to bottom): Noon → Evening → Morning
                 // Matrix row 0 = physical bottom, row 2 = physical top
-                matrix[0, day] = (int)medicine.MorningDosage;   // 早上 (物理底部, 第三顿)
-                matrix[1, day] = (int)medicine.EveningDosage;   // 晚上 (物理中间, 第二顿)
-                matrix[2, day] = (int)medicine.NoonDosage;      // 中午 (物理顶部, 第一顿)
+                matrix[2, day] = (int)medicine.MorningDosage;   // 早上 (物理底部, 第三顿)
+                matrix[0, day] = (int)medicine.EveningDosage;   // 晚上 (物理中间, 第二顿)
+                matrix[1, day] = (int)medicine.NoonDosage;      // 中午 (物理顶部, 第一顿)
             }
 
             return matrix;
