@@ -1185,19 +1185,7 @@ namespace EZDose.MainFlow
             {
                 EZLog.D(EZLog.Module.Main, $"Setting motor speed: {motorSpeed}, servo angle: {servoAngle}");
 
-                var stopResult = await RunDispenserAction(callback =>
-                    dispenserController.SetTurntableSpeed(0f, callback));
-
-                if (!stopResult)
-                {
-                    EZLog.W(EZLog.Module.Main, "Failed to stop motor before applying new speed");
-                    return false;
-                }
-
-                EZLog.I(EZLog.Module.Main, $"Motor stopped before reconfigure, waiting {MOTOR_RECONFIGURE_STOP_DELAY_MS}ms");
-                await Task.Delay(MOTOR_RECONFIGURE_STOP_DELAY_MS);
-
-                // Set servo angle while the turntable is stopped.
+                // Set servo angle for the new pill size.
                 var angleResult = await RunDispenserAction(callback =>
                     dispenserController.SetServoAngle(servoAngle, callback));
 
@@ -1207,7 +1195,7 @@ namespace EZDose.MainFlow
                     return false;
                 }
 
-                // Start turntable after the new servo position is applied.
+                // Set turntable speed to the calculated speed for this medicine.
                 var speedResult = await RunDispenserAction(callback =>
                     dispenserController.SetTurntableSpeed(motorSpeed, callback));
 
