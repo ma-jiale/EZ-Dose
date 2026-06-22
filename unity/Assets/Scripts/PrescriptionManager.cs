@@ -83,8 +83,12 @@ namespace EZDose.Prescriptions
         public bool NeedsCalibration => PillSizeArea <= 0;
 
         // Helpers to check when to take the pill based on meal_timing field
-        public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || string.Equals(MealTiming, "anytime", StringComparison.OrdinalIgnoreCase);
-        public bool IsAfterMeal => string.Equals(MealTiming, "after", StringComparison.OrdinalIgnoreCase);
+        public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || 
+                                    string.Equals(MealTiming, "before_meal", StringComparison.OrdinalIgnoreCase);
+        public bool IsAfterMeal => string.Equals(MealTiming, "after", StringComparison.OrdinalIgnoreCase) || 
+                                   string.Equals(MealTiming, "after_meal", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(MealTiming, "anytime", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(MealTiming, "with_meal", StringComparison.OrdinalIgnoreCase);
     }
 
     [Serializable]
