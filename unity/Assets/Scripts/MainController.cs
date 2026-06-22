@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using EZDose.Prescriptions;
 using EZDose.Hardware;
 using EZDose.Calibration;
@@ -122,6 +124,11 @@ namespace EZDose.MainFlow
         // Flag to pause auto-refresh during active dispensing
         private bool isAutoRefreshPaused;
 
+        #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetProcessDPIAware();
+        #endif
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -132,7 +139,91 @@ namespace EZDose.MainFlow
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            try
+            {
+                SetProcessDPIAware();
+                EZLog.I(EZLog.Module.UI, "Successfully set process DPI awareness via Win32 API");
+            }
+            catch (Exception e)
+            {
+                EZLog.W(EZLog.Module.UI, "Failed to set process DPI awareness: " + e.Message);
+            }
+
+            AdaptWindowResolution();
+            
+            // Register scene load callback to automatically enforce UI scaling across scenes
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            ConfigureAllCanvasScalers();
+            #endif
         }
+
+        #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        /// <summary>
+        /// 根据用户显示器的实际分辨率，动态调整窗口尺寸，确保与设计时的比例保持一致。
+        /// </summary>
+        private void AdaptWindowResolution()
+        {
+            try
+            {
+                // 1. 获取当前显示器的实际物理高度
+                int screenWidth = Screen.currentResolution.width;
+                int screenHeight = Screen.currentResolution.height;
+
+                // 2. 计算缩放系数（以 1440p 下的 0.6 倍缩放为基准）
+                float scaleFactor = 0.6f * ((float)screenHeight / 1440f);
+
+                // 3. 计算目标窗口大小
+                int targetWidth = Mathf.RoundToInt(2800f * scaleFactor);
+                int targetHeight = Mathf.RoundToInt(1840f * scaleFactor);
+
+                // 4. 安全保护：确保窗口大小不会超出屏幕物理范围
+                targetWidth = Mathf.Clamp(targetWidth, 800, screenWidth);
+                targetHeight = Mathf.Clamp(targetHeight, 525, screenHeight);
+
+                // 5. 设置窗口化模式并应用计算好的分辨率
+                Screen.SetResolution(targetWidth, targetHeight, FullScreenMode.Windowed);
+
+                EZLog.I(EZLog.Module.UI, $"Window adapted. Screen: {screenWidth}x{screenHeight}, ScaleFactor: {scaleFactor:F3}, Target Window: {targetWidth}x{targetHeight}");
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.UI, "Failed to adapt window resolution", e);
+            }
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            ConfigureAllCanvasScalers();
+        }
+
+        private void ConfigureAllCanvasScalers()
+        {
+            try
+            {
+                // 寻找场景中所有的 CanvasScaler 组件（包含未激活的）
+                CanvasScaler[] scalers = FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                foreach (CanvasScaler scaler in scalers)
+                {
+                    if (scaler != null)
+                    {
+                        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                        scaler.referenceResolution = new Vector2(2800f, 1840f);
+                        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                        scaler.matchWidthOrHeight = 0.5f;
+                        // 提高动态字体的渲染分辨率倍数，防止位图字体在缩放窗口下发虚
+                        scaler.dynamicPixelsPerUnit = 3f;
+                        EZLog.I(EZLog.Module.UI, $"Configured CanvasScaler on GameObject '{scaler.gameObject.name}' to ScaleWithScreenSize (2800x1840, DPPU=3)");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.UI, "Failed to configure CanvasScalers", e);
+            }
+        }
+        #endif
 
         private void Start()
         {
@@ -172,6 +263,11 @@ namespace EZDose.MainFlow
 
             // Stop auto-refresh coroutine to prevent memory leaks
             StopAutoRefresh();
+
+            #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            // Unregister scene load callback
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            #endif
         }
 
         private void BindDispenserEvents(bool subscribe)
