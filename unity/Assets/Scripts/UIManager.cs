@@ -112,6 +112,8 @@ namespace EZDose.UI
         [SerializeField] private CheckPillBoxController scanner;
         [SerializeField] private GameObject correctBoxDialog;
         [SerializeField] private Button correctDialogConfirmButton;
+        [Tooltip("扫码成功提示文本组件，留空则自动查找")]
+        [SerializeField] private Text correctBoxDialogText;
         [SerializeField] private GameObject mismatchDialog;
         [SerializeField] private Button mismatchHomeButton;
         [SerializeField] private Button mismatchRetryButton;
@@ -132,6 +134,8 @@ namespace EZDose.UI
         [SerializeField] private Button captureBackgroundButton;
         [SerializeField] private GameObject plateSwitchDialog;
         [SerializeField] private Button plateSwitchConfirmButton;
+        [Tooltip("换盘提示文本组件，留空则自动查找")]
+        [SerializeField] private Text plateSwitchDialogText;
         [SerializeField] private GameObject completeDialog;
         [SerializeField] private Button completeDialogConfirmButton;
         [SerializeField] private PillCounterController pillCounterController;
@@ -852,13 +856,43 @@ namespace EZDose.UI
             }
 
             var main = MainController.Instance;
+            string plateName = "药盒";
+            string patientName = "";
+
             if (main != null)
             {
+                var patient = main.GetCurrentPatient();
+                if (patient != null)
+                {
+                    patientName = patient.PatientName;
+                }
+
+                // 预先准备计划，以便确认第一盘要分什么药
+                await main.PreparePlanAsync();
+                var plan = main.CurrentPlan;
+                if (plan != null)
+                {
+                    if (plan.MedicinesPlate1.Count > 0)
+                    {
+                        plateName = "饭前药盒";
+                    }
+                    else if (plan.MedicinesPlate2.Count > 0)
+                    {
+                        plateName = "饭后/随餐药盒";
+                    }
+                }
+
                 var opened = await main.OpenTrayAsync();
                 if (!opened)
                 {
                     return;
                 }
+            }
+
+            var targetText = correctBoxDialogText ?? FindDialogMessageText(correctBoxDialog, "Message");
+            if (targetText != null)
+            {
+                targetText.text = $"请放入【{patientName}】的【{plateName}】。";
             }
 
             if (correctBoxDialog != null)
@@ -929,12 +963,7 @@ namespace EZDose.UI
                 correctBoxDialog.SetActive(false);
             }
 
-            var main = MainController.Instance;
-            if (main != null)
-            {
-                await main.PreparePlanAsync();
-                // await main.CloseTrayAsync();
-            }
+            // main.PreparePlanAsync() is already called in HandleBoxVerifiedAsync
 
             await LoadSceneAsyncSafe(dispenseSceneName);
         }
@@ -1335,6 +1364,21 @@ namespace EZDose.UI
 
         private void OnPlateSwitchRequired(int plateNumber)
         {
+            var main = MainController.Instance;
+            string patientName = "";
+            if (main != null && main.GetCurrentPatient() != null)
+            {
+                patientName = main.GetCurrentPatient().PatientName;
+            }
+
+            string plateName = plateNumber == 1 ? "饭前药盒" : "饭后/随餐药盒";
+
+            var targetText = plateSwitchDialogText ?? FindDialogMessageText(plateSwitchDialog, "Message");
+            if (targetText != null)
+            {
+                targetText.text = $"请放入【{patientName}】的【{plateName}】。";
+            }
+
             if (plateSwitchDialog != null)
             {
                 plateSwitchDialog.SetActive(true);
@@ -1345,7 +1389,6 @@ namespace EZDose.UI
                 plateSwitchConfirmButton.onClick.RemoveAllListeners();
                 plateSwitchConfirmButton.onClick.AddListener(() =>
                 {
-                    var main = MainController.Instance;
                     main?.ConfirmPlateReady();
                     if (plateSwitchDialog != null)
                     {
@@ -1763,6 +1806,22 @@ namespace EZDose.UI
             {
                 await Task.Yield();
             }
+        }
+
+        /// <summary>
+        /// 寻找弹窗内的 Message 文本组件的辅助方法
+        /// </summary>
+        private Text FindDialogMessageText(GameObject dialog, string defaultNamePattern)
+        {
+            if (dialog == null) return null;
+            var texts = dialog.GetComponentsInChildren<Text>(true);
+            
+            // 1. 优先寻找命名中包含特定关键字的组件 (如 "Message", "Content", "Body")
+            var matchingByName = texts.FirstOrDefault(t => t.name.IndexOf(defaultNamePattern, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (matchingByName != null) return matchingByName;
+            
+            // 2. 备选方案：寻找第一个不属于 Button 按钮子物体的 Text 组件
+            return texts.FirstOrDefault(t => t.GetComponentInParent<Button>() == null);
         }
 
         #endregion

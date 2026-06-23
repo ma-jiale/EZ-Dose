@@ -192,6 +192,14 @@ namespace EZDose.CheckPillBox
 
         private static int GetPreferredCameraIndex(WebCamDevice[] devices)
         {
+            // 1. 优先寻找名称中包含 "usb" 的外接摄像头
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (devices[i].name.IndexOf("usb", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return i;
+            }
+
+            // 2. 其次寻找前置摄像头
             for (int i = 0; i < devices.Length; i++)
             {
                 if (devices[i].isFrontFacing)

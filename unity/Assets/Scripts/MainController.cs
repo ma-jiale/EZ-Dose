@@ -72,6 +72,11 @@ namespace EZDose.MainFlow
         private PatientStatus currentPatient;
         private DispensingPlan currentPlan;
 
+        /// <summary>
+        /// 公开当前的分药计划，供 UI 层检测分盘组成
+        /// </summary>
+        public DispensingPlan CurrentPlan => currentPlan;
+
         private bool isDispensing;
         private bool isDeviceLostAbort;
         private bool hasPendingDeviceLost;

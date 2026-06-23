@@ -2430,7 +2430,7 @@ GameObject:
   - component: {fileID: 916209207}
   - component: {fileID: 916209206}
   m_Layer: 5
-  m_Name: PutPillBoxesInAlert
+  m_Name: correctBoxDialog
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2849,6 +2849,7 @@ MonoBehaviour:
   scanner: {fileID: 1160022120}
   correctBoxDialog: {fileID: 916209204}
   correctDialogConfirmButton: {fileID: 2129497915}
+  correctBoxDialogText: {fileID: 1818014685}
   mismatchDialog: {fileID: 1455939984}
   mismatchHomeButton: {fileID: 1572876999}
   mismatchRetryButton: {fileID: 1618877541}
@@ -2863,6 +2864,7 @@ MonoBehaviour:
   captureBackgroundButton: {fileID: 0}
   plateSwitchDialog: {fileID: 0}
   plateSwitchConfirmButton: {fileID: 0}
+  plateSwitchDialogText: {fileID: 0}
   completeDialog: {fileID: 0}
   completeDialogConfirmButton: {fileID: 0}
   pillCounterController: {fileID: 0}
@@ -3939,7 +3941,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c3705a1be4d57b4ebfa08c0764e15f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cameraIndex: 0
+  cameraIndex: -1
   requestedWidth: 1280
   requestedHeight: 720
   requestedFps: 30
@@ -6768,8 +6770,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -294, y: 369.5}
-  m_SizeDelta: {x: -670, y: -833}
+  m_AnchoredPosition: {x: -3.5, y: 368.5}
+  m_SizeDelta: {x: -89, y: -831}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1818014685
 MonoBehaviour:
@@ -6795,9 +6797,9 @@ MonoBehaviour:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
     m_FontSize: 48
     m_FontStyle: 1
-    m_BestFit: 1
-    m_MinSize: 1
-    m_MaxSize: 48
+    m_BestFit: 0
+    m_MinSize: 0
+    m_MaxSize: 150
     m_Alignment: 0
     m_AlignByGeometry: 0
     m_RichText: 1
