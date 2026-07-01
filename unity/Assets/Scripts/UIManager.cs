@@ -874,7 +874,9 @@ namespace EZDose.UI
                 {
                     if (plan.MedicinesPlate1.Count > 0)
                     {
-                        plateName = "饭前药盒";
+                        // 检查 Plate 1 中的药品是否全部为饭后或随餐药
+                        bool allPlate1AfterMeal = plan.MedicinesPlate1.All(m => IsAfterMealTiming(m.MealTiming));
+                        plateName = allPlate1AfterMeal ? "饭后/随餐药盒" : "饭前药盒";
                     }
                     else if (plan.MedicinesPlate2.Count > 0)
                     {
@@ -1806,6 +1808,18 @@ namespace EZDose.UI
             {
                 await Task.Yield();
             }
+        }
+
+        /// <summary>
+        /// 判断药品时间是否属于饭后/随餐/任意时间
+        /// </summary>
+        private bool IsAfterMealTiming(string timing)
+        {
+            if (string.IsNullOrEmpty(timing)) return false;
+            return string.Equals(timing, "after", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "after_meal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "with_meal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "anytime", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
