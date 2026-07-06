@@ -108,6 +108,7 @@ namespace EZDose.MainFlow
         private string currentMedicineName = string.Empty;
         private string currentMedicineImageResourceId = string.Empty;
         private float currentMedicineArea = 0f;
+        private string currentMedicineDosageSpec = string.Empty;
         private int currentPlate = 1;
         private int currentMedicineTotal = 0;
         private readonly List<int> optoPulseWidths = new List<int>();
@@ -911,6 +912,7 @@ namespace EZDose.MainFlow
             currentMedicineName = string.Empty;
             currentMedicineImageResourceId = string.Empty;
             currentMedicineArea = 0f;
+            currentMedicineDosageSpec = string.Empty;
             currentMedicineTotal = 0;
             nextMedicineName = string.Empty;
             nextMedicinePillCount = 0;
@@ -1025,6 +1027,7 @@ namespace EZDose.MainFlow
             currentMedicineName = med.MedicineName;
             currentMedicineImageResourceId = med.ImageResourceId ?? string.Empty;
             currentMedicineArea = med.PillSizeArea;
+            currentMedicineDosageSpec = med.DosageSpec ?? string.Empty;
             currentPlate = plate;
 
             var progress = new DispensingProgressInfo
@@ -1038,7 +1041,8 @@ namespace EZDose.MainFlow
                 ImageResourceId = med.ImageResourceId,
                 NextMedicineName = nextMedicineName,
                 NextMedicinePillCount = nextMedicinePillCount,
-                CurrentPillArea = currentMedicineArea
+                CurrentPillArea = currentMedicineArea,
+                DosageSpec = currentMedicineDosageSpec
             };
             DispensingProgressChanged?.Invoke(progress);
 
@@ -1494,7 +1498,8 @@ namespace EZDose.MainFlow
                 ImageResourceId = currentMedicineImageResourceId,
                 NextMedicineName = nextMedicineName,
                 NextMedicinePillCount = nextMedicinePillCount,
-                CurrentPillArea = currentMedicineArea
+                CurrentPillArea = currentMedicineArea,
+                DosageSpec = currentMedicineDosageSpec
             };
             
             DispensingProgressChanged?.Invoke(progress);
@@ -1712,5 +1717,6 @@ namespace EZDose.MainFlow
         
         // Current pill tuning area
         public float CurrentPillArea;
+        public string DosageSpec;          // 剂量规格
     }
 }

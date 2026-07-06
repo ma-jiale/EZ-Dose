@@ -128,6 +128,8 @@ namespace EZDose.UI
         [SerializeField] private Text medicineNameText;
         [SerializeField] private Text patientNameText;
         [SerializeField] private Text progressPercentText;
+        [Tooltip("展示当前分发药品剂量规格的文本框")]
+        [SerializeField] private Text dosageSpecText;
         [Tooltip("Progress fill image, should use Image Type Filled")]
         [SerializeField] private Image progressFillImage;
         [SerializeField] private RawImage pillPreview;
@@ -1224,12 +1226,13 @@ namespace EZDose.UI
 
             if (totalPillsText != null)
             {
-                totalPillsText.text = $"{info.TotalPills}";
+                int remainingPills = Mathf.Max(0, info.TotalPills - info.DispensedPills);
+                totalPillsText.text = $"{remainingPills}";
             }
 
             if (medicineNameText != null)
             {
-                medicineNameText.text = info.MedicineName;
+                medicineNameText.text = $"{info.MedicineName}  {info.TotalPills}粒";
             }
 
             if (patientNameText != null)
@@ -1237,6 +1240,13 @@ namespace EZDose.UI
                 patientNameText.text = string.IsNullOrEmpty(info.PatientName)
                     ? string.Empty
                     : $"所属患者： {info.PatientName}";
+            }
+
+            if (dosageSpecText != null)
+            {
+                dosageSpecText.text = string.IsNullOrEmpty(info.DosageSpec)
+                    ? string.Empty
+                    : $"剂量规格： {info.DosageSpec}";
             }
 
             if (progressPercentText != null)

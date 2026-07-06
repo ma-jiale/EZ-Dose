@@ -29,6 +29,7 @@ namespace EZDose.Prescriptions
         public int is_active;                       // 0 = inactive, 1 = active
         public float pill_size_area;                 // Actual pill area in mm² (null/0 = uncalibrated)
         public string image_resource_id;            // Medicine image filename
+        public string dosage_spec;                  // 剂量规格
         public string created_at;                   // Timestamp
     }
 
@@ -78,7 +79,8 @@ namespace EZDose.Prescriptions
         public bool IsActive;
         public float PillSizeArea;                   // Actual pill area in mm² (0 = needs calibration)
         public string ImageResourceId;               // Pill image filename from server
-
+        public string DosageSpec;                    // 剂量规格
+        
         // Check if this medicine needs calibration before dispensing
         public bool NeedsCalibration => PillSizeArea <= 0;
 
@@ -116,7 +118,8 @@ namespace EZDose.Prescriptions
         
         // Medicine image filename from server
         public string ImageResourceId;
-
+        public string DosageSpec;                    // 剂量规格
+        
         // Check if this medicine needs calibration before dispensing
         public bool NeedsCalibration => PillSizeArea <= 0;
     }
@@ -317,7 +320,8 @@ namespace EZDose.Prescriptions
                     PillMatrix = pillMatrix,
                     PatientName = prescription.Patient?.PatientName ?? "",
                     BedNumber = prescription.Patient?.BedNumber ?? "",
-                    ImageResourceId = medicine.ImageResourceId
+                    ImageResourceId = medicine.ImageResourceId,
+                    DosageSpec = medicine.DosageSpec
                 };
 
                 if (hasBefore && hasAfter)
@@ -464,7 +468,8 @@ namespace EZDose.Prescriptions
                 LastDispensedExpiryDate = record.last_dispensed_expiry_date,
                 IsActive = record.is_active != 0,
                 PillSizeArea = record.pill_size_area,
-                ImageResourceId = record.image_resource_id
+                ImageResourceId = record.image_resource_id,
+                DosageSpec = record.dosage_spec
             };
         }
 
