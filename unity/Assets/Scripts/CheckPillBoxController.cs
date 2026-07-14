@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using ZXing;
@@ -86,9 +87,18 @@ namespace EZDose.CheckPillBox
         /// <summary>
         /// Start scanning; we expect the box code to equal the patient ID.
         /// </summary>
-        public void StartScanner(string expectedPatientId)
+        public void StartScanner(string expectedPatientId, string expectedPatientName = "")
         {
             this.expectedPatientId = expectedPatientId;
+
+            // Ensure valid values for dynamically added components at runtime
+            if (requestedWidth <= 0) requestedWidth = 1280;
+            if (requestedHeight <= 0) requestedHeight = 720;
+            if (requestedFps <= 0) requestedFps = 30;
+            if (!hasSelectedCamera)
+            {
+                cameraIndex = -1;
+            }
 
             if (isScanning)
                 return;
@@ -98,7 +108,14 @@ namespace EZDose.CheckPillBox
                 StartCamera();
                 isScanning = true;
                 StartCoroutine(ScanLoop());
-                SetStatus("Scanning box code...");
+                if (!string.IsNullOrEmpty(expectedPatientName))
+                {
+                    SetStatus($"请放入【{expectedPatientName}】的药盘...");
+                }
+                else
+                {
+                    SetStatus("Scanning box code...");
+                }
             }
             catch (Exception e)
             {
@@ -169,6 +186,10 @@ namespace EZDose.CheckPillBox
 
         private void StartCamera()
         {
+            if (requestedWidth <= 0) requestedWidth = 1280;
+            if (requestedHeight <= 0) requestedHeight = 720;
+            if (requestedFps <= 0) requestedFps = 30;
+
             var devices = WebCamTexture.devices;
             if (devices == null || devices.Length == 0)
                 throw new Exception("No camera found");
@@ -293,13 +314,108 @@ namespace EZDose.CheckPillBox
             StopScanner();
         }
 
-        private void SetStatus(string message)
+        public void SetStatus(string message)
         {
             if (statusText != null)
             {
                 statusText.text = message;
             }
             EZLog.I(EZLog.Module.Scanner, message);
+        }
+
+        private bool isWaitingForNoBarcode = false;
+        private float noBarcodeWaitTimer = 0f;
+        private float targetNoBarcodeDuration = 3f;
+        private Action onNoBarcodeCompleted;
+
+        public void StartWaitingForNoBarcode(float duration, Action onCompleted)
+        {
+            targetNoBarcodeDuration = duration;
+            onNoBarcodeCompleted = onCompleted;
+            
+            if (!isWaitingForNoBarcode)
+            {
+                isWaitingForNoBarcode = true;
+                StartCoroutine(WaitForNoBarcodeCoroutine());
+            }
+        }
+
+        public Task WaitForNoBarcodeAsync(float durationSeconds)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            StartWaitingForNoBarcode(durationSeconds, () => {
+                tcs.SetResult(true);
+            });
+            return tcs.Task;
+        }
+
+        private IEnumerator WaitForNoBarcodeCoroutine()
+        {
+            if (webCamTexture == null || !webCamTexture.isPlaying)
+            {
+                try
+                {
+                    StartCamera();
+                }
+                catch (Exception e)
+                {
+                    EZLog.E(EZLog.Module.Scanner, $"Failed to start camera: {e.Message}");
+                    isWaitingForNoBarcode = false;
+                    onNoBarcodeCompleted?.Invoke();
+                    yield break;
+                }
+            }
+
+            isScanning = true;
+            noBarcodeWaitTimer = 0f;
+            var wait = new WaitForSeconds(0.2f);
+
+            while (isScanning && isWaitingForNoBarcode)
+            {
+                if (webCamTexture == null || !webCamTexture.isPlaying)
+                {
+                    yield return wait;
+                    continue;
+                }
+
+                bool barcodeDetected = false;
+                try
+                {
+                    int width = webCamTexture.width;
+                    int height = webCamTexture.height;
+                    Color32[] colors = webCamTexture.GetPixels32();
+                    var result = barcodeReader.Decode(colors, width, height);
+                    if (result != null)
+                    {
+                        barcodeDetected = true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    EZLog.D(EZLog.Module.Scanner, $"Error during no-barcode decode check: {e.Message}");
+                }
+
+                if (barcodeDetected)
+                {
+                    noBarcodeWaitTimer = 0f;
+                    SetStatus("检测到药盘仍在仓内，请取出药盘...");
+                }
+                else
+                {
+                    noBarcodeWaitTimer += 0.2f;
+                    SetStatus($"请取出药盘... ({Mathf.Max(0f, targetNoBarcodeDuration - noBarcodeWaitTimer):F1}秒后关仓)");
+                }
+
+                if (noBarcodeWaitTimer >= targetNoBarcodeDuration)
+                {
+                    break;
+                }
+
+                yield return wait;
+            }
+
+            isWaitingForNoBarcode = false;
+            onNoBarcodeCompleted?.Invoke();
         }
     }
 }

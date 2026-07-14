@@ -686,6 +686,14 @@ namespace EZDose.MainFlow
         }
 
         /// <summary>
+        /// Clear the current patient selection.
+        /// </summary>
+        public void ClearCurrentPatient()
+        {
+            currentPatient = null;
+        }
+
+        /// <summary>
         /// Build a dispensing plan for the selected patient.
         /// </summary>
         public Task<bool> PreparePlanAsync()
