@@ -291,6 +291,16 @@ namespace EZDose.UI
                 refreshButton.onClick.AddListener(() => FireAndForget(RefreshPatientsAsync()));
             }
 
+            // Adjust scroll sensitivity for the patient list to support comfortable mouse wheel scrolling
+            if (patientListRoot != null)
+            {
+                var scrollRect = patientListRoot.GetComponentInParent<ScrollRect>();
+                if (scrollRect != null)
+                {
+                    scrollRect.scrollSensitivity = 50f;
+                }
+            }
+
             // Setup device management button
             if (manageDevicesButton != null)
             {
@@ -995,6 +1005,7 @@ namespace EZDose.UI
                 main.DispensingProgressChanged += UpdateDispenseUI;
                 main.DispensingError += ShowDispenseError;
                 main.DispensingCompleted += OnDispenseCompleted;
+                main.ServoAngleChanged += OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired += OnPlateSwitchRequired;
                 main.PillCalibrationRequired += OnPillCalibrationRequired;
                 main.MedicineSkipped += OnMedicineSkipped;
@@ -1101,7 +1112,14 @@ namespace EZDose.UI
                 EZLog.I(EZLog.Module.UI, $"Manual servo tuning released: servo={servoAngle:F2}");
 
                 var servoTcs = new TaskCompletionSource<bool>();
-                dispenser.SetServoAngle(servoAngle, success => { servoTcs.TrySetResult(success); });
+                dispenser.SetServoAngle(servoAngle, success => 
+                { 
+                    if (success && MainController.Instance != null)
+                    {
+                        MainController.Instance.UpdateLastSetServoAngle(servoAngle);
+                    }
+                    servoTcs.TrySetResult(success); 
+                });
                 await servoTcs.Task;
             }
         }
@@ -1413,6 +1431,14 @@ namespace EZDose.UI
         private void OnDispenseCompleted()
         {
             FireAndForget(ShowCompletionAsync());
+        }
+
+        private void OnServoAngleChangedBySystem(float angle)
+        {
+            if (servoAngleTuningSlider != null)
+            {
+                servoAngleTuningSlider.value = angle;
+            }
         }
 
         private async Task ShowCompletionAsync()
@@ -1758,6 +1784,7 @@ namespace EZDose.UI
                 main.DispensingProgressChanged -= UpdateDispenseUI;
                 main.DispensingError -= ShowDispenseError;
                 main.DispensingCompleted -= OnDispenseCompleted;
+                main.ServoAngleChanged -= OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired -= OnPlateSwitchRequired;
                 main.PillCalibrationRequired -= OnPillCalibrationRequired;
                 main.MedicineSkipped -= OnMedicineSkipped;
