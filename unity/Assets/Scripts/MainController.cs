@@ -46,6 +46,7 @@ namespace EZDose.MainFlow
         public event Action<DispensingProgressInfo> DispensingProgressChanged;
         public event Action<string> DispensingError;
         public event Action DispensingCompleted;
+        public event Action<float> ServoAngleChanged;       // 舵机角度改变事件
         public event Action<int> PlateSwitchRequired;
         public event Action<string> DeviceLost;
         
@@ -109,6 +110,7 @@ namespace EZDose.MainFlow
         private string currentMedicineImageResourceId = string.Empty;
         private float currentMedicineArea = 0f;
         private string currentMedicineDosageSpec = string.Empty;
+        private float lastSetServoAngle = 0.7f;     // 记录最近一次配置的舵机角度
         private int currentPlate = 1;
         private int currentMedicineTotal = 0;
         private readonly List<int> optoPulseWidths = new List<int>();
@@ -832,7 +834,11 @@ namespace EZDose.MainFlow
                 {
                     return FinishDeviceLostAbort();
                 }
-            
+
+                // 药物分完转盘停转时，用 1 秒钟的时间慢慢过渡到 1.0 角度
+                EZLog.I(EZLog.Module.Main, "Setting servo to 1.0 slowly over 1.0s upon completion");
+                await SetServoAngleSlowlyAsync(1.0f, 1.0f);
+                
             // Update server and mark patient complete
             await prescriptionManager.PushAllChangesAsync();
             MarkPatientCompleted(currentPatient.PatientId);
@@ -1203,6 +1209,9 @@ namespace EZDose.MainFlow
                     EZLog.W(EZLog.Module.Main, "Failed to set servo angle");
                     return false;
                 }
+
+                lastSetServoAngle = servoAngle;
+                ServoAngleChanged?.Invoke(servoAngle);
 
                 // Set turntable speed to the calculated speed for this medicine.
                 var speedResult = await RunDispenserAction(callback =>
@@ -1620,6 +1629,52 @@ namespace EZDose.MainFlow
             });
 
             return WaitWithTimeout(tcs.Task, timeout ?? TimeSpan.FromSeconds(10));
+        }
+
+        /// <summary>
+        /// 同步更新最后一次设置的舵机角度值（用于平滑过渡起始值）
+        /// </summary>
+        public void UpdateLastSetServoAngle(float angle)
+        {
+            lastSetServoAngle = angle;
+        }
+
+        /// <summary>
+        /// 在指定时间内平滑将舵机调节到目标角度
+        /// </summary>
+        private async Task<bool> SetServoAngleSlowlyAsync(float targetAngle, float durationSeconds)
+        {
+            float startAngle = lastSetServoAngle;
+            int steps = 10;
+            float stepDuration = durationSeconds / steps;
+            bool overallSuccess = true;
+
+            EZLog.I(EZLog.Module.Main, $"Starting slow servo transition from {startAngle:F2} to {targetAngle:F2} over {durationSeconds}s");
+
+            for (int i = 1; i <= steps; i++)
+            {
+                float t = (float)i / steps;
+                float currentAngle = Mathf.Lerp(startAngle, targetAngle, t);
+
+                var stepResult = await RunDispenserAction(callback => dispenserController.SetServoAngle(currentAngle, callback));
+                if (!stepResult)
+                {
+                    EZLog.W(EZLog.Module.Main, $"Failed to set servo angle to {currentAngle:F2} during transition");
+                    overallSuccess = false;
+                }
+                else
+                {
+                    lastSetServoAngle = currentAngle;
+                    ServoAngleChanged?.Invoke(currentAngle);
+                }
+
+                if (i < steps)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(stepDuration));
+                }
+            }
+
+            return overallSuccess;
         }
 
         private void MarkPatientCompleted(string patientId)
