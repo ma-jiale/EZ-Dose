@@ -279,9 +279,9 @@ namespace EZDose.CheckPillBox
             }
         }
 
-        private void HandleDecode(string decoded)
+        public static string ParsePatientIdFromBarcode(string decoded)
         {
-            // We expect the box code to carry the patient id. Accept forms: "PID:<id>", "BOX:<id>", or raw "<id>".
+            if (string.IsNullOrEmpty(decoded)) return "";
             var parsedId = decoded;
 
             if (decoded.Contains(":"))
@@ -295,9 +295,16 @@ namespace EZDose.CheckPillBox
                         parsedId = part.Substring(4).Trim();
                 }
             }
+            return parsedId;
+        }
+
+        private void HandleDecode(string decoded)
+        {
+            // We expect the box code to carry the patient id. Accept forms: "PID:<id>", "BOX:<id>", or raw "<id>".
+            var parsedId = ParsePatientIdFromBarcode(decoded);
 
             var matches = string.IsNullOrEmpty(expectedPatientId)
-                ? false
+                ? true
                 : string.Equals(parsedId, expectedPatientId, StringComparison.OrdinalIgnoreCase);
 
             if (matches)
