@@ -81,8 +81,8 @@ namespace EZDose.Prescriptions
         public string ImageResourceId;               // Pill image filename from server
         public string DosageSpec;                    // 剂量规格
         
-        // Check if this medicine needs calibration before dispensing
-        public bool NeedsCalibration => PillSizeArea <= 0;
+        // Check if this medicine needs calibration before dispensing (Visual calibration disabled)
+        public bool NeedsCalibration => false;
 
         // Helpers to check when to take the pill based on meal_timing field
         public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || 
@@ -120,8 +120,8 @@ namespace EZDose.Prescriptions
         public string ImageResourceId;
         public string DosageSpec;                    // 剂量规格
         
-        // Check if this medicine needs calibration before dispensing
-        public bool NeedsCalibration => PillSizeArea <= 0;
+        // Check if this medicine needs calibration before dispensing (Visual calibration disabled)
+        public bool NeedsCalibration => false;
     }
 
     [Serializable]
