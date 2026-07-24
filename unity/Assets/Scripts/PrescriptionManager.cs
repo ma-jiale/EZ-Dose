@@ -27,7 +27,8 @@ namespace EZDose.Prescriptions
         public int duration_days;
         public string last_dispensed_expiry_date;  // Format: YYYY-MM-DD
         public int is_active;                       // 0 = inactive, 1 = active
-        public float pill_size_area;                 // Actual pill area in mm² (null/0 = uncalibrated)
+        public float motor_speed;                   // 转盘速度 (0 = uncalibrated)
+        public float servo_angle;                   // 舵机角度 (0 = uncalibrated)
         public string image_resource_id;            // Medicine image filename
         public string dosage_spec;                  // 剂量规格
         public string created_at;                   // Timestamp
@@ -77,12 +78,10 @@ namespace EZDose.Prescriptions
         public int DurationDays;
         public string LastDispensedExpiryDate;
         public bool IsActive;
-        public float PillSizeArea;                   // Actual pill area in mm² (0 = needs calibration)
+        public float MotorSpeed;                     // 转盘速度 (0 = uncalibrated)
+        public float ServoAngle;                     // 舵机角度 (0 = uncalibrated)
         public string ImageResourceId;               // Pill image filename from server
         public string DosageSpec;                    // 剂量规格
-        
-        // Check if this medicine needs calibration before dispensing (Visual calibration disabled)
-        public bool NeedsCalibration => false;
 
         // Helpers to check when to take the pill based on meal_timing field
         public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || 
@@ -108,7 +107,8 @@ namespace EZDose.Prescriptions
         public int PrescriptionId;                  // Server ID for updating after calibration
         public string MedicineName;
         public string MealTiming;
-        public float PillSizeArea;                  // Actual pill area in mm² (0 = needs calibration)
+        public float MotorSpeed;                    // 转盘速度 (0 = uncalibrated)
+        public float ServoAngle;                    // 舵机角度 (0 = uncalibrated)
         public int DispensingDays;
         public int[,] PillMatrix;
         
@@ -119,9 +119,6 @@ namespace EZDose.Prescriptions
         // Medicine image filename from server
         public string ImageResourceId;
         public string DosageSpec;                    // 剂量规格
-        
-        // Check if this medicine needs calibration before dispensing (Visual calibration disabled)
-        public bool NeedsCalibration => false;
     }
 
     [Serializable]
@@ -148,9 +145,9 @@ namespace EZDose.Prescriptions
 
         public IReadOnlyList<PrescriptionRecord> CachedRecords => allRecords;
 
-        public bool UpdatePillSizeAreaLocally(int prescriptionId, string medicineName, float pillSizeAreaMm2)
+        public bool UpdateDispenserSettingsLocally(int prescriptionId, string medicineName, float motorSpeed, float servoAngle)
         {
-            if (pillSizeAreaMm2 <= 0)
+            if (motorSpeed <= 0 || servoAngle <= 0)
             {
                 return false;
             }
@@ -164,7 +161,8 @@ namespace EZDose.Prescriptions
                 {
                     if (MatchesPrescription(medicine.PrescriptionId, medicine.MedicineName, prescriptionId, medicineName, hasPrescriptionId))
                     {
-                        medicine.PillSizeArea = pillSizeAreaMm2;
+                        medicine.MotorSpeed = motorSpeed;
+                        medicine.ServoAngle = servoAngle;
                         updated = true;
                     }
                 }
@@ -176,7 +174,8 @@ namespace EZDose.Prescriptions
                 {
                     if (MatchesPrescription(record.id, record.medicine_name, prescriptionId, medicineName, hasPrescriptionId))
                     {
-                        record.pill_size_area = pillSizeAreaMm2;
+                        record.motor_speed = motorSpeed;
+                        record.servo_angle = servoAngle;
                         updated = true;
                     }
                 }
@@ -315,7 +314,8 @@ namespace EZDose.Prescriptions
                     PrescriptionId = medicine.PrescriptionId,
                     MedicineName = medicine.MedicineName,
                     MealTiming = medicine.MealTiming,
-                    PillSizeArea = medicine.PillSizeArea,
+                    MotorSpeed = medicine.MotorSpeed,
+                    ServoAngle = medicine.ServoAngle,
                     DispensingDays = dispensingDays,
                     PillMatrix = pillMatrix,
                     PatientName = prescription.Patient?.PatientName ?? "",
@@ -467,7 +467,8 @@ namespace EZDose.Prescriptions
                 DurationDays = record.duration_days,
                 LastDispensedExpiryDate = record.last_dispensed_expiry_date,
                 IsActive = record.is_active != 0,
-                PillSizeArea = record.pill_size_area,
+                MotorSpeed = record.motor_speed,
+                ServoAngle = record.servo_angle,
                 ImageResourceId = record.image_resource_id,
                 DosageSpec = record.dosage_spec
             };

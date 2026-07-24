@@ -53,10 +53,6 @@ namespace EZDose.MainFlow
         // Event to trigger the manual error resolution dialog in UI
         public event Action<string> ErrorResolutionRequired;
         
-        // Pill size calibration events
-        public event Action<DispensingMedicine> PillCalibrationRequired;  // Medicine needs calibration
-        public event Action<float> PillCalibrationCompleted;              // Calibration done, area in mm²
-        
         // Skip medicine event - triggered when UI requests to skip current medicine
         public event Action<string> MedicineSkipped;                      // Medicine name that was skipped
         
@@ -94,21 +90,16 @@ namespace EZDose.MainFlow
         // Task for waiting for user to confirm manual error resolution
         private TaskCompletionSource<bool> errorResolutionTcs;
         
-        // Task for waiting for pill calibration to complete
-        private TaskCompletionSource<float> pillCalibrationTcs;
-        
         // Task for handling skip request during dispensing
         private TaskCompletionSource<bool> skipCurrentMedicineTcs;
         
         // Task for waiting for user to confirm skip in dialog
         private TaskCompletionSource<bool> skipConfirmTcs;
-        
-        // Pending image bytes from pill calibration for server upload
-        private byte[] pendingCalibrationImageBytes;
 
         private string currentMedicineName = string.Empty;
         private string currentMedicineImageResourceId = string.Empty;
-        private float currentMedicineArea = 0f;
+        private float currentMotorSpeed = 0f;
+        private float currentServoAngle = 0f;
         private string currentMedicineDosageSpec = string.Empty;
         private float lastSetServoAngle = 0.7f;     // 记录最近一次配置的舵机角度
         private int currentPlate = 1;
@@ -906,7 +897,6 @@ namespace EZDose.MainFlow
             dispenseTcs?.TrySetResult(false);
             plateReadyTcs?.TrySetResult(false);
             errorResolutionTcs?.TrySetResult(false);
-            pillCalibrationTcs?.TrySetResult(0f);
             skipConfirmTcs?.TrySetResult(false);
         }
 
@@ -925,7 +915,8 @@ namespace EZDose.MainFlow
             currentPatient = null;
             currentMedicineName = string.Empty;
             currentMedicineImageResourceId = string.Empty;
-            currentMedicineArea = 0f;
+            currentMotorSpeed = 0f;
+            currentServoAngle = 0f;
             currentMedicineDosageSpec = string.Empty;
             currentMedicineTotal = 0;
             nextMedicineName = string.Empty;
@@ -964,68 +955,14 @@ namespace EZDose.MainFlow
                 nextMedicinePillCount = 0;
             }
 
-            // Check if medicine needs calibration before dispensing
-            if (med.NeedsCalibration)
-            {
-                EZLog.I(EZLog.Module.Main, $"Medicine '{med.MedicineName}' needs calibration");
-                
-                // Trigger calibration dialog in UI
-                PillCalibrationRequired?.Invoke(med);
-                
-                // Wait for calibration to complete (UI calls CompletePillCalibration)
-                pillCalibrationTcs = new TaskCompletionSource<float>();
-                float calibratedAreaMm2 = await pillCalibrationTcs.Task;
-                if (isDeviceLostAbort)
-                {
-                    return false;
-                }
-                
-                if (calibratedAreaMm2 <= 0)
-                {
-                    EZLog.E(EZLog.Module.Main, "Calibration failed or was cancelled");
-                    DispensingError?.Invoke("药片校准失败，请重试");
-                    return false;
-                }
-                
-                // Update medicine with calibrated area
-                med.PillSizeArea = calibratedAreaMm2;
-                prescriptionManager?.UpdatePillSizeAreaLocally(med.PrescriptionId, med.MedicineName, calibratedAreaMm2);
-                
-                // Update server with new pill size and image (find calibration manager at runtime)
-                var calibrationMgr = GetCalibrationManager();
-                if (calibrationMgr != null)
-                {
-                    // Use the new method that uploads image along with pill size
-                    var (serverUpdated, imageResourceId) = await calibrationMgr.UpdatePillSizeWithImageAsync(
-                        med.PrescriptionId, calibratedAreaMm2, pendingCalibrationImageBytes);
-                    
-                    if (!serverUpdated)
-                    {
-                        EZLog.W(EZLog.Module.Main, "Failed to update pill size on server, continuing");
-                    }
-                    else if (!string.IsNullOrEmpty(imageResourceId))
-                    {
-                        // Update medicine with new image resource ID
-                        med.ImageResourceId = imageResourceId;
-                        EZLog.I(EZLog.Module.Main, $"Image uploaded: {imageResourceId}");
-                    }
-                    
-                    // Clear pending image bytes
-                    pendingCalibrationImageBytes = null;
-                }
-                else
-                {
-                    EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot update server");
-                }
-                
-                // Notify UI that calibration is complete
-                PillCalibrationCompleted?.Invoke(calibratedAreaMm2);
-                EZLog.I(EZLog.Module.Main, $"Calibration complete: {calibratedAreaMm2:.1f}mm²");
-            }
+            // Configure dispenser hardware based on motor speed and servo angle
+            var calibrationMgr = GetCalibrationManager();
+            var (speed, angle) = calibrationMgr != null
+                ? calibrationMgr.GetSettingsOrDefault(med.MotorSpeed, med.ServoAngle)
+                : (0.3f, 0.7f);
 
-            // Configure dispenser hardware based on pill area
-            EZLog.D(EZLog.Module.Main, $"Configuring dispenser for pill area: {med.PillSizeArea:.1f}mm²");
-            var configured = await ConfigureDispenserForPillArea(med.PillSizeArea);
+            EZLog.D(EZLog.Module.Main, $"Configuring dispenser for '{med.MedicineName}': speed={speed:.2f}, angle={angle:.2f}");
+            var configured = await ConfigureDispenser(speed, angle);
             if (isDeviceLostAbort)
             {
                 return false;
@@ -1033,14 +970,15 @@ namespace EZDose.MainFlow
 
             if (!configured)
             {
-                EZLog.W(EZLog.Module.Main, $"Failed to configure for pill area {med.PillSizeArea:.1f}mm², continuing anyway");
+                EZLog.W(EZLog.Module.Main, $"Failed to configure dispenser for '{med.MedicineName}', continuing anyway");
             }
 
             var matrix = ToByteMatrix(med.PillMatrix);
             currentMedicineTotal = CountPills(matrix);
             currentMedicineName = med.MedicineName;
             currentMedicineImageResourceId = med.ImageResourceId ?? string.Empty;
-            currentMedicineArea = med.PillSizeArea;
+            currentMotorSpeed = speed;
+            currentServoAngle = angle;
             currentMedicineDosageSpec = med.DosageSpec ?? string.Empty;
             currentPlate = plate;
 
@@ -1055,7 +993,8 @@ namespace EZDose.MainFlow
                 ImageResourceId = med.ImageResourceId,
                 NextMedicineName = nextMedicineName,
                 NextMedicinePillCount = nextMedicinePillCount,
-                CurrentPillArea = currentMedicineArea,
+                CurrentMotorSpeed = currentMotorSpeed,
+                CurrentServoAngle = currentServoAngle,
                 DosageSpec = currentMedicineDosageSpec
             };
             DispensingProgressChanged?.Invoke(progress);
@@ -1121,22 +1060,11 @@ namespace EZDose.MainFlow
             {
                 prescriptionManager.ApplyDispensingResult(med.MedicineName);
                 
-                // Save average opto pulse width as pill area to server for future use
-                await SaveAveragePulseWidthAsAreaAsync(med);
+                // Save average opto pulse width converted to motor speed and servo angle to server
+                await SavePulseWidthSettingsAsync(med);
             }
 
             return success;
-        }
-        
-        /// <summary>
-        /// Called by UI when pill calibration is complete.
-        /// </summary>
-        /// <param name="calibratedAreaMm2">The calibrated pill area in mm², or 0 if cancelled</param>
-        /// <param name="imageBytes">Optional captured image bytes (JPG format)</param>
-        public void CompletePillCalibration(float calibratedAreaMm2, byte[] imageBytes = null)
-        {
-            pendingCalibrationImageBytes = imageBytes;
-            pillCalibrationTcs?.TrySetResult(calibratedAreaMm2);
         }
         
         /// <summary>
@@ -1169,36 +1097,16 @@ namespace EZDose.MainFlow
         }
 
         /// <summary>
-        /// Configure dispenser motor speed and servo angle based on pill area.
-        /// Uses calibration manager to calculate settings from actual pill dimensions.
+        /// Configure dispenser motor speed and servo angle directly.
         /// </summary>
-        private async Task<bool> ConfigureDispenserForPillArea(float pillAreaMm2)
+        private async Task<bool> ConfigureDispenser(float motorSpeed, float servoAngle)
         {
             if (dispenserController == null)
             {
                 return false;
             }
 
-            // Calculate motor speed and servo angle based on pill area
-            float motorSpeed;
-            float servoAngle;
-            
-            // Find calibration manager at runtime (it may be in a different scene)
-            var calibrationMgr = GetCalibrationManager();
-            
-            if (calibrationMgr != null)
-            {
-                (motorSpeed, servoAngle) = calibrationMgr.GetDispenserSettingsOrDefault(pillAreaMm2);
-            }
-            else
-            {
-                // Fallback to default settings if no calibration manager
-                EZLog.W(EZLog.Module.Main, "No calibration manager found, using default settings");
-                motorSpeed = 0.3f;
-                servoAngle = 0.7f;
-            }
-
-            EZLog.D(EZLog.Module.Main, $"Pill area {pillAreaMm2:.1f}mm² -> motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
+            EZLog.D(EZLog.Module.Main, $"Configuring dispenser settings: motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
 
             // CRITICAL: Temporarily unsubscribe from completion event during configuration
             // Configuration commands also send machine_state:FINISH which should NOT trigger dispensing completion
@@ -1515,7 +1423,8 @@ namespace EZDose.MainFlow
                 ImageResourceId = currentMedicineImageResourceId,
                 NextMedicineName = nextMedicineName,
                 NextMedicinePillCount = nextMedicinePillCount,
-                CurrentPillArea = currentMedicineArea,
+                CurrentMotorSpeed = currentMotorSpeed,
+                CurrentServoAngle = currentServoAngle,
                 DosageSpec = currentMedicineDosageSpec
             };
             
@@ -1523,14 +1432,14 @@ namespace EZDose.MainFlow
         }
 
         /// <summary>
-        /// After dispensing completes, compute average pulse width, convert to area,
+        /// After dispensing completes, compute average pulse width, convert to motor speed and servo angle,
         /// and save to server for future dispensing of this medicine.
         /// </summary>
-        private async Task SaveAveragePulseWidthAsAreaAsync(Prescriptions.DispensingMedicine med)
+        private async Task SavePulseWidthSettingsAsync(Prescriptions.DispensingMedicine med)
         {
             if (optoPulseWidths.Count == 0)
             {
-                EZLog.D(EZLog.Module.Main, "No opto pulse widths collected, skipping area calculation");
+                EZLog.D(EZLog.Module.Main, "No opto pulse widths collected, skipping settings calculation");
                 return;
             }
 
@@ -1544,36 +1453,38 @@ namespace EZDose.MainFlow
 
             EZLog.I(EZLog.Module.Main, $"Average opto pulse width: {averagePulseWidth:F2} (from {optoPulseWidths.Count} samples)");
 
-            // Convert average pulse width to area
+            // Convert average pulse width to motor speed and servo angle
             var calibrationMgr = GetCalibrationManager();
             if (calibrationMgr == null)
             {
-                EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute area from pulse width");
+                EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute settings from pulse width");
                 return;
             }
 
-            float newArea = calibrationMgr.CalculateAreaFromPulseWidth((int)averagePulseWidth);
-            EZLog.I(EZLog.Module.Main, $"Calculated pill area from average pulse: {newArea:F2} mm²");
+            var (newSpeed, newAngle) = calibrationMgr.CalculateSettingsFromPulseWidth(averagePulseWidth);
+            EZLog.I(EZLog.Module.Main, $"Calculated settings from average pulse: motor={newSpeed:F2}, servo={newAngle:F2}");
 
-            // Update current medicine area for UI display
-            currentMedicineArea = newArea;
+            // Update current medicine settings for UI display
+            currentMotorSpeed = newSpeed;
+            currentServoAngle = newAngle;
             if (med != null)
             {
-                med.PillSizeArea = newArea;
-                prescriptionManager?.UpdatePillSizeAreaLocally(med.PrescriptionId, med.MedicineName, newArea);
+                med.MotorSpeed = newSpeed;
+                med.ServoAngle = newAngle;
+                prescriptionManager?.UpdateDispenserSettingsLocally(med.PrescriptionId, med.MedicineName, newSpeed, newAngle);
             }
 
             // Save to server for future use
             if (med != null && med.PrescriptionId > 0)
             {
-                bool updated = await calibrationMgr.UpdatePillSizeOnServerAsync(med.PrescriptionId, newArea);
+                bool updated = await calibrationMgr.UpdateDispenserSettingsOnServerAsync(med.PrescriptionId, newSpeed, newAngle);
                 if (updated)
                 {
-                    EZLog.I(EZLog.Module.Main, $"Saved pill area {newArea:F2}mm² to server for '{med.MedicineName}'");
+                    EZLog.I(EZLog.Module.Main, $"Saved settings motor={newSpeed:F2}, servo={newAngle:F2} to server for '{med.MedicineName}'");
                 }
                 else
                 {
-                    EZLog.W(EZLog.Module.Main, $"Failed to save pill area to server for '{med.MedicineName}'");
+                    EZLog.W(EZLog.Module.Main, $"Failed to save dispenser settings to server for '{med.MedicineName}'");
                 }
             }
         }
@@ -1778,8 +1689,9 @@ namespace EZDose.MainFlow
         public string NextMedicineName;    // Name of the next medicine to dispense (empty if this is the last one)
         public int NextMedicinePillCount;  // Total pills for the next medicine
         
-        // Current pill tuning area
-        public float CurrentPillArea;
+        // Current pill tuning settings
+        public float CurrentMotorSpeed;
+        public float CurrentServoAngle;
         public string DosageSpec;          // 剂量规格
     }
 }

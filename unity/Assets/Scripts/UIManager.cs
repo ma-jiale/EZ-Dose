@@ -1716,7 +1716,6 @@ namespace EZDose.UI
                 main.DispensingCompleted += OnDispenseCompleted;
                 main.ServoAngleChanged += OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired += OnPlateSwitchRequired;
-                main.PillCalibrationRequired += OnPillCalibrationRequired;
                 main.MedicineSkipped += OnMedicineSkipped;
             }
 
@@ -1772,9 +1771,9 @@ namespace EZDose.UI
             // Setup manual servo angle tuning slider
             if (servoAngleTuningSlider != null)
             {
-                servoAngleTuningSlider.minValue = 0.1f;
-                servoAngleTuningSlider.maxValue = 1.2f;
-                servoAngleTuningSlider.value = 0.7f;
+                servoAngleTuningSlider.minValue = 0.0f;
+                servoAngleTuningSlider.maxValue = 1.0f;
+                servoAngleTuningSlider.value = 0.5f;
                 servoAngleTuningSlider.onValueChanged.AddListener(OnServoAngleTuningChanged);
                 OnServoAngleTuningChanged(servoAngleTuningSlider.value);
                 var sliderNavigation = servoAngleTuningSlider.navigation;
@@ -1927,22 +1926,7 @@ namespace EZDose.UI
             }
         }
 
-        /// <summary>
-        /// MainController 触发校准事件时，直接调用对话框
-        /// </summary>
-        private void OnPillCalibrationRequired(EZDose.Prescriptions.DispensingMedicine medicine)
-        {
-            EZLog.I(EZLog.Module.UI, $"Calibration required for: {medicine.MedicineName}");
-            
-            if (pillCalibrationDialog != null)
-            {
-                pillCalibrationDialog.Show(medicine.MedicineName, medicine.PatientName, medicine.BedNumber);
-            }
-            else
-            {
-                EZLog.E(EZLog.Module.UI, "PillCalibrationDialog is not assigned");
-            }
-        }
+
 
         private void UpdateDispenseUI(DispensingProgressInfo info)
         {
@@ -2504,7 +2488,6 @@ namespace EZDose.UI
                 main.DispensingCompleted -= OnDispenseCompleted;
                 main.ServoAngleChanged -= OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired -= OnPlateSwitchRequired;
-                main.PillCalibrationRequired -= OnPillCalibrationRequired;
                 main.MedicineSkipped -= OnMedicineSkipped;
                 main.SkipConfirmRequired -= OnSkipConfirmRequired;
                 main.DeviceLost -= OnDeviceLost;

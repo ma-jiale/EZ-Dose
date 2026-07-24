@@ -6751,7 +6751,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a789e81097c67a3409025db8caf08ae7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EZDose.Calibration.PillCalibrationManager
-  referencePillDiameterMm: 9
+  kMotorSpeed: 0.05
+  kServoAngle: 0.03
 --- !u!4 &734485528
 Transform:
   m_ObjectHideFlags: 0
@@ -16543,6 +16544,16 @@ MonoBehaviour:
   mismatchDialog: {fileID: 0}
   mismatchHomeButton: {fileID: 0}
   mismatchRetryButton: {fileID: 0}
+  homeScanDialog: {fileID: 0}
+  homeScanDialogTitleText: {fileID: 0}
+  homeScanDialogMessageText: {fileID: 0}
+  homeScanConfirmButton: {fileID: 0}
+  homeScanCancelButton: {fileID: 0}
+  homeScanSwitchCameraButton: {fileID: 0}
+  homeScanSwitchCameraButtonText: {fileID: 0}
+  homeScanInsertIcon: {fileID: 0}
+  homeScanPrescriptionDetailsText: {fileID: 0}
+  autoScanButton: {fileID: 0}
   switchCameraButton: {fileID: 0}
   switchCameraButtonText: {fileID: 0}
   totalPillsText: {fileID: 1215929591}

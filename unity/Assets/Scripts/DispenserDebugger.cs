@@ -122,7 +122,7 @@ public class DispenserDebugger : MonoBehaviour
     /// </summary>
     private void SetupSliders()
     {
-        SetupSlider(servoAngleSlider, 0.1f, 1.0f, 0.5f, OnServoSliderChanged, OnServoSliderDragStart, OnServoSliderDragEnd);
+        SetupSlider(servoAngleSlider, 0.0f, 1.0f, 0.5f, OnServoSliderChanged, OnServoSliderDragStart, OnServoSliderDragEnd);
         SetupSlider(motorSpeedSlider, 0.1f, 1.4f, 0.5f, OnMotorSliderChanged, OnMotorSliderDragStart, OnMotorSliderDragEnd);
     }
 

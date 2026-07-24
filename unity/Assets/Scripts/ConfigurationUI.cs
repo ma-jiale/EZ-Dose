@@ -243,10 +243,9 @@ namespace EZDose.UI
 
         private void InitializeCalibrationUI()
         {
-            // Set default reference diameter
-            if (referenceDiameterInput != null && calibrationManager != null)
+            if (referenceDiameterInput != null)
             {
-                referenceDiameterInput.text = calibrationManager.ReferencePillDiameterMm.ToString("F1");
+                referenceDiameterInput.text = "9.0";
             }
             
             // Hide calibration panel initially
@@ -267,18 +266,10 @@ namespace EZDose.UI
 
         private void UpdateCalibrationStateDisplay()
         {
-            if (calibrationStateText == null || calibrationManager == null) return;
+            if (calibrationStateText == null) return;
             
-            if (calibrationManager.IsSystemCalibrated)
-            {
-                calibrationStateText.text = $"已校准 (比例: {calibrationManager.PixelToMm2Ratio:F6})";
-                calibrationStateText.color = Color.green;
-            }
-            else
-            {
-                calibrationStateText.text = "未校准";
-                calibrationStateText.color = Color.yellow;
-            }
+            calibrationStateText.text = "已启用自动脉冲校准";
+            calibrationStateText.color = Color.green;
         }
 
         /// <summary>
@@ -292,10 +283,10 @@ namespace EZDose.UI
                 return;
             }
 
-            // Update reference diameter from input
+            // Reference diameter input handled locally
             if (referenceDiameterInput != null && float.TryParse(referenceDiameterInput.text, out float diameter))
             {
-                calibrationManager.ReferencePillDiameterMm = diameter;
+                // Unused
             }
 
             // Show calibration panel
@@ -326,21 +317,12 @@ namespace EZDose.UI
         {
             if (calibrationManager == null || pendingPixelArea <= 0) return;
 
-            // Perform calibration with detected pixel area
-            bool success = calibrationManager.CalibrateWithReferencePill(pendingPixelArea);
-
-            if (success)
-            {
-                float refDiameter = calibrationManager.ReferencePillDiameterMm;
-                float refArea = Mathf.PI * (refDiameter / 2f) * (refDiameter / 2f);
-                
-                ShowMessage($"校准成功！{refDiameter}mm 药片 = {refArea:F1}mm²", Color.green);
-                UpdateCalibrationStateDisplay();
-            }
-            else
-            {
-                ShowMessage("校准失败，请重试", Color.red);
-            }
+            // Visual calibration is disabled (auto pulse width calibration is used)
+            float refDiameter = 9.0f;
+            float refArea = Mathf.PI * (refDiameter / 2f) * (refDiameter / 2f);
+            
+            ShowMessage($"系统已采用自动脉冲校准 ({refDiameter}mm 药片参考)", Color.green);
+            UpdateCalibrationStateDisplay();
 
             StopCalibration();
         }
@@ -411,7 +393,7 @@ namespace EZDose.UI
                     pendingPixelArea = pixelArea;
                     
                     // Calculate expected area for display
-                    float refDiameter = calibrationManager.ReferencePillDiameterMm;
+                    float refDiameter = 9.0f;
                     float expectedArea = Mathf.PI * (refDiameter / 2f) * (refDiameter / 2f);
                     
                     if (calibrationStatusText != null)
@@ -479,12 +461,8 @@ namespace EZDose.UI
         /// </summary>
         public void OnResetCalibrationClicked()
         {
-            if (calibrationManager != null)
-            {
-                calibrationManager.ResetCalibration();
-                UpdateCalibrationStateDisplay();
-                ShowMessage("校准已重置", Color.yellow);
-            }
+            UpdateCalibrationStateDisplay();
+            ShowMessage("重置完成（现已使用脉冲宽度直算）", Color.yellow);
         }
 
         #endregion
