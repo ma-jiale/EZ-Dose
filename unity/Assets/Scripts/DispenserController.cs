@@ -58,6 +58,10 @@ namespace EZDose.Hardware
         // 反馈标志
         private bool ackReceived = false;
         private bool doneReceived = false;
+
+        // RFID state reported asynchronously by the STM32 while the tray is open.
+        private string currentRfidUid;
+        private bool isRfidCardPresent;
         
         // 接收缓冲区
         private StringBuilder receiveBuffer = new StringBuilder();
@@ -72,6 +76,9 @@ namespace EZDose.Hardware
         public event Action<int> OnPillCountUpdate;
         public event Action<bool> OnPauseStateChanged;
         public event Action<int> OnCleanCompleted;  // cleaned pills count
+        public event Action<string> OnRfidCardPlaced;
+        public event Action<string> OnRfidCardRemoved;
+        public event Action<string, string> OnRfidCardChanged;
 
         
         // Bluetooth device discovery events
@@ -259,6 +266,7 @@ namespace EZDose.Hardware
             doneReceived = false;
             isSendingPackage = false;
             isPaused = false;
+            ClearRfidStateWithoutEvent();
             receiveBuffer.Clear();
         }
 
@@ -644,6 +652,14 @@ namespace EZDose.Hardware
                     EZLog.D(EZLog.Module.Protocol, "DONE signal received");
                     break;
 
+                case FeedbackType.RfidUid:
+                    HandleRfidUid(feedback.RfidUid);
+                    break;
+
+                case FeedbackType.RfidNoCard:
+                    HandleRfidNoCard();
+                    break;
+
                 case FeedbackType.MachineInit:
                     EZLog.I(EZLog.Module.Dispenser, "Machine initialization detected");
                     OnMachineInit?.Invoke();
@@ -681,6 +697,56 @@ namespace EZDose.Hardware
                     OnCleanCompleted?.Invoke(feedback.PillCount);
                     break;
             }
+        }
+
+        private void HandleRfidUid(string uid)
+        {
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                return;
+            }
+
+            uid = uid.Trim().ToUpperInvariant();
+            if (isRfidCardPresent && string.Equals(currentRfidUid, uid, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string previousUid = currentRfidUid;
+            bool wasPresent = isRfidCardPresent;
+            currentRfidUid = uid;
+            isRfidCardPresent = true;
+
+            if (wasPresent && !string.IsNullOrEmpty(previousUid))
+            {
+                EZLog.W(EZLog.Module.Dispenser, $"RFID pill box changed: {previousUid} -> {uid}");
+                OnRfidCardChanged?.Invoke(previousUid, uid);
+            }
+            else
+            {
+                EZLog.I(EZLog.Module.Dispenser, $"RFID pill box placed: {uid}");
+                OnRfidCardPlaced?.Invoke(uid);
+            }
+        }
+
+        private void HandleRfidNoCard()
+        {
+            if (!isRfidCardPresent)
+            {
+                return;
+            }
+
+            string removedUid = currentRfidUid;
+            currentRfidUid = null;
+            isRfidCardPresent = false;
+            EZLog.I(EZLog.Module.Dispenser, $"RFID pill box removed: {removedUid}");
+            OnRfidCardRemoved?.Invoke(removedUid);
+        }
+
+        private void ClearRfidStateWithoutEvent()
+        {
+            currentRfidUid = null;
+            isRfidCardPresent = false;
         }
 
         #endregion
@@ -968,6 +1034,7 @@ namespace EZDose.Hardware
         public void OpenTray(Action<bool> callback = null)
         {
             EZLog.D(EZLog.Module.Dispenser, "Opening tray");
+            ClearRfidStateWithoutEvent();
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.OPEN_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
@@ -985,7 +1052,11 @@ namespace EZDose.Hardware
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.CLOSE_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
-                if (success) isTrayOpened = false;
+                if (success)
+                {
+                    isTrayOpened = false;
+                    ClearRfidStateWithoutEvent();
+                }
                 callback?.Invoke(success);
             }));
         }
@@ -1180,6 +1251,8 @@ namespace EZDose.Hardware
         public int ErrorCode => errorCode;
         public int PillRemain => pillRemain;
         public int TotalPills => totalPills;
+        public string CurrentRfidUid => currentRfidUid;
+        public bool IsRfidCardPresent => isRfidCardPresent;
 
         /// <summary>
         /// Attempt to reconnect if not connected (call before operations)

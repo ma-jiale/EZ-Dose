@@ -43,6 +43,27 @@ namespace EZDose.Prescriptions
     }
 
     [Serializable]
+    public class PillBoxRecord
+    {
+        public int id;
+        public string patient_id;
+        public string rfid_uid;
+        public string box_type;
+        public string display_name;
+        public int is_active;
+        public string patient_name;
+        public string bed_number;
+    }
+
+    [Serializable]
+    internal class PillBoxListResponse
+    {
+        public bool success;
+        public List<PillBoxRecord> data;
+        public string message;
+    }
+
+    [Serializable]
     internal class UploadPayload
     {
         public List<PrescriptionRecord> prescriptions;
@@ -135,6 +156,9 @@ namespace EZDose.Prescriptions
         private readonly string serverUrl;
         private readonly CultureInfo culture = CultureInfo.InvariantCulture;
         private List<PrescriptionRecord> allRecords = new List<PrescriptionRecord>();
+        private List<PillBoxRecord> pillBoxRecords = new List<PillBoxRecord>();
+        private readonly Dictionary<string, string> patientIdByRfidUid =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private PrescriptionData currentPrescription;
         private readonly Dictionary<string, int> currentDispensingDays = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -144,6 +168,18 @@ namespace EZDose.Prescriptions
         }
 
         public IReadOnlyList<PrescriptionRecord> CachedRecords => allRecords;
+        public IReadOnlyList<PillBoxRecord> CachedPillBoxes => pillBoxRecords;
+
+        public bool TryGetPatientIdByRfidUid(string uid, out string patientId)
+        {
+            patientId = null;
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                return false;
+            }
+
+            return patientIdByRfidUid.TryGetValue(uid.Trim().ToUpperInvariant(), out patientId);
+        }
 
         public bool UpdateDispenserSettingsLocally(int prescriptionId, string medicineName, float motorSpeed, float servoAngle)
         {
@@ -208,11 +244,57 @@ namespace EZDose.Prescriptions
                 if (response != null && response.success)
                 {
                     allRecords = response.data ?? new List<PrescriptionRecord>();
-                    return true;
+                }
+                else
+                {
+                    EZLog.E(EZLog.Module.Prescription, $"Server rejected fetch: {request.downloadHandler.text}");
+                    return false;
+                }
+            }
+
+            // RFID bindings are optional for backward compatibility with older servers.
+            await RefreshPillBoxesFromServerAsync();
+            return true;
+        }
+
+        private async Task RefreshPillBoxesFromServerAsync()
+        {
+            using (var request = UnityWebRequest.Get($"{serverUrl}/packer/pill-boxes"))
+            {
+                request.timeout = 10;
+                await Wait(request);
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    pillBoxRecords.Clear();
+                    patientIdByRfidUid.Clear();
+                    EZLog.W(EZLog.Module.Prescription, $"RFID pill-box mapping fetch failed; camera scanning remains available: {request.error}");
+                    return;
                 }
 
-                EZLog.E(EZLog.Module.Prescription, $"Server rejected fetch: {request.downloadHandler.text}");
-                return false;
+                var response = JsonUtility.FromJson<PillBoxListResponse>(request.downloadHandler.text);
+                if (response == null || !response.success)
+                {
+                    pillBoxRecords.Clear();
+                    patientIdByRfidUid.Clear();
+                    EZLog.W(EZLog.Module.Prescription, $"RFID pill-box mapping response was invalid: {request.downloadHandler.text}");
+                    return;
+                }
+
+                pillBoxRecords = response.data ?? new List<PillBoxRecord>();
+                patientIdByRfidUid.Clear();
+                foreach (var box in pillBoxRecords)
+                {
+                    if (box == null || box.is_active == 0 ||
+                        string.IsNullOrWhiteSpace(box.rfid_uid) || string.IsNullOrWhiteSpace(box.patient_id))
+                    {
+                        continue;
+                    }
+
+                    patientIdByRfidUid[box.rfid_uid.Trim().ToUpperInvariant()] = box.patient_id.Trim();
+                }
+
+                EZLog.I(EZLog.Module.Prescription, $"Loaded {patientIdByRfidUid.Count} RFID pill-box bindings");
             }
         }
 

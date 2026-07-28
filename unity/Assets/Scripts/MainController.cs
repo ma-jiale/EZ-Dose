@@ -671,6 +671,13 @@ namespace EZDose.MainFlow
             return true;
         }
 
+        public bool TryResolvePatientIdByRfidUid(string uid, out string patientId)
+        {
+            patientId = null;
+            return prescriptionManager != null &&
+                   prescriptionManager.TryGetPatientIdByRfidUid(uid, out patientId);
+        }
+
         public PatientStatus GetCurrentPatient()
         {
             return currentPatient;
