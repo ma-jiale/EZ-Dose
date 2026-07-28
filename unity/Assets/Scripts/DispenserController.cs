@@ -79,6 +79,8 @@ namespace EZDose.Hardware
         public event Action<string> OnRfidCardPlaced;
         public event Action<string> OnRfidCardRemoved;
         public event Action<string, string> OnRfidCardChanged;
+        // Raised for every hardware UID/NO CARD report, including unchanged states.
+        public event Action<bool, string> OnRfidPresenceReported;
 
         
         // Bluetooth device discovery events
@@ -709,6 +711,7 @@ namespace EZDose.Hardware
             uid = uid.Trim().ToUpperInvariant();
             if (isRfidCardPresent && string.Equals(currentRfidUid, uid, StringComparison.OrdinalIgnoreCase))
             {
+                OnRfidPresenceReported?.Invoke(true, uid);
                 return;
             }
 
@@ -716,6 +719,7 @@ namespace EZDose.Hardware
             bool wasPresent = isRfidCardPresent;
             currentRfidUid = uid;
             isRfidCardPresent = true;
+            OnRfidPresenceReported?.Invoke(true, uid);
 
             if (wasPresent && !string.IsNullOrEmpty(previousUid))
             {
@@ -733,12 +737,14 @@ namespace EZDose.Hardware
         {
             if (!isRfidCardPresent)
             {
+                OnRfidPresenceReported?.Invoke(false, null);
                 return;
             }
 
             string removedUid = currentRfidUid;
             currentRfidUid = null;
             isRfidCardPresent = false;
+            OnRfidPresenceReported?.Invoke(false, removedUid);
             EZLog.I(EZLog.Module.Dispenser, $"RFID pill box removed: {removedUid}");
             OnRfidCardRemoved?.Invoke(removedUid);
         }
