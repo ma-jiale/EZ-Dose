@@ -22,7 +22,7 @@ namespace EZDose.UI
         [SerializeField] private Button saveButton;
 
         [Header("Dispensing Settings")]
-        [Tooltip("Input field for max dispensing days (1-30).")]
+        [Tooltip("Input field for max dispensing days (1-7).")]
         [SerializeField] private InputField maxDispensingDaysInput;
         
         [Tooltip("Input field for expiry days threshold (0-14).")]
@@ -233,7 +233,9 @@ namespace EZDose.UI
             }
             else
             {
-                ShowMessage("分药设置保存失败 (天数范围: 1-30, 提前天数需大于0)", Color.red);
+                ShowMessage(
+                    $"分药设置保存失败 (天数范围: 1-{AppConfig.MAX_SUPPORTED_DISPENSING_DAYS}, 提前天数需大于0)",
+                    Color.red);
             }
         }
 

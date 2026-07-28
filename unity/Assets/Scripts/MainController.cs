@@ -1029,7 +1029,10 @@ namespace EZDose.MainFlow
                 EZLog.I(EZLog.Module.Main, $"Medicine '{med.MedicineName}' was skipped by user, markAsDispensed={markAsDispensed}");
                 if (markAsDispensed)
                 {
-                    prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                    prescriptionManager.ApplyDispensingResult(
+                        med.PrescriptionId,
+                        med.MedicineName,
+                        med.DispensingDays);
                 }
                 return true;  // Return true to continue the loop
             }
@@ -1059,13 +1062,19 @@ namespace EZDose.MainFlow
                 
                 // 4. Treat as success (manual fix) and continue
                 EZLog.I(EZLog.Module.Main, "Error resolution confirmed by user, continuing dispensing");
-                prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                prescriptionManager.ApplyDispensingResult(
+                    med.PrescriptionId,
+                    med.MedicineName,
+                    med.DispensingDays);
                 return true; 
             }
             
             if (success)
             {
-                prescriptionManager.ApplyDispensingResult(med.MedicineName);
+                prescriptionManager.ApplyDispensingResult(
+                    med.PrescriptionId,
+                    med.MedicineName,
+                    med.DispensingDays);
                 
                 // Save average opto pulse width converted to motor speed and servo angle to server
                 await SavePulseWidthSettingsAsync(med);

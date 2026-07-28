@@ -160,8 +160,6 @@ namespace EZDose.Prescriptions
         private readonly Dictionary<string, string> patientIdByRfidUid =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private PrescriptionData currentPrescription;
-        private readonly Dictionary<string, int> currentDispensingDays = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
         public PrescriptionManager(string serverUrl)
         {
             this.serverUrl = (serverUrl ?? string.Empty).TrimEnd('/');
@@ -366,8 +364,6 @@ namespace EZDose.Prescriptions
             }
 
             currentPrescription = prescription;
-            currentDispensingDays.Clear();
-
             var hasBefore = prescription.Medicines.Any(m => m.IsBeforeMeal);
             var hasAfter = prescription.Medicines.Any(m => m.IsAfterMeal);
 
@@ -380,8 +376,6 @@ namespace EZDose.Prescriptions
             {
                 // Calculate how many days we still need to dispense, considering threshold
                 var dispensingDays = CalculateDispensingDays(medicine, maxDays, expiryThreshold);
-                currentDispensingDays[medicine.MedicineName] = dispensingDays;
-                
                 EZLog.D(EZLog.Module.Prescription, $"Medicine '{medicine.MedicineName}': dispensingDays={dispensingDays}, lastExpiry={medicine.LastDispensedExpiryDate}, threshold={expiryThreshold}");
 
                 if (dispensingDays <= 0)
@@ -430,9 +424,10 @@ namespace EZDose.Prescriptions
             return true;
         }
 
-        public bool ApplyDispensingResult(string medicineName)
+        public bool ApplyDispensingResult(int prescriptionId, string medicineName, int actualDispensedDays)
         {
-            // After dispensing, move the expiry date forward by the days we dispensed
+            // Advance the expiry date only by the number of days represented by the
+            // matrix that actually completed successfully.
             if (currentPrescription == null)
             {
                 return false;
@@ -443,12 +438,16 @@ namespace EZDose.Prescriptions
                 return false;
             }
 
-            if (!currentDispensingDays.TryGetValue(medicineName, out var dispensingDays) || dispensingDays <= 0)
+            if (actualDispensedDays < 1 || actualDispensedDays > AppConfig.MAX_SUPPORTED_DISPENSING_DAYS)
             {
+                EZLog.E(EZLog.Module.Prescription,
+                    $"Refusing to apply invalid dispensed days: {actualDispensedDays}");
                 return false;
             }
 
-            var medicine = currentPrescription.Medicines.FirstOrDefault(m => string.Equals(m.MedicineName, medicineName, StringComparison.OrdinalIgnoreCase));
+            var hasPrescriptionId = prescriptionId > 0;
+            var medicine = currentPrescription.Medicines.FirstOrDefault(m =>
+                MatchesPrescription(m.PrescriptionId, m.MedicineName, prescriptionId, medicineName, hasPrescriptionId));
             if (medicine == null)
             {
                 return false;
@@ -470,13 +469,14 @@ namespace EZDose.Prescriptions
                 return false;
             }
 
-            var newExpiry = last.AddDays(dispensingDays).ToString("yyyy-MM-dd");
+            var newExpiry = last.AddDays(actualDispensedDays).ToString("yyyy-MM-dd");
             medicine.LastDispensedExpiryDate = newExpiry;
 
-            // Update raw records that match the patient and medicine
+            // Prefer the prescription ID so medicines with the same name cannot update
+            // each other's records. Medicine name remains a fallback for legacy data.
             foreach (var record in allRecords.Where(r =>
                 string.Equals(r.patient_id, currentPrescription.Patient.PatientId, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(r.medicine_name, medicineName, StringComparison.OrdinalIgnoreCase)))
+                MatchesPrescription(r.id, r.medicine_name, prescriptionId, medicineName, hasPrescriptionId)))
             {
                 record.last_dispensed_expiry_date = newExpiry;
             }
@@ -564,12 +564,15 @@ namespace EZDose.Prescriptions
         private int CalculateDispensingDays(MedicineEntry medicine, int maxDays, int expiryThreshold)
         {
             var today = DateTime.Today;
+            var effectiveMaxDays = Math.Min(
+                Math.Max(0, maxDays),
+                AppConfig.MAX_SUPPORTED_DISPENSING_DAYS);
 
             // Parse start date - required for all calculations
             if (!DateTime.TryParseExact(medicine.StartDate, "yyyy-MM-dd", culture, DateTimeStyles.None, out var start))
             {
                 // Cannot determine start date - default to dispensing
-                return Math.Min(maxDays, Math.Max(0, medicine.DurationDays));
+                return Math.Min(effectiveMaxDays, Math.Max(0, medicine.DurationDays));
             }
 
             // Determine the current expiry date (when existing pills run out)
@@ -613,9 +616,10 @@ namespace EZDose.Prescriptions
                 return 0;
             }
 
-            // Calculate remaining days to dispense, capped by maxDays
+            // Calculate remaining days to dispense, capped by both configuration and
+            // the seven-column hardware matrix capacity.
             var remainingDays = medicine.DurationDays - alreadyDispensed;
-            return Math.Min(maxDays, Math.Max(0, remainingDays));
+            return Math.Min(effectiveMaxDays, Math.Max(0, remainingDays));
         }
 
         /// <summary>
@@ -627,8 +631,8 @@ namespace EZDose.Prescriptions
         /// </summary>
         private static int[,] BuildPillMatrix(MedicineEntry medicine, int dispensingDays)
         {
-            var matrix = new int[4, 7];
-            var days = Math.Min(dispensingDays, 7);
+            var matrix = new int[4, AppConfig.MAX_SUPPORTED_DISPENSING_DAYS];
+            var days = Math.Min(dispensingDays, AppConfig.MAX_SUPPORTED_DISPENSING_DAYS);
 
             for (var day = 0; day < days; day++)
             {
