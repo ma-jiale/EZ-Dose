@@ -341,38 +341,43 @@ namespace EZDose.PillCounter
         /// </summary>
         private void Cleanup()
         {
+            StopCamera();
+
+            if (displayTexture != null)
+            {
+                Destroy(displayTexture);
+                displayTexture = null;
+            }
+
+            if (frameMat != null)
+            {
+                frameMat.Dispose();
+                frameMat = null;
+            }
+
+            if (displayMat != null)
+            {
+                displayMat.Dispose();
+                displayMat = null;
+            }
+
+            if (pillCounter != null)
+            {
+                pillCounter.Dispose();
+                pillCounter = null;
+            }
+
+            EZLog.D(EZLog.Module.PillCount, "Pill counter resources cleaned up");
+        }
+
+        public void StopCamera()
+        {
             if (webCamTexture != null)
             {
                 webCamTexture.Stop();
                 Destroy(webCamTexture);
                 webCamTexture = null;
             }
-            
-            if (displayTexture != null)
-            {
-                Destroy(displayTexture);
-                displayTexture = null;
-            }
-            
-            if (frameMat != null)
-            {
-                frameMat.Dispose();
-                frameMat = null;
-            }
-            
-            if (displayMat != null)
-            {
-                displayMat.Dispose();
-                displayMat = null;
-            }
-            
-            if (pillCounter != null)
-            {
-                pillCounter.Dispose();
-                pillCounter = null;
-            }
-            
-            EZLog.D(EZLog.Module.PillCount, "Pill counter resources cleaned up");
         }
         
         /// <summary>

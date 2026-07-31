@@ -68,11 +68,13 @@ namespace EZDose.MainFlow
 
         private PatientStatus currentPatient;
         private DispensingPlan currentPlan;
+        private bool currentPillBoxUsesRfid;
 
         /// <summary>
         /// 公开当前的分药计划，供 UI 层检测分盘组成
         /// </summary>
         public DispensingPlan CurrentPlan => currentPlan;
+        public bool CurrentPillBoxUsesRfid => currentPillBoxUsesRfid;
 
         private bool isDispensing;
         private bool isDeviceLostAbort;
@@ -667,8 +669,14 @@ namespace EZDose.MainFlow
             }
 
             currentPatient = record;
+            currentPillBoxUsesRfid = false;
             status = record;
             return true;
+        }
+
+        public void SetCurrentPillBoxUsesRfid(bool usesRfid)
+        {
+            currentPillBoxUsesRfid = usesRfid;
         }
 
         public bool TryResolvePatientIdByRfidUid(string uid, out string patientId)
@@ -689,6 +697,7 @@ namespace EZDose.MainFlow
         public void ClearCurrentPatient()
         {
             currentPatient = null;
+            currentPillBoxUsesRfid = false;
         }
 
         /// <summary>
@@ -920,6 +929,7 @@ namespace EZDose.MainFlow
             AbortCurrentDispensing();
             currentPlan = null;
             currentPatient = null;
+            currentPillBoxUsesRfid = false;
             currentMedicineName = string.Empty;
             currentMedicineImageResourceId = string.Empty;
             currentMotorSpeed = 0f;

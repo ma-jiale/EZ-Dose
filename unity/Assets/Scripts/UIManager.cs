@@ -232,6 +232,7 @@ namespace EZDose.UI
         private int completionRfidPresenceVersion;
         private bool isReturningHomeAfterCompletion;
         private const int CompletionRfidClearStabilityMilliseconds = 2000;
+        private const float BarcodeRemovalStabilitySeconds = 1.0f;
         private Color homeScanDialogTitleOriginalColor = Color.black;
         private bool isTitleOriginalColorCaptured = false;
 
@@ -1648,6 +1649,18 @@ namespace EZDose.UI
             identificationInvalidatedDuringClose = false;
             isConfirmingDispense = true;
 
+            var main = MainController.Instance;
+            if (main != null)
+            {
+                // RFID and barcode identify different physical pill-box types.
+                // Preserve the verified type across the scene transition so the
+                // completion flow uses the matching removal safeguard.
+                bool usesRfid = lastIdentificationResult?.Source == PillBoxIdentificationSource.Rfid;
+                main.SetCurrentPillBoxUsesRfid(usesRfid);
+                EZLog.I(EZLog.Module.UI,
+                    $"Saved pill-box identification type for dispensing: {(usesRfid ? "RFID" : "Barcode")}");
+            }
+
             if (scanner != null)
             {
                 scanner.StopScanner();
@@ -1661,7 +1674,6 @@ namespace EZDose.UI
             if (homeScanConfirmButton != null) homeScanConfirmButton.interactable = false;
             if (homeScanCancelButton != null) homeScanCancelButton.interactable = false;
 
-            var main = MainController.Instance;
             if (main != null)
             {
                 EZLog.I(EZLog.Module.UI, "Closing tray before loading dispense scene...");
@@ -1742,11 +1754,26 @@ namespace EZDose.UI
             {
                 EZLog.I(EZLog.Module.UI, "Waiting for barcode to be removed...");
                 scanner.SetStatus("请取出药盘...");
-                await scanner.WaitForNoBarcodeAsync(3.0f);
+                bool barcodeRemoved = await scanner.WaitForNoBarcodeAsync(BarcodeRemovalStabilitySeconds);
                 scanner.StopScanner();
                 scanner.OnBoxVerified -= OnBoxVerified;
                 scanner.OnBoxMismatch -= OnBoxMismatch;
                 scanner.OnScanError -= OnScanError;
+                if (!barcodeRemoved)
+                {
+                    SetHomeScanDialogTitle("摄像头检测失败", isError: true);
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = "无法确认二维码药盒是否已取出，轨道不会收回。请检查摄像头后重试。";
+                    }
+                    if (homeScanCancelButton != null)
+                    {
+                        homeScanCancelButton.gameObject.SetActive(true);
+                        homeScanCancelButton.interactable = true;
+                    }
+                    isCancellingScan = false;
+                    return;
+                }
             }
 
             if (homeScanDialog != null)
@@ -2663,23 +2690,81 @@ namespace EZDose.UI
             return false;
         }
 
+        private CheckPillBoxController EnsureBarcodeRemovalScanner()
+        {
+            if (scanner == null)
+            {
+                scanner = FindObjectOfType<CheckPillBoxController>();
+            }
+
+            if (scanner == null)
+            {
+                scanner = gameObject.AddComponent<CheckPillBoxController>();
+                EZLog.I(EZLog.Module.UI, "Created barcode scanner for completion tray monitoring");
+            }
+
+            return scanner;
+        }
+
+        private void EnableCompletionRetryButton()
+        {
+            if (completeDialogConfirmButton == null)
+            {
+                return;
+            }
+
+            completeDialogConfirmButton.gameObject.SetActive(true);
+            completeDialogConfirmButton.interactable = true;
+            completeDialogConfirmButton.onClick.RemoveAllListeners();
+            completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+        }
+
         private async Task ShowCompletionAsync()
         {
-            var dispenser = FindObjectOfType<DispenserController>();
-            BeginCompletionRfidMonitoring(dispenser);
-
             var main = MainController.Instance;
+            bool usesRfid = main != null && main.CurrentPillBoxUsesRfid;
+            var dispenser = FindObjectOfType<DispenserController>();
+            EZLog.I(EZLog.Module.UI,
+                $"Showing completion flow for {(usesRfid ? "RFID" : "Barcode")} pill box");
+            if (usesRfid)
+            {
+                BeginCompletionRfidMonitoring(dispenser);
+            }
+            else
+            {
+                EndCompletionRfidMonitoring();
+                pillCounterController?.StopCamera();
+                // Give Unity/Android a short window to release the native camera
+                // before the barcode scanner opens the same physical device.
+                await Task.Delay(250);
+                EnsureBarcodeRemovalScanner();
+            }
+
             if (main != null)
             {
-                var opened = await main.OpenTrayAsync();
-                if (!opened)
+                // StartDispensingAsync normally opens the tray before publishing the
+                // completion event. The barcode branch can immediately monitor that
+                // state. Keep the existing RFID reopen/report cycle unchanged.
+                bool trayAlreadyOpen = dispenser != null && dispenser.IsTrayOpened;
+                if (usesRfid || !trayAlreadyOpen)
                 {
-                    EndCompletionRfidMonitoring();
-                    return;
+                    var opened = await main.OpenTrayAsync();
+                    if (!opened)
+                    {
+                        EZLog.E(EZLog.Module.UI, "Unable to open tray for pill-box removal");
+                        EndCompletionRfidMonitoring();
+                        return;
+                    }
+                }
+                else
+                {
+                    EZLog.I(EZLog.Module.UI, "Tray is already open; skipping duplicate OPEN_TRAY command");
                 }
             }
 
-            SetCompletionDialogMessage("请取出药盒后按下确认键");
+            SetCompletionDialogMessage(usesRfid
+                ? "请取出药盒后按下确认键"
+                : "请取出二维码/条形码药盒，摄像头确认药盒离开后轨道将自动收回");
             if (completeDialog != null)
             {
                 completeDialog.SetActive(true);
@@ -2687,9 +2772,21 @@ namespace EZDose.UI
 
             if (completeDialogConfirmButton != null)
             {
-                completeDialogConfirmButton.interactable = true;
                 completeDialogConfirmButton.onClick.RemoveAllListeners();
-                completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+                completeDialogConfirmButton.gameObject.SetActive(usesRfid);
+                completeDialogConfirmButton.interactable = usesRfid;
+                if (usesRfid)
+                {
+                    completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+                }
+            }
+
+            // Match the proven pre-RFID camera flow: monitoring starts as soon as
+            // the tray is open and closes it automatically after the code has been
+            // absent continuously for three seconds. No extra confirmation is needed.
+            if (!usesRfid)
+            {
+                await ReturnHomeAsync();
             }
         }
 
@@ -2708,21 +2805,55 @@ namespace EZDose.UI
 
             try
             {
-                if (!await WaitForCompletionTrayClearAsync())
+                var main = MainController.Instance;
+                bool usesRfid = main != null && main.CurrentPillBoxUsesRfid;
+                if (usesRfid)
                 {
-                    return;
+                    EZLog.I(EZLog.Module.UI, "Completion removal check using RFID reports");
+                    if (!await WaitForCompletionTrayClearAsync())
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    EZLog.I(EZLog.Module.UI, "Completion removal check using barcode camera");
+                    var barcodeScanner = EnsureBarcodeRemovalScanner();
+                    SetCompletionDialogMessage(
+                        $"请取出二维码/条形码药盒；连续 {BarcodeRemovalStabilitySeconds:F0} 秒检测不到条码后轨道将自动收回");
+                    bool barcodeRemoved = await barcodeScanner.WaitForNoBarcodeAsync(BarcodeRemovalStabilitySeconds);
+                    barcodeScanner.StopScanner();
+                    if (!barcodeRemoved)
+                    {
+                        EZLog.W(EZLog.Module.UI,
+                            "Barcode camera could not confirm pill-box removal; keeping tray open");
+                        SetCompletionDialogMessage("摄像头检测失败，轨道保持打开。请检查摄像头后按确认键重试");
+                        EnableCompletionRetryButton();
+                        return;
+                    }
                 }
 
                 SetCompletionDialogMessage("正在收回轨道...");
-                var main = MainController.Instance;
                 if (main != null)
                 {
+                    EZLog.I(EZLog.Module.UI, "Pill box removed; sending CLOSE_TRAY");
                     var closed = await main.CloseTrayAsync();
                     if (!closed)
                     {
+                        EZLog.E(EZLog.Module.UI, "CLOSE_TRAY failed after pill-box removal");
                         SetCompletionDialogMessage("轨道收回失败，请检查设备后重新确认");
+                        EnableCompletionRetryButton();
                         return;
                     }
+                    EZLog.I(EZLog.Module.UI, "CLOSE_TRAY succeeded after pill-box removal");
+                }
+                else
+                {
+                    EZLog.E(EZLog.Module.UI,
+                        "MainController unavailable; cannot close tray after pill-box removal");
+                    SetCompletionDialogMessage("无法连接主控制流程，轨道保持打开，请重启应用后检查设备");
+                    EnableCompletionRetryButton();
+                    return;
                 }
 
                 EndCompletionRfidMonitoring();

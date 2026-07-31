@@ -32,6 +32,12 @@ namespace EZDose.CheckPillBox
         private bool isScanning;
         private bool hasSelectedCamera;
         private string expectedPatientId; // We expect box id == patient id
+        private float lastValidCameraFrameRealtime = -1f;
+
+        // The scanner object belongs to a scene, but the physical camera does not.
+        // Remember the camera that actually decoded the pill-box code so the
+        // completion scene monitors the same camera at the end of the track.
+        private static string lastBarcodeCameraName;
 
         /// <summary>
         /// Returns true if the currently active camera is front-facing.
@@ -82,6 +88,21 @@ namespace EZDose.CheckPillBox
         private void OnDisable()
         {
             StopScanner();
+        }
+
+        private void Update()
+        {
+            // didUpdateThisFrame is easy to miss from a coroutine that only wakes
+            // every 0.2 seconds. Capture it every Unity frame, then let the removal
+            // loop consume the latest valid image just like the original scanner.
+            if (webCamTexture != null &&
+                webCamTexture.isPlaying &&
+                webCamTexture.didUpdateThisFrame &&
+                webCamTexture.width > 16 &&
+                webCamTexture.height > 16)
+            {
+                lastValidCameraFrameRealtime = Time.realtimeSinceStartup;
+            }
         }
 
         /// <summary>
@@ -145,6 +166,7 @@ namespace EZDose.CheckPillBox
 
                 Destroy(webCamTexture);
                 webCamTexture = null;
+                lastValidCameraFrameRealtime = -1f;
                 EZLog.I(EZLog.Module.Scanner, "Camera released.");
             }
         }
@@ -194,14 +216,24 @@ namespace EZDose.CheckPillBox
             if (devices == null || devices.Length == 0)
                 throw new Exception("No camera found");
 
-            // Prefer the front-facing camera on first use, even if a scene has an old serialized index.
+            // A new scanner is created after changing scenes. Reuse the camera that
+            // decoded this pill box; otherwise auto-detection can select a different
+            // USB camera and never observe the code at the end of the track.
             if (!hasSelectedCamera || cameraIndex < 0 || cameraIndex >= devices.Length)
             {
-                cameraIndex = GetPreferredCameraIndex(devices);
+                int rememberedCameraIndex = FindCameraIndex(devices, lastBarcodeCameraName);
+                cameraIndex = rememberedCameraIndex >= 0
+                    ? rememberedCameraIndex
+                    : GetPreferredCameraIndex(devices);
                 hasSelectedCamera = true;
-                EZLog.I(EZLog.Module.Scanner, $"Auto-selected camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
+                string selectionReason = rememberedCameraIndex >= 0
+                    ? "reused barcode camera"
+                    : "auto-selected camera";
+                EZLog.I(EZLog.Module.Scanner,
+                    $"{selectionReason} [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
             }
 
+            lastValidCameraFrameRealtime = -1f;
             webCamTexture = new WebCamTexture(devices[cameraIndex].name, requestedWidth, requestedHeight, requestedFps);
             webCamTexture.Play();
 
@@ -209,6 +241,43 @@ namespace EZDose.CheckPillBox
             {
                 preview.texture = webCamTexture;
             }
+        }
+
+        private static int FindCameraIndex(WebCamDevice[] devices, string cameraName)
+        {
+            if (devices == null || string.IsNullOrWhiteSpace(cameraName))
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (string.Equals(devices[i].name, cameraName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private void RememberCurrentBarcodeCamera()
+        {
+            var devices = WebCamTexture.devices;
+            if (devices == null || cameraIndex < 0 || cameraIndex >= devices.Length)
+            {
+                return;
+            }
+
+            string cameraName = devices[cameraIndex].name;
+            if (string.Equals(lastBarcodeCameraName, cameraName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            lastBarcodeCameraName = cameraName;
+            EZLog.I(EZLog.Module.Scanner,
+                $"Remembered barcode camera [{cameraIndex}]: {lastBarcodeCameraName}");
         }
 
         private static int GetPreferredCameraIndex(WebCamDevice[] devices)
@@ -264,6 +333,7 @@ namespace EZDose.CheckPillBox
 
                     if (result != null)
                     {
+                        RememberCurrentBarcodeCamera();
                         HandleDecode(result.Text);
                         // Stop after a decision; main flow can restart if needed.
                         yield break;
@@ -332,26 +402,29 @@ namespace EZDose.CheckPillBox
 
         private bool isWaitingForNoBarcode = false;
         private float noBarcodeWaitTimer = 0f;
-        private float targetNoBarcodeDuration = 3f;
-        private Action onNoBarcodeCompleted;
+        private float targetNoBarcodeDuration = 1f;
+        private Action<bool> onNoBarcodeCompleted;
 
-        public void StartWaitingForNoBarcode(float duration, Action onCompleted)
+        public void StartWaitingForNoBarcode(float duration, Action<bool> onCompleted)
         {
+            if (isWaitingForNoBarcode)
+            {
+                EZLog.W(EZLog.Module.Scanner, "Barcode removal monitoring is already running");
+                onCompleted?.Invoke(false);
+                return;
+            }
+
             targetNoBarcodeDuration = duration;
             onNoBarcodeCompleted = onCompleted;
-            
-            if (!isWaitingForNoBarcode)
-            {
-                isWaitingForNoBarcode = true;
-                StartCoroutine(WaitForNoBarcodeCoroutine());
-            }
+            isWaitingForNoBarcode = true;
+            StartCoroutine(WaitForNoBarcodeCoroutine());
         }
 
-        public Task WaitForNoBarcodeAsync(float durationSeconds)
+        public Task<bool> WaitForNoBarcodeAsync(float durationSeconds)
         {
             var tcs = new TaskCompletionSource<bool>();
-            StartWaitingForNoBarcode(durationSeconds, () => {
-                tcs.SetResult(true);
+            StartWaitingForNoBarcode(durationSeconds, success => {
+                tcs.TrySetResult(success);
             });
             return tcs.Task;
         }
@@ -368,24 +441,40 @@ namespace EZDose.CheckPillBox
                 {
                     EZLog.E(EZLog.Module.Scanner, $"Failed to start camera: {e.Message}");
                     isWaitingForNoBarcode = false;
-                    onNoBarcodeCompleted?.Invoke();
+                    var cameraStartFailedCallback = onNoBarcodeCompleted;
+                    onNoBarcodeCompleted = null;
+                    cameraStartFailedCallback?.Invoke(false);
                     yield break;
                 }
             }
 
             isScanning = true;
             noBarcodeWaitTimer = 0f;
-            var wait = new WaitForSeconds(0.2f);
+            float cameraFailureTimer = 0f;
+            var wait = new WaitForSecondsRealtime(0.2f);
+            EZLog.I(EZLog.Module.Scanner,
+                $"Started barcode removal monitoring; stable absence required for {targetNoBarcodeDuration:F1}s");
 
             while (isScanning && isWaitingForNoBarcode)
             {
-                if (webCamTexture == null || !webCamTexture.isPlaying)
+                bool hasFreshCameraFrame = lastValidCameraFrameRealtime >= 0f &&
+                    Time.realtimeSinceStartup - lastValidCameraFrameRealtime <= 2f;
+                if (webCamTexture == null || !webCamTexture.isPlaying ||
+                    webCamTexture.width <= 16 || webCamTexture.height <= 16 ||
+                    !hasFreshCameraFrame)
                 {
+                    cameraFailureTimer += 0.2f;
+                    if (cameraFailureTimer >= 10f)
+                    {
+                        SetStatus("摄像头画面不可用，无法确认药盒是否取出");
+                        break;
+                    }
                     yield return wait;
                     continue;
                 }
 
                 bool barcodeDetected = false;
+                bool decodeSucceeded = true;
                 try
                 {
                     int width = webCamTexture.width;
@@ -395,12 +484,28 @@ namespace EZDose.CheckPillBox
                     if (result != null)
                     {
                         barcodeDetected = true;
+                        RememberCurrentBarcodeCamera();
                     }
                 }
                 catch (Exception e)
                 {
+                    decodeSucceeded = false;
                     EZLog.D(EZLog.Module.Scanner, $"Error during no-barcode decode check: {e.Message}");
                 }
+
+                if (!decodeSucceeded)
+                {
+                    cameraFailureTimer += 0.2f;
+                    if (cameraFailureTimer >= 10f)
+                    {
+                        SetStatus("二维码识别持续失败，无法确认药盒是否取出");
+                        break;
+                    }
+                    yield return wait;
+                    continue;
+                }
+
+                cameraFailureTimer = 0f;
 
                 if (barcodeDetected)
                 {
@@ -422,7 +527,14 @@ namespace EZDose.CheckPillBox
             }
 
             isWaitingForNoBarcode = false;
-            onNoBarcodeCompleted?.Invoke();
+            bool barcodeRemoved = noBarcodeWaitTimer >= targetNoBarcodeDuration;
+            EZLog.I(EZLog.Module.Scanner,
+                barcodeRemoved
+                    ? "Barcode remained absent; pill box removal confirmed"
+                    : "Barcode removal monitoring stopped without confirming removal");
+            var completed = onNoBarcodeCompleted;
+            onNoBarcodeCompleted = null;
+            completed?.Invoke(barcodeRemoved);
         }
     }
 }
