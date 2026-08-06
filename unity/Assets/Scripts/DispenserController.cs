@@ -16,13 +16,19 @@ namespace EZDose.Hardware
     {
         [Header("蓝牙配置")]
         [SerializeField] private string deviceMacAddress = "00:00:00:00:00:00";
+        [Header("Windows Serial Port")]
+        [SerializeField] private int windowsBaudRate = 115200;
+        [SerializeField] private int serialReadTimeoutMs = 50;
+        [SerializeField] private int serialWriteTimeoutMs = 200;
         [Header("分药机配置")]
         [SerializeField] private int maxRetryCount = 5;
         [SerializeField] private float ackTimeout = 0.2f;
+        [SerializeField] private float windowsAckTimeout = 1.0f;
         [SerializeField] private float resetDoneTimeout = 10f;
 
         // 蓝牙通信对象
         private AndroidJavaObject bluetoothSerial;
+        private IDispenserTransport transport;
         
         // Currently connected device info
         private BluetoothDeviceInfo connectedDevice;
@@ -52,6 +58,10 @@ namespace EZDose.Hardware
         // 反馈标志
         private bool ackReceived = false;
         private bool doneReceived = false;
+
+        // RFID state reported asynchronously by the STM32 while the tray is open.
+        private string currentRfidUid;
+        private bool isRfidCardPresent;
         
         // 接收缓冲区
         private StringBuilder receiveBuffer = new StringBuilder();
@@ -66,6 +76,11 @@ namespace EZDose.Hardware
         public event Action<int> OnPillCountUpdate;
         public event Action<bool> OnPauseStateChanged;
         public event Action<int> OnCleanCompleted;  // cleaned pills count
+        public event Action<string> OnRfidCardPlaced;
+        public event Action<string> OnRfidCardRemoved;
+        public event Action<string, string> OnRfidCardChanged;
+        // Raised for every hardware UID/NO CARD report, including unchanged states.
+        public event Action<bool, string> OnRfidPresenceReported;
 
         
         // Bluetooth device discovery events
@@ -83,7 +98,7 @@ namespace EZDose.Hardware
         }
 
         /// <summary>
-        /// Initialize dispenser controller and connect to Bluetooth device
+        /// Initialize dispenser controller and connect to the configured device.
         /// </summary>
         public bool Initialize(string macAddress = null)
         {
@@ -163,10 +178,39 @@ namespace EZDose.Hardware
             }
 #else
             // 编辑器模式模拟连接
-            EZLog.I(EZLog.Module.Dispenser, "Editor mode - Simulated connection succeeded");
-            isConnected = true;
-            return true;
+            return ConnectWindowsTransport();
 #endif
+        }
+
+        private bool ConnectWindowsTransport()
+        {
+            try
+            {
+                bool connected = GetOrCreateWindowsTransport().Connect(deviceMacAddress);
+                isConnected = connected;
+
+                if (connected)
+                {
+                    EZLog.I(EZLog.Module.Dispenser, $"Connected to serial port: {deviceMacAddress}");
+                }
+
+                return connected;
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.Dispenser, "Windows serial connection exception", e);
+                return false;
+            }
+        }
+
+        private IDispenserTransport GetOrCreateWindowsTransport()
+        {
+            if (transport == null)
+            {
+                transport = new WindowsSerialTransport(windowsBaudRate, serialReadTimeoutMs, serialWriteTimeoutMs);
+            }
+
+            return transport;
         }
 
         /// <summary>
@@ -192,6 +236,21 @@ namespace EZDose.Hardware
             }
 #endif
 
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            try
+            {
+                if (transport != null)
+                {
+                    transport.Disconnect();
+                }
+                EZLog.I(EZLog.Module.Dispenser, "Serial port disconnected");
+            }
+            catch (Exception e)
+            {
+                EZLog.E(EZLog.Module.Dispenser, "Serial disconnect exception", e);
+            }
+#endif
+
             isConnected = false;
             ResetState();
         }
@@ -209,6 +268,7 @@ namespace EZDose.Hardware
             doneReceived = false;
             isSendingPackage = false;
             isPaused = false;
+            ClearRfidStateWithoutEvent();
             receiveBuffer.Clear();
         }
 
@@ -280,12 +340,46 @@ namespace EZDose.Hardware
                 OnBTError?.Invoke($"Discovery failed: {e.Message}");
             }
 #else
-            // Editor mode - simulate discovery
-            EZLog.I(EZLog.Module.Dispenser, "Editor mode - Simulating device discovery");
+            StartCoroutine(WindowsSerialDiscoveryCoroutine());
+#endif
+        }
+
+        private IEnumerator WindowsSerialDiscoveryCoroutine()
+        {
             discoveredDevices.Clear();
             OnDiscoveryStarted?.Invoke();
-            StartCoroutine(SimulateDiscoveryCoroutine());
-#endif
+            EZLog.I(EZLog.Module.Dispenser, "Starting Windows serial port discovery");
+
+            Exception discoveryException = null;
+            List<BluetoothDeviceInfo> devices = null;
+
+            try
+            {
+                devices = GetOrCreateWindowsTransport().DiscoverDevices();
+            }
+            catch (Exception e)
+            {
+                discoveryException = e;
+                EZLog.E(EZLog.Module.Dispenser, "Serial discovery exception", e);
+            }
+
+            yield return new WaitForSeconds(0.2f);
+
+            if (discoveryException != null)
+            {
+                OnBTError?.Invoke($"搜索串口失败: {discoveryException.Message}");
+                OnDiscoveryCompleted?.Invoke();
+                yield break;
+            }
+
+            if (devices != null)
+            {
+                discoveredDevices.AddRange(devices);
+            }
+
+            OnDevicesFound?.Invoke(new List<BluetoothDeviceInfo>(discoveredDevices));
+            OnDiscoveryCompleted?.Invoke();
+            EZLog.I(EZLog.Module.Dispenser, $"Serial discovery completed, found {discoveredDevices.Count} ports");
         }
 
         /// <summary>
@@ -480,6 +574,23 @@ namespace EZDose.Hardware
                     EZLog.W(EZLog.Module.Protocol, $"Receive data exception: {e.Message}");
                 }
 #endif
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+                try
+                {
+                    if (transport != null)
+                    {
+                        string data = transport.Read();
+                        if (!string.IsNullOrEmpty(data))
+                        {
+                            ProcessReceivedData(data);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    EZLog.W(EZLog.Module.Protocol, $"Serial receive data exception: {e.Message}");
+                }
+#endif
                 yield return new WaitForSeconds(0.05f); // 20Hz 接收频率
             }
         }
@@ -543,6 +654,14 @@ namespace EZDose.Hardware
                     EZLog.D(EZLog.Module.Protocol, "DONE signal received");
                     break;
 
+                case FeedbackType.RfidUid:
+                    HandleRfidUid(feedback.RfidUid);
+                    break;
+
+                case FeedbackType.RfidNoCard:
+                    HandleRfidNoCard();
+                    break;
+
                 case FeedbackType.MachineInit:
                     EZLog.I(EZLog.Module.Dispenser, "Machine initialization detected");
                     OnMachineInit?.Invoke();
@@ -580,6 +699,60 @@ namespace EZDose.Hardware
                     OnCleanCompleted?.Invoke(feedback.PillCount);
                     break;
             }
+        }
+
+        private void HandleRfidUid(string uid)
+        {
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                return;
+            }
+
+            uid = uid.Trim().ToUpperInvariant();
+            if (isRfidCardPresent && string.Equals(currentRfidUid, uid, StringComparison.OrdinalIgnoreCase))
+            {
+                OnRfidPresenceReported?.Invoke(true, uid);
+                return;
+            }
+
+            string previousUid = currentRfidUid;
+            bool wasPresent = isRfidCardPresent;
+            currentRfidUid = uid;
+            isRfidCardPresent = true;
+            OnRfidPresenceReported?.Invoke(true, uid);
+
+            if (wasPresent && !string.IsNullOrEmpty(previousUid))
+            {
+                EZLog.W(EZLog.Module.Dispenser, $"RFID pill box changed: {previousUid} -> {uid}");
+                OnRfidCardChanged?.Invoke(previousUid, uid);
+            }
+            else
+            {
+                EZLog.I(EZLog.Module.Dispenser, $"RFID pill box placed: {uid}");
+                OnRfidCardPlaced?.Invoke(uid);
+            }
+        }
+
+        private void HandleRfidNoCard()
+        {
+            if (!isRfidCardPresent)
+            {
+                OnRfidPresenceReported?.Invoke(false, null);
+                return;
+            }
+
+            string removedUid = currentRfidUid;
+            currentRfidUid = null;
+            isRfidCardPresent = false;
+            OnRfidPresenceReported?.Invoke(false, removedUid);
+            EZLog.I(EZLog.Module.Dispenser, $"RFID pill box removed: {removedUid}");
+            OnRfidCardRemoved?.Invoke(removedUid);
+        }
+
+        private void ClearRfidStateWithoutEvent()
+        {
+            currentRfidUid = null;
+            isRfidCardPresent = false;
         }
 
         #endregion
@@ -631,7 +804,8 @@ namespace EZDose.Hardware
 
                 // 等待ACK
                 float waitTime = 0f;
-                while (waitTime < ackTimeout && !ackReceived)
+                float currentAckTimeout = GetCurrentAckTimeout();
+                while (waitTime < currentAckTimeout && !ackReceived)
                 {
                     yield return new WaitForSeconds(0.01f);
                     waitTime += 0.01f;
@@ -699,10 +873,29 @@ namespace EZDose.Hardware
         return false;
     }
 #else
-    EZLog.D(EZLog.Module.Protocol, $"Editor mode - Simulated send: {BitConverter.ToString(data)}");
-    return true;
+            if (transport == null)
+            {
+                EZLog.E(EZLog.Module.Protocol, "Serial transport is null");
+                return false;
+            }
+
+            bool serialSuccess = transport.Write(data);
+            if (serialSuccess)
+            {
+                EZLog.V(EZLog.Module.Protocol, $"Sent {data.Length} bytes: [{string.Join(" ", data.Select(b => $"0x{b:X2}"))}]");
+            }
+            return serialSuccess;
 #endif
-}
+        }
+
+        private float GetCurrentAckTimeout()
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            return windowsAckTimeout;
+#else
+            return ackTimeout;
+#endif
+        }
 
         /// <summary>
         /// 等待DONE信号
@@ -847,6 +1040,7 @@ namespace EZDose.Hardware
         public void OpenTray(Action<bool> callback = null)
         {
             EZLog.D(EZLog.Module.Dispenser, "Opening tray");
+            ClearRfidStateWithoutEvent();
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.OPEN_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
@@ -864,7 +1058,11 @@ namespace EZDose.Hardware
             byte[] package = SerialProtocol.BuildPackage(SerialProtocol.Commands.CLOSE_TRAY);
             StartCoroutine(SendPackageCoroutine(package, maxRetryCount, (success) =>
             {
-                if (success) isTrayOpened = false;
+                if (success)
+                {
+                    isTrayOpened = false;
+                    ClearRfidStateWithoutEvent();
+                }
                 callback?.Invoke(success);
             }));
         }
@@ -1059,6 +1257,8 @@ namespace EZDose.Hardware
         public int ErrorCode => errorCode;
         public int PillRemain => pillRemain;
         public int TotalPills => totalPills;
+        public string CurrentRfidUid => currentRfidUid;
+        public bool IsRfidCardPresent => isRfidCardPresent;
 
         /// <summary>
         /// Attempt to reconnect if not connected (call before operations)
@@ -1148,6 +1348,13 @@ namespace EZDose.Hardware
                 {
                     EZLog.W(EZLog.Module.Dispenser, $"Heartbeat exception: {e.Message}");
                     HandleConnectionLost("心跳检测异常");
+                    yield break;
+                }
+#endif
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+                if (transport == null || !transport.IsConnected)
+                {
+                    HandleConnectionLost("串口连接已断开");
                     yield break;
                 }
 #endif

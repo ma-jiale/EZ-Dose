@@ -13,6 +13,7 @@ using EZDose.Hardware;
 using EZDose.Calibration;
 using UnityEngine.EventSystems;
 using EZDose;
+using EZDose.Prescriptions;
 
 namespace EZDose.UI
 {
@@ -112,9 +113,27 @@ namespace EZDose.UI
         [SerializeField] private CheckPillBoxController scanner;
         [SerializeField] private GameObject correctBoxDialog;
         [SerializeField] private Button correctDialogConfirmButton;
+        [Tooltip("扫码成功提示文本组件，留空则自动查找")]
+        [SerializeField] private Text correctBoxDialogText;
         [SerializeField] private GameObject mismatchDialog;
         [SerializeField] private Button mismatchHomeButton;
         [SerializeField] private Button mismatchRetryButton;
+
+        [Header("Home Scan Dialog")]
+        [Tooltip("New dedicated dialog for scan verification and confirmation in the Home scene")]
+        [SerializeField] private GameObject homeScanDialog;
+        [SerializeField] private Text homeScanDialogTitleText;
+        [SerializeField] private Text homeScanDialogMessageText;
+        [SerializeField] private Button homeScanConfirmButton;
+        [SerializeField] private Button homeScanCancelButton;
+        [SerializeField] private Button homeScanSwitchCameraButton;
+        [SerializeField] private Text homeScanSwitchCameraButtonText;
+        [SerializeField] private GameObject homeScanInsertIcon;
+        [SerializeField] private Text homeScanPrescriptionDetailsText;
+
+        [Header("Home Auto Scan Button")]
+        [Tooltip("Button to insert tray and start automatic patient recognition in the Home scene")]
+        [SerializeField] private Button autoScanButton;
 
         [Tooltip("Button to switch camera")]
         [SerializeField] private Button switchCameraButton;
@@ -126,14 +145,19 @@ namespace EZDose.UI
         [SerializeField] private Text medicineNameText;
         [SerializeField] private Text patientNameText;
         [SerializeField] private Text progressPercentText;
+        [Tooltip("展示当前分发药品剂量规格的文本框")]
+        [SerializeField] private Text dosageSpecText;
         [Tooltip("Progress fill image, should use Image Type Filled")]
         [SerializeField] private Image progressFillImage;
         [SerializeField] private RawImage pillPreview;
         [SerializeField] private Button captureBackgroundButton;
         [SerializeField] private GameObject plateSwitchDialog;
         [SerializeField] private Button plateSwitchConfirmButton;
+        [Tooltip("换盘提示文本组件，留空则自动查找")]
+        [SerializeField] private Text plateSwitchDialogText;
         [SerializeField] private GameObject completeDialog;
         [SerializeField] private Button completeDialogConfirmButton;
+        [SerializeField] private Text completeDialogMessageText;
         [SerializeField] private PillCounterController pillCounterController;
         
         [Tooltip("Pill calibration dialog")]
@@ -144,6 +168,10 @@ namespace EZDose.UI
         [SerializeField] private Slider servoAngleTuningSlider;
         [Tooltip("Text showing the current servo angle setting")]
         [SerializeField] private Text servoAngleTuningText;
+        [Tooltip("Keyboard step for servo angle tuning with Left/Right arrows.")]
+        [SerializeField] private float servoKeyboardStep = 0.02f;
+        [Tooltip("Repeat interval while holding Left/Right arrows.")]
+        [SerializeField] private float servoKeyboardRepeatInterval = 0.08f;
         
         [Header("Dispense UI (Drug & Controls)")]
         [Tooltip("Image for the current drug")]
@@ -189,8 +217,44 @@ namespace EZDose.UI
         // Dictionary mapping sub-page enum to page GameObject for easy access
         private Dictionary<HomeSubPage, GameObject> subPageMap;
 
+        private bool isStartingPatientFlow = false;
+        private bool isStartingAutoFlow = false;
+        private bool _scanLocked = false;
+        private bool isConfirmingDispense = false;
+        private bool isCancellingScan = false;
+        private PillBoxIdentificationCoordinator identificationCoordinator;
+        private PillBoxIdentificationResult lastIdentificationResult;
+        private DispenserController identificationDispenser;
+        private TaskCompletionSource<bool> rfidRemovalTcs;
+        private bool identificationInvalidatedDuringClose;
+        private DispenserController completionDispenser;
+        private TaskCompletionSource<bool> completionRfidReportTcs;
+        private int completionRfidPresenceVersion;
+        private bool isReturningHomeAfterCompletion;
+        private const int CompletionRfidClearStabilityMilliseconds = 2000;
+        private const float BarcodeRemovalStabilitySeconds = 1.0f;
+        private Color homeScanDialogTitleOriginalColor = Color.black;
+        private bool isTitleOriginalColorCaptured = false;
+
+        private void SetHomeScanDialogTitle(string text, bool isError = false)
+        {
+            if (homeScanDialogTitleText == null) return;
+
+            if (!isTitleOriginalColorCaptured)
+            {
+                homeScanDialogTitleOriginalColor = homeScanDialogTitleText.color;
+                isTitleOriginalColorCaptured = true;
+            }
+
+            homeScanDialogTitleText.text = text;
+            homeScanDialogTitleText.color = isError ? Color.red : homeScanDialogTitleOriginalColor;
+        }
+
         // Dictionary mapping sub-page enum to its corresponding button
         private Dictionary<HomeSubPage, Button> subPageButtonMap;
+        private bool isServoKeyboardTuning;
+        private bool servoKeyboardValueChanged;
+        private float nextServoKeyboardStepTime;
         private bool deviceLostDialogVisible;
 
         /// <summary>
@@ -233,6 +297,35 @@ namespace EZDose.UI
             UnsubscribeEvents();
         }
 
+        private void Update()
+        {
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+            if (ShortcutInput.IsTextInputFocused())
+            {
+                return;
+            }
+
+            var scene = SceneManager.GetActiveScene().name;
+            if (HandleGlobalDialogShortcuts())
+            {
+                return;
+            }
+
+            if (scene == homeSceneName)
+            {
+                HandleHomeShortcuts();
+            }
+            else if (scene == scanSceneName)
+            {
+                HandleScanShortcuts();
+            }
+            else if (scene == dispenseSceneName)
+            {
+                HandleDispenseShortcuts();
+            }
+#endif
+        }
+
         #region Home
 
         private void InitHome()
@@ -247,6 +340,21 @@ namespace EZDose.UI
             if (refreshButton != null)
             {
                 refreshButton.onClick.AddListener(() => FireAndForget(RefreshPatientsAsync()));
+            }
+
+            if (autoScanButton != null)
+            {
+                autoScanButton.onClick.AddListener(() => FireAndForget(StartAutoRecognitionFlowAsync()));
+            }
+
+            // Adjust scroll sensitivity for the patient list to support comfortable mouse wheel scrolling
+            if (patientListRoot != null)
+            {
+                var scrollRect = patientListRoot.GetComponentInParent<ScrollRect>();
+                if (scrollRect != null)
+                {
+                    scrollRect.scrollSensitivity = 50f;
+                }
             }
 
             // Setup device management button
@@ -692,12 +800,17 @@ namespace EZDose.UI
 
             var remaining = patients.Count;
             homeHintText.text = remaining > 0
-                ? "请点击患者卡片扫描药盒条形码开始分药"
+                ? "请点击患者卡片，通过摄像头或 RFID 识别药盒并开始分药"
                 : "辛苦了，所有患者的药品都已经分完了";
         }
 
-        private void OnPatientClicked(string patientId)
+        private async void OnPatientClicked(string patientId)
         {
+            if (isStartingPatientFlow)
+            {
+                return;
+            }
+
             var main = MainController.Instance;
             if (main == null)
             {
@@ -716,18 +829,397 @@ namespace EZDose.UI
                 return;
             }
 
-            if (!main.TrySelectPatient(patientId, out _))
-            {
-                EZLog.W(EZLog.Module.UI, "Failed to select patient");
-                return;
-            }
+            isStartingPatientFlow = true;
 
-            SceneManager.LoadScene(scanSceneName);
+            // Disable all patient buttons to prevent double-clicks
+            ReEnablePatientButtons(false);
+
+            try
+            {
+                if (!main.TrySelectPatient(patientId, out var patientStatus))
+                {
+                    EZLog.W(EZLog.Module.UI, "Failed to select patient");
+                    ReEnablePatientButtons(true);
+                    isStartingPatientFlow = false;
+                    return;
+                }
+
+                EZLog.I(EZLog.Module.UI, "Opening tray before scanning...");
+                if (homeHintText != null)
+                {
+                    homeHintText.text = "正在打开药仓，请稍候...";
+                }
+
+                var opened = await main.OpenTrayAsync();
+                if (!opened)
+                {
+                    EZLog.E(EZLog.Module.UI, "Failed to open tray.");
+                    main.ClearCurrentPatient();
+                    if (homeHintText != null)
+                    {
+                        homeHintText.text = "开仓失败，请检查设备！";
+                    }
+                    ReEnablePatientButtons(true);
+                    isStartingPatientFlow = false;
+                    return;
+                }
+
+                // Tray opened successfully. Now start scanning in Home scene.
+                if (scanner == null)
+                {
+                    scanner = FindObjectOfType<CheckPillBoxController>();
+                    if (scanner == null)
+                    {
+                        scanner = gameObject.AddComponent<CheckPillBoxController>();
+                        EZLog.I(EZLog.Module.UI, "CheckPillBoxController created dynamically on UIManager.");
+                    }
+                }
+
+                _scanLocked = false;
+                isConfirmingDispense = false;
+                isCancellingScan = false;
+
+                // Setup and show dedicated Home Scan Dialog
+                if (homeScanDialog != null)
+                {
+                    SetHomeScanDialogTitle("放入药盘");
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = $"请将【{patientStatus.PatientName}】的药盒放入分药机，系统将通过摄像头或 RFID 自动识别。";
+                    }
+
+                    if (homeScanInsertIcon != null) homeScanInsertIcon.SetActive(true);
+                    if (homeScanPrescriptionDetailsText != null) homeScanPrescriptionDetailsText.gameObject.SetActive(false);
+
+                    if (homeScanConfirmButton != null) homeScanConfirmButton.gameObject.SetActive(false);
+                    if (homeScanCancelButton != null)
+                    {
+                        homeScanCancelButton.gameObject.SetActive(true);
+                        homeScanCancelButton.interactable = true;
+                        homeScanCancelButton.onClick.RemoveAllListeners();
+                        homeScanCancelButton.onClick.AddListener(() => FireAndForget(CancelScanAndReturnHomeAsync()));
+                    }
+
+                    if (homeScanSwitchCameraButton != null)
+                    {
+                        homeScanSwitchCameraButton.gameObject.SetActive(true);
+                        homeScanSwitchCameraButton.onClick.RemoveAllListeners();
+                        homeScanSwitchCameraButton.onClick.AddListener(OnHomeScanSwitchCameraClicked);
+                        UpdateHomeScanSwitchCameraButtonText();
+                    }
+
+                    homeScanDialog.SetActive(true);
+                }
+
+                // Start both channels after the dialog is initialized. Any UID that
+                // arrived immediately after opening is retained by the dispenser and
+                // consumed by BeginIdentificationSession.
+                BeginIdentificationSession(
+                    dispenser,
+                    patientStatus.PatientId,
+                    patientStatus.PatientName,
+                    autoMode: false);
+
+                if (homeHintText != null)
+                {
+                    homeHintText.text = "请放入药盘...";
+                }
+            }
+            catch (Exception ex)
+            {
+                EZLog.E(EZLog.Module.UI, $"Error during patient clicked workflow: {ex.Message}");
+                main.ClearCurrentPatient();
+                ReEnablePatientButtons(true);
+                isStartingPatientFlow = false;
+            }
+        }
+
+        private void ReEnablePatientButtons(bool enable)
+        {
+            foreach (var btnObj in spawnedPatientButtons)
+            {
+                if (btnObj != null)
+                {
+                    var btn = btnObj.GetComponent<Button>();
+                    if (btn != null) btn.interactable = enable;
+                }
+            }
+            if (refreshButton != null) refreshButton.interactable = enable;
         }
 
         #endregion
 
         #region Scan
+
+        private string ResolvePatientIdByRfid(string uid)
+        {
+            var main = MainController.Instance;
+            return main != null && main.TryResolvePatientIdByRfidUid(uid, out var patientId)
+                ? patientId
+                : null;
+        }
+
+        private void EnsureIdentificationCoordinator()
+        {
+            if (identificationCoordinator != null)
+            {
+                return;
+            }
+
+            identificationCoordinator = new PillBoxIdentificationCoordinator(ResolvePatientIdByRfid);
+            identificationCoordinator.Verified += OnIdentificationVerified;
+            identificationCoordinator.Mismatch += OnIdentificationMismatch;
+            identificationCoordinator.UnknownRfid += OnUnknownRfid;
+            identificationCoordinator.RfidRemoved += OnIdentificationRfidRemoved;
+            identificationCoordinator.RfidChanged += OnIdentificationRfidChanged;
+            identificationCoordinator.Conflict += OnIdentificationConflict;
+        }
+
+        private void BeginIdentificationSession(
+            DispenserController dispenser,
+            string expectedPatientId,
+            string expectedPatientName,
+            bool autoMode)
+        {
+            EndIdentificationSession(stopScanner: true);
+            EnsureIdentificationCoordinator();
+
+            identificationDispenser = dispenser;
+            identificationCoordinator.StartSession(expectedPatientId, autoMode);
+            lastIdentificationResult = null;
+            rfidRemovalTcs = null;
+            identificationInvalidatedDuringClose = false;
+
+            if (identificationDispenser != null)
+            {
+                identificationDispenser.OnRfidCardPlaced += OnHardwareRfidPlaced;
+                identificationDispenser.OnRfidCardRemoved += OnHardwareRfidRemoved;
+                identificationDispenser.OnRfidCardChanged += OnHardwareRfidChanged;
+
+                // The first UID may arrive immediately after OPEN_TRAY, before UI wiring completes.
+                if (identificationDispenser.IsRfidCardPresent)
+                {
+                    identificationCoordinator.HandleRfidPlaced(identificationDispenser.CurrentRfidUid);
+                }
+            }
+
+            if (scanner != null)
+            {
+                scanner.OnBoxVerified -= OnBoxVerified;
+                scanner.OnBoxMismatch -= OnBoxMismatch;
+                scanner.OnScanError -= OnScanError;
+                scanner.OnBoxVerified += OnBoxVerified;
+                scanner.OnScanError += OnScanError;
+                // Matching is centralized here so camera and RFID follow identical rules.
+                scanner.StartScanner("", expectedPatientName);
+            }
+        }
+
+        private void EndIdentificationSession(bool stopScanner)
+        {
+            if (scanner != null)
+            {
+                scanner.OnBoxVerified -= OnBoxVerified;
+                scanner.OnBoxVerified -= OnAutoBoxVerified;
+                scanner.OnBoxMismatch -= OnBoxMismatch;
+                scanner.OnScanError -= OnScanError;
+                if (stopScanner)
+                {
+                    scanner.StopScanner();
+                }
+            }
+
+            if (identificationDispenser != null)
+            {
+                identificationDispenser.OnRfidCardPlaced -= OnHardwareRfidPlaced;
+                identificationDispenser.OnRfidCardRemoved -= OnHardwareRfidRemoved;
+                identificationDispenser.OnRfidCardChanged -= OnHardwareRfidChanged;
+                identificationDispenser = null;
+            }
+
+            identificationCoordinator?.StopSession();
+            lastIdentificationResult = null;
+            identificationInvalidatedDuringClose = false;
+            rfidRemovalTcs?.TrySetCanceled();
+            rfidRemovalTcs = null;
+        }
+
+        private void OnHardwareRfidPlaced(string uid)
+        {
+            identificationCoordinator?.HandleRfidPlaced(uid);
+        }
+
+        private void OnHardwareRfidRemoved(string uid)
+        {
+            identificationCoordinator?.HandleRfidRemoved(uid);
+        }
+
+        private void OnHardwareRfidChanged(string oldUid, string newUid)
+        {
+            identificationCoordinator?.HandleRfidChanged(oldUid, newUid);
+        }
+
+        private void OnIdentificationVerified(PillBoxIdentificationResult result)
+        {
+            if (_scanLocked || result == null)
+            {
+                return;
+            }
+
+            _scanLocked = true;
+            lastIdentificationResult = result;
+            EZLog.I(EZLog.Module.Scanner,
+                $"Pill box identified by {result.Source}: patient={result.PatientId}");
+
+            if (identificationCoordinator.IsAutoMode)
+            {
+                FireAndForget(HandleAutoBoxVerifiedAsync(result.PatientId, result));
+            }
+            else
+            {
+                FireAndForget(HandleBoxVerifiedAsync(result));
+            }
+        }
+
+        private void OnIdentificationMismatch(PillBoxIdentificationResult result, string expectedPatientId)
+        {
+            if (_scanLocked)
+            {
+                return;
+            }
+
+            _scanLocked = true;
+            FireAndForget(HandleBoxMismatchAsync(result?.RawIdentifier ?? string.Empty, result));
+        }
+
+        private void OnUnknownRfid(string uid)
+        {
+            EZLog.W(EZLog.Module.Scanner, $"Unbound RFID pill box detected: {uid}");
+            SetHomeScanDialogTitle("RFID 尚未绑定", isError: true);
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = "该药盒的 RFID 尚未绑定患者，可继续使用摄像头扫描条码。";
+            }
+        }
+
+        private void OnIdentificationRfidChanged(string oldUid, string newUid)
+        {
+            EZLog.W(EZLog.Module.Scanner, $"RFID pill box replaced: {oldUid} -> {newUid}");
+
+            if (isCancellingScan)
+            {
+                return;
+            }
+
+            if (isConfirmingDispense)
+            {
+                identificationInvalidatedDuringClose = true;
+                lastIdentificationResult = null;
+                if (homeScanConfirmButton != null)
+                {
+                    homeScanConfirmButton.interactable = false;
+                }
+                return;
+            }
+
+            // Treat UID A -> UID B as an immediate remove/place transition. The
+            // coordinator will process UID B right after this callback.
+            ResetIdentificationAfterRemoval();
+        }
+
+        private void OnIdentificationConflict(
+            PillBoxIdentificationResult first,
+            PillBoxIdentificationResult second)
+        {
+            identificationCoordinator?.ClearVerification();
+            lastIdentificationResult = null;
+            _scanLocked = true;
+            scanner?.StopScanner();
+            if (homeScanConfirmButton != null)
+            {
+                homeScanConfirmButton.interactable = false;
+                homeScanConfirmButton.gameObject.SetActive(false);
+            }
+            if (homeScanPrescriptionDetailsText != null)
+            {
+                homeScanPrescriptionDetailsText.gameObject.SetActive(false);
+            }
+            SetHomeScanDialogTitle("药盒识别信息不一致", isError: true);
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = "摄像头与 RFID 指向不同患者，请取出药盒后重新识别。";
+            }
+        }
+
+        private void OnIdentificationRfidRemoved(string uid)
+        {
+            EZLog.I(EZLog.Module.Scanner, $"RFID removal received for pill box {uid}");
+            if (isCancellingScan && rfidRemovalTcs != null)
+            {
+                rfidRemovalTcs.TrySetResult(true);
+                return;
+            }
+
+            if (isConfirmingDispense)
+            {
+                identificationInvalidatedDuringClose = true;
+                identificationCoordinator?.ClearVerification();
+                lastIdentificationResult = null;
+                if (homeScanConfirmButton != null)
+                {
+                    homeScanConfirmButton.interactable = false;
+                }
+                return;
+            }
+
+            if (!isCancellingScan)
+            {
+                ResetIdentificationAfterRemoval();
+            }
+        }
+
+        private void ResetIdentificationAfterRemoval()
+        {
+            identificationCoordinator?.ClearVerification();
+            lastIdentificationResult = null;
+            identificationInvalidatedDuringClose = false;
+            _scanLocked = false;
+
+            var main = MainController.Instance;
+            var patient = main?.GetCurrentPatient();
+            if (identificationCoordinator != null && identificationCoordinator.IsAutoMode)
+            {
+                main?.ClearCurrentPatient();
+            }
+
+            if (homeScanConfirmButton != null)
+            {
+                homeScanConfirmButton.gameObject.SetActive(false);
+            }
+            if (homeScanPrescriptionDetailsText != null)
+            {
+                homeScanPrescriptionDetailsText.gameObject.SetActive(false);
+            }
+            if (homeScanInsertIcon != null)
+            {
+                homeScanInsertIcon.SetActive(true);
+            }
+
+            SetHomeScanDialogTitle("放入药盒");
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = identificationCoordinator != null && identificationCoordinator.IsAutoMode
+                    ? "药盒已取出，请重新放入任意患者的药盒。系统将通过摄像头或 RFID 自动识别。"
+                    : $"药盒已取出，请重新放入【{patient?.PatientName ?? "所选患者"}】的药盒。";
+            }
+
+            if (scanner != null)
+            {
+                scanner.StartScanner("", identificationCoordinator != null && identificationCoordinator.IsAutoMode
+                    ? "任意患者"
+                    : patient?.PatientName ?? string.Empty);
+            }
+        }
 
         private void InitScan()
         {
@@ -736,7 +1228,7 @@ namespace EZDose.UI
 
             if (backToHomeButton != null)
             {
-                backToHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
+                backToHomeButton.onClick.AddListener(() => FireAndForget(CancelScanAndReturnHomeAsync()));
             }
 
             if (scanner != null && patient != null)
@@ -803,115 +1295,847 @@ namespace EZDose.UI
             }
         }
 
+        private void OnHomeScanSwitchCameraClicked()
+        {
+            if (scanner == null) return;
+            scanner.SwitchCamera();
+            UpdateHomeScanSwitchCameraButtonText();
+            EZLog.D(EZLog.Module.UI, $"Home camera switched, isFrontFacing={scanner.IsFrontFacing}");
+        }
+
+        private void UpdateHomeScanSwitchCameraButtonText()
+        {
+            if (homeScanSwitchCameraButtonText == null || scanner == null) return;
+            homeScanSwitchCameraButtonText.text = scanner.IsFrontFacing ? "切换后置" : "切换前置";
+        }
+
         private void OnBoxVerified(string code)
         {
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                identificationCoordinator.HandleBarcode(code);
+                return;
+            }
+
+            if (_scanLocked) return;
+            _scanLocked = true;
+
             FireAndForget(HandleBoxVerifiedAsync());
         }
 
-        private async Task HandleBoxVerifiedAsync()
+        private async Task HandleBoxVerifiedAsync(PillBoxIdentificationResult sessionResult = null)
         {
-            if (scanner != null)
-            {
-                scanner.StopScanner();
-            }
-
             var main = MainController.Instance;
+            string patientName = "";
+            string patientId = "";
+            string bedNumber = "";
+            string medicineInfoText = "无有效分药数据";
+
             if (main != null)
             {
-                var opened = await main.OpenTrayAsync();
-                if (!opened)
+                var patient = main.GetCurrentPatient();
+                if (patient != null)
                 {
-                    return;
+                    patientName = patient.PatientName;
+                    patientId = patient.PatientId;
+                    bedNumber = patient.BedNumber;
+                }
+
+                // Prepare dispensing plan
+                await main.PreparePlanAsync();
+                var plan = main.CurrentPlan;
+                if (plan != null)
+                {
+                    var lines = new List<string>();
+                    
+                    // Format patient header in one line: 患者：张三  病床：02  ID：P0032
+                    string bedPart = !string.IsNullOrEmpty(bedNumber) ? $"  病床：{bedNumber}" : "";
+                    lines.Add($"患者：{patientName}{bedPart}  ID：{patientId}");
+
+                    // Collect all medicines to find maximum visual width for alignment
+                    var allMeds = new List<DispensingMedicine>();
+                    if (plan.MedicinesPlate1 != null) allMeds.AddRange(plan.MedicinesPlate1);
+                    if (plan.MedicinesPlate2 != null) allMeds.AddRange(plan.MedicinesPlate2);
+
+                    int maxFirstPartWidth = 0;
+                    foreach (var m in allMeds)
+                    {
+                        string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                        int w = GetVisualWidth(firstPart);
+                        if (w > maxFirstPartWidth) maxFirstPartWidth = w;
+                    }
+
+                    // Add medicines list
+                    if (plan.MedicinesPlate1 != null && plan.MedicinesPlate1.Count > 0)
+                    {
+                        lines.Add("\n【餐前/随餐药盘】");
+                        foreach (var m in plan.MedicinesPlate1)
+                        {
+                            string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                            string paddedFirstPart = PadRightVisual(firstPart, maxFirstPartWidth + 2);
+                            string translatedTiming = TranslateMealTiming(m.MealTiming);
+                            lines.Add($"{paddedFirstPart}| 服药时间: {translatedTiming} | 计划天数: {m.DispensingDays}天");
+                        }
+                    }
+
+                    if (plan.MedicinesPlate2 != null && plan.MedicinesPlate2.Count > 0)
+                    {
+                        lines.Add("\n【餐后药盘 (药盘2)】");
+                        foreach (var m in plan.MedicinesPlate2)
+                        {
+                            string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                            string paddedFirstPart = PadRightVisual(firstPart, maxFirstPartWidth + 2);
+                            string translatedTiming = TranslateMealTiming(m.MealTiming);
+                            lines.Add($"{paddedFirstPart}| 服药时间: {translatedTiming} | 计划天数: {m.DispensingDays}天");
+                        }
+                    }
+
+                    if (lines.Count > 0)
+                    {
+                        medicineInfoText = string.Join("\n", lines);
+                    }
                 }
             }
 
-            if (correctBoxDialog != null)
+            if (sessionResult != null &&
+                (identificationCoordinator == null || !identificationCoordinator.IsActive ||
+                 identificationCoordinator.VerifiedResult != sessionResult ||
+                 lastIdentificationResult != sessionResult))
             {
-                correctBoxDialog.SetActive(true);
+                EZLog.W(EZLog.Module.Scanner, "Identification changed while preparing the dispensing plan");
+                return;
             }
 
-            if (correctDialogConfirmButton != null)
+            // Show confirmation dialog with patient's medicine details
+            if (homeScanDialog != null)
             {
-                correctDialogConfirmButton.onClick.RemoveAllListeners();
-                correctDialogConfirmButton.onClick.AddListener(() => FireAndForget(ProceedToDispenseAsync()));
+                SetHomeScanDialogTitle("核验成功");
+                if (homeScanDialogMessageText != null)
+                {
+                    string sourceText = lastIdentificationResult?.Source == PillBoxIdentificationSource.Rfid
+                        ? "RFID"
+                        : "摄像头";
+                    homeScanDialogMessageText.text = $"已通过{sourceText}确认药盒信息，请核对处方并开始分药：";
+                }
+
+                if (homeScanInsertIcon != null) homeScanInsertIcon.SetActive(false);
+                if (homeScanPrescriptionDetailsText != null)
+                {
+                    homeScanPrescriptionDetailsText.text = medicineInfoText;
+                    homeScanPrescriptionDetailsText.gameObject.SetActive(true);
+                }
+
+                if (homeScanConfirmButton != null)
+                {
+                    homeScanConfirmButton.gameObject.SetActive(true);
+                    homeScanConfirmButton.interactable = true;
+                    homeScanConfirmButton.onClick.RemoveAllListeners();
+                    homeScanConfirmButton.onClick.AddListener(() => FireAndForget(ProceedToDispenseAsync()));
+                }
+
+                if (homeScanCancelButton != null)
+                {
+                    homeScanCancelButton.gameObject.SetActive(true);
+                    homeScanCancelButton.interactable = true;
+                    homeScanCancelButton.onClick.RemoveAllListeners();
+                    homeScanCancelButton.onClick.AddListener(() => FireAndForget(CancelScanAndReturnHomeAsync()));
+                }
             }
+        }
+
+        private static int GetVisualWidth(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return 0;
+            int width = 0;
+            foreach (char c in s)
+            {
+                // Chinese character ranges (Ideographs, symbols, fullwidth punctuation)
+                if (c >= 0x4e00 && c <= 0x9fff || c >= 0x3000 && c <= 0x303f || c >= 0xff00 && c <= 0xffef)
+                {
+                    width += 2;
+                }
+                else
+                {
+                    width += 1;
+                }
+            }
+            return width;
+        }
+
+        private static string PadRightVisual(string s, int targetWidth)
+        {
+            int currentWidth = GetVisualWidth(s);
+            if (currentWidth >= targetWidth)
+            {
+                return s;
+            }
+            return s + new string(' ', targetWidth - currentWidth);
+        }
+
+        private static string TranslateMealTiming(string timing)
+        {
+            if (string.IsNullOrEmpty(timing)) return "";
+            
+            string t = timing.ToLower().Trim().Replace("_", " ");
+            if (t == "before meal") return "餐前";
+            if (t == "after meal") return "餐后";
+            if (t == "with meal") return "随餐";
+            
+            if (timing.Contains("前")) return "餐前";
+            if (timing.Contains("后")) return "餐后";
+            if (timing.Contains("随")) return "随餐";
+            
+            return timing;
         }
 
         private void OnBoxMismatch(string code)
         {
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                identificationCoordinator.HandleBarcode(code);
+                return;
+            }
+
+            if (_scanLocked) return;
+            _scanLocked = true;
+
+            FireAndForget(HandleBoxMismatchAsync(code));
+        }
+
+        private async Task HandleBoxMismatchAsync(
+            string code,
+            PillBoxIdentificationResult sessionResult = null)
+        {
+            EZLog.W(EZLog.Module.UI, $"Pillbox mismatch scanned: {code}");
+            
+            var main = MainController.Instance;
+            var patient = main?.GetCurrentPatient();
+            string expectedName = patient != null ? patient.PatientName : "";
+
             if (scanner != null)
             {
                 scanner.StopScanner();
             }
 
-            ShowMismatchDialog();
+            // Update text on active dialog to show mismatch error
+            SetHomeScanDialogTitle("放入的药盒不属于所选的患者", isError: true);
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = $"请放入【{expectedName}】的药盒。";
+            }
+
+            // Wait 2 seconds before resuming camera scanning.
+            await Task.Delay(2000);
+
+            if (sessionResult != null && lastIdentificationResult != null)
+            {
+                EZLog.I(EZLog.Module.Scanner,
+                    "Ignoring stale mismatch UI because a newer pill box was verified");
+                return;
+            }
+
+            _scanLocked = false;
+
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                // A mismatching RFID-tagged box must be physically removed before another
+                // source can verify a different patient.
+                if (identificationCoordinator.IsRfidPresent)
+                {
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = $"请取出当前药盒，再放入【{expectedName}】的药盒。";
+                    }
+                    return;
+                }
+
+                identificationCoordinator.ClearVerification();
+            }
+
+            if (scanner != null && patient != null)
+            {
+                scanner.StartScanner("", patient.PatientName);
+                // Reset warning text back to normal
+                SetHomeScanDialogTitle("放入药盘");
+                if (homeScanDialogMessageText != null)
+                {
+                    homeScanDialogMessageText.text = $"请将【{patient.PatientName}】的药盒放入分药机舱内进行扫描。";
+                }
+            }
         }
 
         private void OnScanError(string error)
         {
-            EZLog.W(EZLog.Module.UI, $"Scan error: {error}");
-            ShowMismatchDialog();
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                if (_scanLocked || identificationCoordinator.VerifiedResult != null)
+                {
+                    EZLog.W(EZLog.Module.Scanner,
+                        $"Camera error ignored because identification is already being handled: {error}");
+                    return;
+                }
+
+                EZLog.W(EZLog.Module.Scanner, $"Camera scan unavailable; RFID remains active: {error}");
+                SetHomeScanDialogTitle("摄像头暂不可用", isError: true);
+                if (homeScanDialogMessageText != null)
+                {
+                    homeScanDialogMessageText.text = "仍可将带 RFID 的药盒放入检测区域完成识别。";
+                }
+                return;
+            }
+
+            if (_scanLocked) return;
+            _scanLocked = true;
+
+            FireAndForget(HandleScanErrorAsync(error));
         }
 
-        private void ShowMismatchDialog()
+        private async Task HandleScanErrorAsync(string error)
         {
-            if (mismatchDialog != null)
+            EZLog.W(EZLog.Module.UI, $"Pillbox scan error: {error}");
+
+            var main = MainController.Instance;
+            var patient = main?.GetCurrentPatient();
+
+            if (scanner != null)
             {
-                mismatchDialog.SetActive(true);
+                scanner.StopScanner();
             }
 
-            if (mismatchHomeButton != null)
+            SetHomeScanDialogTitle("扫码识别出错", isError: true);
+            if (homeScanDialogMessageText != null)
             {
-                mismatchHomeButton.onClick.RemoveAllListeners();
-                mismatchHomeButton.onClick.AddListener(() => FireAndForget(ReturnHomeFromScanAsync()));
+                homeScanDialogMessageText.text = $"请调整药盒位置！\n\n错误信息：{error}";
             }
 
-            if (mismatchRetryButton != null)
+            await Task.Delay(2000);
+
+            _scanLocked = false;
+
+            if (scanner != null)
             {
-                mismatchRetryButton.onClick.RemoveAllListeners();
-                mismatchRetryButton.onClick.AddListener(() =>
+                if (isStartingAutoFlow)
                 {
-                    if (mismatchDialog != null)
+                    scanner.StartScanner("", "任意患者");
+                    SetHomeScanDialogTitle("放入药盘");
+                    if (homeScanDialogMessageText != null)
                     {
-                        mismatchDialog.SetActive(false);
+                        homeScanDialogMessageText.text = "请将任意患者的药盒放入分药机舱内进行扫描。";
                     }
-
-                    var main = MainController.Instance;
-                    var patient = main?.GetCurrentPatient();
-                    if (scanner != null && patient != null)
+                }
+                else if (patient != null)
+                {
+                    scanner.StartScanner(patient.PatientId, patient.PatientName);
+                    SetHomeScanDialogTitle("放入药盘");
+                    if (homeScanDialogMessageText != null)
                     {
-                        scanner.StartScanner(patient.PatientId);
+                        homeScanDialogMessageText.text = $"请将【{patient.PatientName}】的药盒放入分药机舱内进行扫描。";
                     }
-                });
+                }
             }
         }
 
         private async Task ProceedToDispenseAsync()
         {
-            if (correctBoxDialog != null)
+            if (isConfirmingDispense) return;
+
+            if (identificationCoordinator != null && identificationCoordinator.HasSeenRfid &&
+                !identificationCoordinator.IsRfidPresent)
             {
-                correctBoxDialog.SetActive(false);
+                ResetIdentificationAfterRemoval();
+                return;
             }
+
+            identificationInvalidatedDuringClose = false;
+            isConfirmingDispense = true;
 
             var main = MainController.Instance;
             if (main != null)
             {
-                await main.PreparePlanAsync();
-                // await main.CloseTrayAsync();
+                // RFID and barcode identify different physical pill-box types.
+                // Preserve the verified type across the scene transition so the
+                // completion flow uses the matching removal safeguard.
+                bool usesRfid = lastIdentificationResult?.Source == PillBoxIdentificationSource.Rfid;
+                main.SetCurrentPillBoxUsesRfid(usesRfid);
+                EZLog.I(EZLog.Module.UI,
+                    $"Saved pill-box identification type for dispensing: {(usesRfid ? "RFID" : "Barcode")}");
             }
 
-            await LoadSceneAsyncSafe(dispenseSceneName);
-        }
-
-        private async Task ReturnHomeFromScanAsync()
-        {
             if (scanner != null)
             {
                 scanner.StopScanner();
             }
 
-            await Task.Delay(200);
+            // Show "closing tray..." text on confirm popup and disable buttons
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = "正在关闭药仓，请稍候...";
+            }
+            if (homeScanConfirmButton != null) homeScanConfirmButton.interactable = false;
+            if (homeScanCancelButton != null) homeScanCancelButton.interactable = false;
+
+            if (main != null)
+            {
+                EZLog.I(EZLog.Module.UI, "Closing tray before loading dispense scene...");
+                var closed = await main.CloseTrayAsync();
+                if (!closed)
+                {
+                    EZLog.E(EZLog.Module.UI, "Failed to close tray.");
+                    bool identificationWasInvalidated = identificationInvalidatedDuringClose;
+                    isConfirmingDispense = false;
+                    if (identificationWasInvalidated)
+                    {
+                        ResetIdentificationAfterRemoval();
+                        SetHomeScanDialogTitle("药盒已取出", isError: true);
+                        if (homeScanDialogMessageText != null)
+                        {
+                            homeScanDialogMessageText.text = "关仓失败，且药盒已取出。请检查设备连接后重新识别。";
+                        }
+                        if (homeScanCancelButton != null) homeScanCancelButton.interactable = true;
+                        return;
+                    }
+
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = "关仓失败，请检查设备！\n若舱门已手动关闭，请重新点击确认。";
+                    }
+                    if (homeScanConfirmButton != null) homeScanConfirmButton.interactable = true;
+                    if (homeScanCancelButton != null) homeScanCancelButton.interactable = true;
+                    return;
+                }
+
+                if (identificationInvalidatedDuringClose)
+                {
+                    EZLog.W(EZLog.Module.Scanner, "RFID pill box was removed while the tray was closing; reopening tray");
+                    await main.OpenTrayAsync();
+                    isConfirmingDispense = false;
+                    ResetIdentificationAfterRemoval();
+                    return;
+                }
+            }
+
+            if (homeScanDialog != null)
+            {
+                homeScanDialog.SetActive(false);
+            }
+
+            isConfirmingDispense = false;
+            _scanLocked = false;
+            EndIdentificationSession(stopScanner: true);
+
+            await LoadSceneAsyncSafe(dispenseSceneName);
+        }
+
+        private async Task CancelScanAndReturnHomeAsync()
+        {
+            if (isCancellingScan) return;
+            isCancellingScan = true;
+
+            SetHomeScanDialogTitle("正在退出");
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = "请取出药盒，系统检测到药盒离开后将自动关闭舱门并返回。";
+            }
+            if (homeScanConfirmButton != null) homeScanConfirmButton.gameObject.SetActive(false);
+            if (homeScanCancelButton != null) homeScanCancelButton.gameObject.SetActive(false);
+
+            bool waitForRfidRemoval = identificationCoordinator != null && identificationCoordinator.HasSeenRfid;
+            if (waitForRfidRemoval)
+            {
+                EZLog.I(EZLog.Module.UI, "Waiting for RFID NO CARD before closing tray...");
+                if (identificationCoordinator.IsRfidPresent)
+                {
+                    rfidRemovalTcs = new TaskCompletionSource<bool>();
+                    await rfidRemovalTcs.Task;
+                    rfidRemovalTcs = null;
+                }
+            }
+            else if (scanner != null)
+            {
+                EZLog.I(EZLog.Module.UI, "Waiting for barcode to be removed...");
+                scanner.SetStatus("请取出药盘...");
+                bool barcodeRemoved = await scanner.WaitForNoBarcodeAsync(BarcodeRemovalStabilitySeconds);
+                scanner.StopScanner();
+                scanner.OnBoxVerified -= OnBoxVerified;
+                scanner.OnBoxMismatch -= OnBoxMismatch;
+                scanner.OnScanError -= OnScanError;
+                if (!barcodeRemoved)
+                {
+                    SetHomeScanDialogTitle("摄像头检测失败", isError: true);
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = "无法确认二维码药盒是否已取出，轨道不会收回。请检查摄像头后重试。";
+                    }
+                    if (homeScanCancelButton != null)
+                    {
+                        homeScanCancelButton.gameObject.SetActive(true);
+                        homeScanCancelButton.interactable = true;
+                    }
+                    isCancellingScan = false;
+                    return;
+                }
+            }
+
+            if (homeScanDialog != null)
+            {
+                homeScanDialog.SetActive(false);
+            }
+            
+            _scanLocked = false;
+            EndIdentificationSession(stopScanner: true);
+
+            var main = MainController.Instance;
+            if (main != null)
+            {
+                EZLog.I(EZLog.Module.UI, "Closing tray on cancel...");
+                await main.CloseTrayAsync();
+                main.ClearCurrentPatient();
+            }
+
+            isCancellingScan = false;
             await LoadSceneAsyncSafe(homeSceneName);
+        }
+
+        private async Task StartAutoRecognitionFlowAsync()
+        {
+            if (isStartingAutoFlow || isStartingPatientFlow)
+            {
+                return;
+            }
+
+            var main = MainController.Instance;
+            if (main == null)
+            {
+                return;
+            }
+
+            // Check if dispenser is connected before proceeding
+            var dispenser = FindObjectOfType<DispenserController>();
+            if (dispenser == null || !dispenser.IsConnected)
+            {
+                EZLog.W(EZLog.Module.UI, "Dispenser not connected, showing prompt");
+                if (connectDispenserDialog != null)
+                {
+                    connectDispenserDialog.SetActive(true);
+                }
+                return;
+            }
+
+            isStartingAutoFlow = true;
+
+            // Disable card buttons and the auto button
+            ReEnablePatientButtons(false);
+            if (autoScanButton != null) autoScanButton.interactable = false;
+
+            try
+            {
+                EZLog.I(EZLog.Module.UI, "Opening tray before auto scan...");
+                if (homeHintText != null)
+                {
+                    homeHintText.text = "正在打开药仓，请稍候...";
+                }
+
+                var opened = await main.OpenTrayAsync();
+                if (!opened)
+                {
+                    EZLog.E(EZLog.Module.UI, "Failed to open tray in auto recognition flow.");
+                    if (homeHintText != null)
+                    {
+                        homeHintText.text = "开仓失败，请检查设备！";
+                    }
+                    ReEnablePatientButtons(true);
+                    if (autoScanButton != null) autoScanButton.interactable = true;
+                    isStartingAutoFlow = false;
+                    return;
+                }
+
+                // Tray opened successfully. Setup scanner.
+                if (scanner == null)
+                {
+                    scanner = FindObjectOfType<CheckPillBoxController>();
+                    if (scanner == null)
+                    {
+                        scanner = gameObject.AddComponent<CheckPillBoxController>();
+                        EZLog.I(EZLog.Module.UI, "CheckPillBoxController created dynamically on UIManager.");
+                    }
+                }
+
+                _scanLocked = false;
+                isConfirmingDispense = false;
+                isCancellingScan = false;
+
+                // Setup and show dedicated Home Scan Dialog
+                if (homeScanDialog != null)
+                {
+                    SetHomeScanDialogTitle("放入药盘");
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = "请放入任意患者的药盒，系统将通过摄像头或 RFID 自动识别。";
+                    }
+
+                    if (homeScanInsertIcon != null) homeScanInsertIcon.SetActive(true);
+                    if (homeScanPrescriptionDetailsText != null) homeScanPrescriptionDetailsText.gameObject.SetActive(false);
+
+                    if (homeScanConfirmButton != null) homeScanConfirmButton.gameObject.SetActive(false);
+                    if (homeScanCancelButton != null)
+                    {
+                        homeScanCancelButton.gameObject.SetActive(true);
+                        homeScanCancelButton.interactable = true;
+                        homeScanCancelButton.onClick.RemoveAllListeners();
+                        homeScanCancelButton.onClick.AddListener(() => FireAndForget(CancelScanAndReturnHomeAsync()));
+                    }
+
+                    if (homeScanSwitchCameraButton != null)
+                    {
+                        homeScanSwitchCameraButton.gameObject.SetActive(true);
+                        homeScanSwitchCameraButton.onClick.RemoveAllListeners();
+                        homeScanSwitchCameraButton.onClick.AddListener(OnHomeScanSwitchCameraClicked);
+                        UpdateHomeScanSwitchCameraButtonText();
+                    }
+
+                    homeScanDialog.SetActive(true);
+                }
+
+                // Initialize the dual-channel session only after the dialog is ready
+                // so an already-received UID cannot have its status text overwritten.
+                BeginIdentificationSession(dispenser, "", "任意患者", autoMode: true);
+
+                if (homeHintText != null)
+                {
+                    homeHintText.text = "请放入药盘...";
+                }
+            }
+            catch (Exception ex)
+            {
+                EZLog.E(EZLog.Module.UI, $"Error during auto recognition workflow: {ex.Message}");
+                ReEnablePatientButtons(true);
+                if (autoScanButton != null) autoScanButton.interactable = true;
+                isStartingAutoFlow = false;
+            }
+        }
+
+        private void OnAutoBoxVerified(string code)
+        {
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                identificationCoordinator.HandleBarcode(code);
+                return;
+            }
+
+            if (_scanLocked) return;
+            _scanLocked = true;
+
+            FireAndForget(HandleAutoBoxVerifiedAsync(code));
+        }
+
+        private async Task HandleAutoBoxVerifiedAsync(
+            string code,
+            PillBoxIdentificationResult sessionResult = null)
+        {
+            var main = MainController.Instance;
+            if (main == null)
+            {
+                _scanLocked = false;
+                return;
+            }
+
+            // 1. Parse patient ID from barcode
+            string parsedPatientId = CheckPillBoxController.ParsePatientIdFromBarcode(code);
+            EZLog.I(EZLog.Module.UI, $"Auto recognized patient ID: {parsedPatientId}");
+
+            // 2. Lookup patient in local status database
+            if (!main.TrySelectPatient(parsedPatientId, out var patientStatus))
+            {
+                EZLog.W(EZLog.Module.UI, $"Patient ID '{parsedPatientId}' not found in database.");
+                SetHomeScanDialogTitle("请放入需要封药的患者的药盒", isError: true);
+                if (homeScanDialogMessageText != null)
+                {
+                    homeScanDialogMessageText.text = "当前药盒无效或者所属患者今天无需分药，请重新放入药盒。";
+                }
+                
+                await Task.Delay(2000);
+                if (!IsIdentificationResultCurrent(sessionResult)) return;
+                ResumeAutoIdentificationAfterError();
+                return;
+            }
+
+            // 3. Check today's tasks
+            if (patientStatus.MedicineCount == 0)
+            {
+                EZLog.W(EZLog.Module.UI, $"Patient '{patientStatus.PatientName}' has no dispensing task today.");
+                SetHomeScanDialogTitle("请放入需要封药的患者的药盒", isError: true);
+                if (homeScanDialogMessageText != null)
+                {
+                    homeScanDialogMessageText.text = "当前药盒无效或者所属患者今天无需分药，请重新放入药盒。";
+                }
+                main.ClearCurrentPatient(); // clear selection since we cannot dispense
+                
+                await Task.Delay(2000);
+                if (!IsIdentificationResultCurrent(sessionResult)) return;
+                ResumeAutoIdentificationAfterError();
+                return;
+            }
+
+            if (patientStatus.IsCompleted)
+            {
+                EZLog.W(EZLog.Module.UI, $"Patient '{patientStatus.PatientName}' task today is already completed.");
+                SetHomeScanDialogTitle("请放入需要封药的患者的药盒", isError: true);
+                if (homeScanDialogMessageText != null)
+                {
+                    homeScanDialogMessageText.text = "当前药盒无效或者所属患者今天无需分药，请重新放入药盒。";
+                }
+                main.ClearCurrentPatient();
+                
+                await Task.Delay(2000);
+                if (!IsIdentificationResultCurrent(sessionResult)) return;
+                ResumeAutoIdentificationAfterError();
+                return;
+            }
+
+            // 4. Valid patient and task today. Prepare plan.
+            string patientName = patientStatus.PatientName;
+            string patientId = patientStatus.PatientId;
+            string bedNumber = patientStatus.BedNumber;
+            string medicineInfoText = "无有效分药数据";
+
+            await main.PreparePlanAsync();
+            var plan = main.CurrentPlan;
+            if (plan != null)
+            {
+                var lines = new List<string>();
+                
+                // Format patient header in one line: 患者：张三  病床：02  ID：P0032
+                string bedPart = !string.IsNullOrEmpty(bedNumber) ? $"  病床：{bedNumber}" : "";
+                lines.Add($"患者：{patientName}{bedPart}  ID：{patientId}");
+
+                // Collect all medicines to find maximum visual width for alignment
+                var allMeds = new List<DispensingMedicine>();
+                if (plan.MedicinesPlate1 != null) allMeds.AddRange(plan.MedicinesPlate1);
+                if (plan.MedicinesPlate2 != null) allMeds.AddRange(plan.MedicinesPlate2);
+
+                int maxFirstPartWidth = 0;
+                foreach (var m in allMeds)
+                {
+                    string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                    int w = GetVisualWidth(firstPart);
+                    if (w > maxFirstPartWidth) maxFirstPartWidth = w;
+                }
+
+                // Add medicines list
+                if (plan.MedicinesPlate1 != null && plan.MedicinesPlate1.Count > 0)
+                {
+                    lines.Add("\n【餐前/随餐药盘】");
+                    foreach (var m in plan.MedicinesPlate1)
+                    {
+                        string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                        string paddedFirstPart = PadRightVisual(firstPart, maxFirstPartWidth + 2);
+                        string translatedTiming = TranslateMealTiming(m.MealTiming);
+                        lines.Add($"{paddedFirstPart}| 服药时间: {translatedTiming} | 计划天数: {m.DispensingDays}天");
+                    }
+                }
+
+                if (plan.MedicinesPlate2 != null && plan.MedicinesPlate2.Count > 0)
+                {
+                    lines.Add("\n【餐后药盘 (药盘2)】");
+                    foreach (var m in plan.MedicinesPlate2)
+                    {
+                        string firstPart = $"- {m.MedicineName} ({m.DosageSpec})";
+                        string paddedFirstPart = PadRightVisual(firstPart, maxFirstPartWidth + 2);
+                        string translatedTiming = TranslateMealTiming(m.MealTiming);
+                        lines.Add($"{paddedFirstPart}| 服药时间: {translatedTiming} | 计划天数: {m.DispensingDays}天");
+                    }
+                }
+
+                if (lines.Count > 0)
+                {
+                    medicineInfoText = string.Join("\n", lines);
+                }
+            }
+
+            if (!IsIdentificationResultCurrent(sessionResult))
+            {
+                EZLog.W(EZLog.Module.Scanner, "Auto identification changed while preparing the dispensing plan");
+                return;
+            }
+
+            // Show confirmation dialog with patient's medicine details
+            if (homeScanDialog != null)
+            {
+                SetHomeScanDialogTitle("核验成功");
+                if (homeScanDialogMessageText != null)
+                {
+                    string sourceText = lastIdentificationResult?.Source == PillBoxIdentificationSource.Rfid
+                        ? "RFID"
+                        : "摄像头";
+                    homeScanDialogMessageText.text = $"已通过{sourceText}确认药盒信息，请核对处方并开始分药：";
+                }
+
+                if (homeScanInsertIcon != null) homeScanInsertIcon.SetActive(false);
+                if (homeScanPrescriptionDetailsText != null)
+                {
+                    homeScanPrescriptionDetailsText.text = medicineInfoText;
+                    homeScanPrescriptionDetailsText.gameObject.SetActive(true);
+                }
+
+                if (homeScanConfirmButton != null)
+                {
+                    homeScanConfirmButton.gameObject.SetActive(true);
+                    homeScanConfirmButton.interactable = true;
+                    homeScanConfirmButton.onClick.RemoveAllListeners();
+                    homeScanConfirmButton.onClick.AddListener(() => FireAndForget(ProceedToDispenseAsync()));
+                }
+
+                if (homeScanCancelButton != null)
+                {
+                    homeScanCancelButton.gameObject.SetActive(true);
+                    homeScanCancelButton.interactable = true;
+                    homeScanCancelButton.onClick.RemoveAllListeners();
+                    homeScanCancelButton.onClick.AddListener(() => FireAndForget(CancelScanAndReturnHomeAsync()));
+                }
+            }
+        }
+
+        private bool IsIdentificationResultCurrent(PillBoxIdentificationResult sessionResult)
+        {
+            // A null token identifies the legacy Scan scene, which does not use the
+            // dual-channel coordinator.
+            if (sessionResult == null)
+            {
+                return true;
+            }
+
+            return identificationCoordinator != null && identificationCoordinator.IsActive &&
+                   identificationCoordinator.VerifiedResult == sessionResult &&
+                   lastIdentificationResult == sessionResult;
+        }
+
+        private void ResumeAutoIdentificationAfterError()
+        {
+            _scanLocked = false;
+
+            if (identificationCoordinator != null && identificationCoordinator.IsActive)
+            {
+                if (identificationCoordinator.IsRfidPresent)
+                {
+                    if (homeScanDialogMessageText != null)
+                    {
+                        homeScanDialogMessageText.text = "请取出当前药盒，再放入需要分药患者的药盒。";
+                    }
+                    return;
+                }
+
+                identificationCoordinator.ClearVerification();
+            }
+
+            if (scanner != null)
+            {
+                scanner.StartScanner("", "任意患者");
+            }
+            SetHomeScanDialogTitle("放入药盒");
+            if (homeScanDialogMessageText != null)
+            {
+                homeScanDialogMessageText.text = "请放入任意患者的药盒，系统将通过摄像头或 RFID 自动识别。";
+            }
         }
 
         #endregion
@@ -926,8 +2150,8 @@ namespace EZDose.UI
                 main.DispensingProgressChanged += UpdateDispenseUI;
                 main.DispensingError += ShowDispenseError;
                 main.DispensingCompleted += OnDispenseCompleted;
+                main.ServoAngleChanged += OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired += OnPlateSwitchRequired;
-                main.PillCalibrationRequired += OnPillCalibrationRequired;
                 main.MedicineSkipped += OnMedicineSkipped;
             }
 
@@ -983,11 +2207,14 @@ namespace EZDose.UI
             // Setup manual servo angle tuning slider
             if (servoAngleTuningSlider != null)
             {
-                servoAngleTuningSlider.minValue = 0.1f;
-                servoAngleTuningSlider.maxValue = 1.2f;
-                servoAngleTuningSlider.value = 0.7f;
+                servoAngleTuningSlider.minValue = 0.0f;
+                servoAngleTuningSlider.maxValue = 1.0f;
+                servoAngleTuningSlider.value = 0.5f;
                 servoAngleTuningSlider.onValueChanged.AddListener(OnServoAngleTuningChanged);
                 OnServoAngleTuningChanged(servoAngleTuningSlider.value);
+                var sliderNavigation = servoAngleTuningSlider.navigation;
+                sliderNavigation.mode = Navigation.Mode.None;
+                servoAngleTuningSlider.navigation = sliderNavigation;
 
                 var trigger = servoAngleTuningSlider.gameObject.GetComponent<EventTrigger>() ?? 
                               servoAngleTuningSlider.gameObject.AddComponent<EventTrigger>();
@@ -1029,7 +2256,14 @@ namespace EZDose.UI
                 EZLog.I(EZLog.Module.UI, $"Manual servo tuning released: servo={servoAngle:F2}");
 
                 var servoTcs = new TaskCompletionSource<bool>();
-                dispenser.SetServoAngle(servoAngle, success => { servoTcs.TrySetResult(success); });
+                dispenser.SetServoAngle(servoAngle, success => 
+                { 
+                    if (success && MainController.Instance != null)
+                    {
+                        MainController.Instance.UpdateLastSetServoAngle(servoAngle);
+                    }
+                    servoTcs.TrySetResult(success); 
+                });
                 await servoTcs.Task;
             }
         }
@@ -1128,22 +2362,7 @@ namespace EZDose.UI
             }
         }
 
-        /// <summary>
-        /// MainController 触发校准事件时，直接调用对话框
-        /// </summary>
-        private void OnPillCalibrationRequired(EZDose.Prescriptions.DispensingMedicine medicine)
-        {
-            EZLog.I(EZLog.Module.UI, $"Calibration required for: {medicine.MedicineName}");
-            
-            if (pillCalibrationDialog != null)
-            {
-                pillCalibrationDialog.Show(medicine.MedicineName, medicine.PatientName, medicine.BedNumber);
-            }
-            else
-            {
-                EZLog.E(EZLog.Module.UI, "PillCalibrationDialog is not assigned");
-            }
-        }
+
 
         private void UpdateDispenseUI(DispensingProgressInfo info)
         {
@@ -1154,12 +2373,13 @@ namespace EZDose.UI
 
             if (totalPillsText != null)
             {
-                totalPillsText.text = $"{info.TotalPills}";
+                int remainingPills = Mathf.Max(0, info.TotalPills - info.DispensedPills);
+                totalPillsText.text = $"{remainingPills}";
             }
 
             if (medicineNameText != null)
             {
-                medicineNameText.text = info.MedicineName;
+                medicineNameText.text = $"{info.MedicineName}  {info.TotalPills}粒";
             }
 
             if (patientNameText != null)
@@ -1167,6 +2387,13 @@ namespace EZDose.UI
                 patientNameText.text = string.IsNullOrEmpty(info.PatientName)
                     ? string.Empty
                     : $"所属患者： {info.PatientName}";
+            }
+
+            if (dosageSpecText != null)
+            {
+                dosageSpecText.text = string.IsNullOrEmpty(info.DosageSpec)
+                    ? string.Empty
+                    : $"剂量规格： {info.DosageSpec}";
             }
 
             if (progressPercentText != null)
@@ -1296,6 +2523,21 @@ namespace EZDose.UI
 
         private void OnPlateSwitchRequired(int plateNumber)
         {
+            var main = MainController.Instance;
+            string patientName = "";
+            if (main != null && main.GetCurrentPatient() != null)
+            {
+                patientName = main.GetCurrentPatient().PatientName;
+            }
+
+            string plateName = plateNumber == 1 ? "饭前药盒" : "饭后/随餐药盒";
+
+            var targetText = plateSwitchDialogText ?? FindDialogMessageText(plateSwitchDialog, "Message");
+            if (targetText != null)
+            {
+                targetText.text = $"请放入【{patientName}】的【{plateName}】。";
+            }
+
             if (plateSwitchDialog != null)
             {
                 plateSwitchDialog.SetActive(true);
@@ -1306,7 +2548,6 @@ namespace EZDose.UI
                 plateSwitchConfirmButton.onClick.RemoveAllListeners();
                 plateSwitchConfirmButton.onClick.AddListener(() =>
                 {
-                    var main = MainController.Instance;
                     main?.ConfirmPlateReady();
                     if (plateSwitchDialog != null)
                     {
@@ -1321,18 +2562,209 @@ namespace EZDose.UI
             FireAndForget(ShowCompletionAsync());
         }
 
+        private void OnServoAngleChangedBySystem(float angle)
+        {
+            if (servoAngleTuningSlider != null)
+            {
+                servoAngleTuningSlider.value = angle;
+            }
+        }
+
+        private void SetCompletionDialogMessage(string message)
+        {
+            if (completeDialogMessageText == null && completeDialog != null)
+            {
+                completeDialogMessageText = completeDialog
+                    .GetComponentsInChildren<Text>(true)
+                    .FirstOrDefault(text => text != null &&
+                                            !string.IsNullOrEmpty(text.text) &&
+                                            text.text.Contains("取出药盒"));
+            }
+
+            if (completeDialogMessageText != null)
+            {
+                completeDialogMessageText.text = message;
+            }
+        }
+
+        private void BeginCompletionRfidMonitoring(DispenserController dispenser)
+        {
+            EndCompletionRfidMonitoring();
+            completionDispenser = dispenser;
+            completionRfidPresenceVersion = 0;
+
+            if (completionDispenser != null)
+            {
+                completionDispenser.OnRfidPresenceReported += OnCompletionRfidPresenceReported;
+            }
+        }
+
+        private void EndCompletionRfidMonitoring()
+        {
+            if (completionDispenser != null)
+            {
+                completionDispenser.OnRfidPresenceReported -= OnCompletionRfidPresenceReported;
+            }
+
+            completionDispenser = null;
+            completionRfidPresenceVersion = 0;
+            completionRfidReportTcs?.TrySetResult(false);
+            completionRfidReportTcs = null;
+        }
+
+        private void OnCompletionRfidPresenceReported(bool isPresent, string _)
+        {
+            if (isPresent)
+            {
+                completionRfidPresenceVersion++;
+            }
+            completionRfidReportTcs?.TrySetResult(true);
+        }
+
+        private async Task<bool> WaitForNextCompletionRfidReportAsync()
+        {
+            if (completionDispenser == null)
+            {
+                return false;
+            }
+
+            var waiter = new TaskCompletionSource<bool>();
+            completionRfidReportTcs = waiter;
+            var received = await waiter.Task;
+            if (ReferenceEquals(completionRfidReportTcs, waiter))
+            {
+                completionRfidReportTcs = null;
+            }
+
+            return received && completionDispenser != null;
+        }
+
+        private async Task<bool> WaitForCompletionTrayClearAsync()
+        {
+            if (completionDispenser == null)
+            {
+                SetCompletionDialogMessage("无法读取药盒在位状态，轨道不会收回，请检查设备连接");
+                return false;
+            }
+
+            SetCompletionDialogMessage(completionDispenser.IsRfidCardPresent
+                ? "检测到药盒仍在轨道上，请先取出药盒"
+                : "正在确认轨道是否为空，请稍候...");
+
+            while (completionDispenser != null)
+            {
+                // Never trust a state cached before the user confirmed. A fresh
+                // hardware report is required so an early NO CARD cannot close the
+                // tray before a delayed UID report arrives.
+                if (!await WaitForNextCompletionRfidReportAsync())
+                {
+                    return false;
+                }
+
+                if (completionDispenser.IsRfidCardPresent)
+                {
+                    SetCompletionDialogMessage("检测到药盒仍在轨道上，请先取出药盒");
+                    continue;
+                }
+
+                // Require the empty state to remain stable before issuing CLOSE_TRAY.
+                // Any delayed UID during this window keeps the tray open.
+                int presenceVersionBeforeStability = completionRfidPresenceVersion;
+                await Task.Delay(CompletionRfidClearStabilityMilliseconds);
+                if (completionDispenser == null)
+                {
+                    return false;
+                }
+
+                if (!completionDispenser.IsRfidCardPresent &&
+                    completionRfidPresenceVersion == presenceVersionBeforeStability)
+                {
+                    return true;
+                }
+
+                SetCompletionDialogMessage(completionDispenser.IsRfidCardPresent
+                    ? "检测到药盒仍在轨道上，请先取出药盒"
+                    : "药盒状态发生变化，正在重新确认轨道是否为空...");
+            }
+
+            return false;
+        }
+
+        private CheckPillBoxController EnsureBarcodeRemovalScanner()
+        {
+            if (scanner == null)
+            {
+                scanner = FindObjectOfType<CheckPillBoxController>();
+            }
+
+            if (scanner == null)
+            {
+                scanner = gameObject.AddComponent<CheckPillBoxController>();
+                EZLog.I(EZLog.Module.UI, "Created barcode scanner for completion tray monitoring");
+            }
+
+            return scanner;
+        }
+
+        private void EnableCompletionRetryButton()
+        {
+            if (completeDialogConfirmButton == null)
+            {
+                return;
+            }
+
+            completeDialogConfirmButton.gameObject.SetActive(true);
+            completeDialogConfirmButton.interactable = true;
+            completeDialogConfirmButton.onClick.RemoveAllListeners();
+            completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+        }
+
         private async Task ShowCompletionAsync()
         {
             var main = MainController.Instance;
+            bool usesRfid = main != null && main.CurrentPillBoxUsesRfid;
+            var dispenser = FindObjectOfType<DispenserController>();
+            EZLog.I(EZLog.Module.UI,
+                $"Showing completion flow for {(usesRfid ? "RFID" : "Barcode")} pill box");
+            if (usesRfid)
+            {
+                BeginCompletionRfidMonitoring(dispenser);
+            }
+            else
+            {
+                EndCompletionRfidMonitoring();
+                pillCounterController?.StopCamera();
+                // Give Unity/Android a short window to release the native camera
+                // before the barcode scanner opens the same physical device.
+                await Task.Delay(250);
+                EnsureBarcodeRemovalScanner();
+            }
+
             if (main != null)
             {
-                var opened = await main.OpenTrayAsync();
-                if (!opened)
+                // StartDispensingAsync normally opens the tray before publishing the
+                // completion event. The barcode branch can immediately monitor that
+                // state. Keep the existing RFID reopen/report cycle unchanged.
+                bool trayAlreadyOpen = dispenser != null && dispenser.IsTrayOpened;
+                if (usesRfid || !trayAlreadyOpen)
                 {
-                    return;
+                    var opened = await main.OpenTrayAsync();
+                    if (!opened)
+                    {
+                        EZLog.E(EZLog.Module.UI, "Unable to open tray for pill-box removal");
+                        EndCompletionRfidMonitoring();
+                        return;
+                    }
+                }
+                else
+                {
+                    EZLog.I(EZLog.Module.UI, "Tray is already open; skipping duplicate OPEN_TRAY command");
                 }
             }
 
+            SetCompletionDialogMessage(usesRfid
+                ? "请取出药盒后按下确认键"
+                : "请取出二维码/条形码药盒，摄像头确认药盒离开后轨道将自动收回");
             if (completeDialog != null)
             {
                 completeDialog.SetActive(true);
@@ -1341,23 +2773,100 @@ namespace EZDose.UI
             if (completeDialogConfirmButton != null)
             {
                 completeDialogConfirmButton.onClick.RemoveAllListeners();
-                completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+                completeDialogConfirmButton.gameObject.SetActive(usesRfid);
+                completeDialogConfirmButton.interactable = usesRfid;
+                if (usesRfid)
+                {
+                    completeDialogConfirmButton.onClick.AddListener(() => FireAndForget(ReturnHomeAsync()));
+                }
+            }
+
+            // Match the proven pre-RFID camera flow: monitoring starts as soon as
+            // the tray is open and closes it automatically after the code has been
+            // absent continuously for three seconds. No extra confirmation is needed.
+            if (!usesRfid)
+            {
+                await ReturnHomeAsync();
             }
         }
 
         private async Task ReturnHomeAsync()
         {
-            var main = MainController.Instance;
-            if (main != null)
+            if (isReturningHomeAfterCompletion)
             {
-                var closed = await main.CloseTrayAsync();
-                if (!closed)
-                {
-                    return;
-                }
+                return;
             }
 
-            await LoadSceneAsyncSafe(homeSceneName);
+            isReturningHomeAfterCompletion = true;
+            if (completeDialogConfirmButton != null)
+            {
+                completeDialogConfirmButton.interactable = false;
+            }
+
+            try
+            {
+                var main = MainController.Instance;
+                bool usesRfid = main != null && main.CurrentPillBoxUsesRfid;
+                if (usesRfid)
+                {
+                    EZLog.I(EZLog.Module.UI, "Completion removal check using RFID reports");
+                    if (!await WaitForCompletionTrayClearAsync())
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    EZLog.I(EZLog.Module.UI, "Completion removal check using barcode camera");
+                    var barcodeScanner = EnsureBarcodeRemovalScanner();
+                    SetCompletionDialogMessage(
+                        $"请取出二维码/条形码药盒；连续 {BarcodeRemovalStabilitySeconds:F0} 秒检测不到条码后轨道将自动收回");
+                    bool barcodeRemoved = await barcodeScanner.WaitForNoBarcodeAsync(BarcodeRemovalStabilitySeconds);
+                    barcodeScanner.StopScanner();
+                    if (!barcodeRemoved)
+                    {
+                        EZLog.W(EZLog.Module.UI,
+                            "Barcode camera could not confirm pill-box removal; keeping tray open");
+                        SetCompletionDialogMessage("摄像头检测失败，轨道保持打开。请检查摄像头后按确认键重试");
+                        EnableCompletionRetryButton();
+                        return;
+                    }
+                }
+
+                SetCompletionDialogMessage("正在收回轨道...");
+                if (main != null)
+                {
+                    EZLog.I(EZLog.Module.UI, "Pill box removed; sending CLOSE_TRAY");
+                    var closed = await main.CloseTrayAsync();
+                    if (!closed)
+                    {
+                        EZLog.E(EZLog.Module.UI, "CLOSE_TRAY failed after pill-box removal");
+                        SetCompletionDialogMessage("轨道收回失败，请检查设备后重新确认");
+                        EnableCompletionRetryButton();
+                        return;
+                    }
+                    EZLog.I(EZLog.Module.UI, "CLOSE_TRAY succeeded after pill-box removal");
+                }
+                else
+                {
+                    EZLog.E(EZLog.Module.UI,
+                        "MainController unavailable; cannot close tray after pill-box removal");
+                    SetCompletionDialogMessage("无法连接主控制流程，轨道保持打开，请重启应用后检查设备");
+                    EnableCompletionRetryButton();
+                    return;
+                }
+
+                EndCompletionRfidMonitoring();
+                await LoadSceneAsyncSafe(homeSceneName);
+            }
+            finally
+            {
+                isReturningHomeAfterCompletion = false;
+                if (!deviceLostDialogVisible && completeDialogConfirmButton != null)
+                {
+                    completeDialogConfirmButton.interactable = true;
+                }
+            }
         }
 
         private void ShowDispenseError(string message)
@@ -1373,6 +2882,243 @@ namespace EZDose.UI
         #endregion
 
         #region Helpers
+
+        private bool HandleGlobalDialogShortcuts()
+        {
+            if (IsActive(deviceLostDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(deviceLostConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return true;
+            }
+
+            return false;
+        }
+
+        private void HandleHomeShortcuts()
+        {
+            if (deviceManagerUI != null && deviceManagerUI.IsDialogVisible())
+            {
+                return;
+            }
+
+            // Treat the pill-box identification dialog as modal. Enter should only
+            // confirm after verification has made the existing confirm button usable,
+            // and Home-page shortcuts must not fire behind the dialog.
+            if (IsActive(homeScanDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(
+                    homeScanConfirmButton,
+                    KeyCode.Return,
+                    KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (ShortcutInput.GetAnyKeyDown(KeyCode.Space))
+            {
+                if (!isStartingPatientFlow && !isStartingAutoFlow)
+                {
+                    FireAndForget(StartAutoRecognitionFlowAsync());
+                    return;
+                }
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(refreshButton, KeyCode.R))
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(manageDevicesButton, KeyCode.D))
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(cleanTurntableButton, KeyCode.C))
+            {
+                return;
+            }
+
+            if (ShortcutInput.GetAnyKeyDown(KeyCode.Alpha1, KeyCode.Keypad1))
+            {
+                ShowSubPage(HomeSubPage.PatientCard);
+                return;
+            }
+
+            if (ShortcutInput.GetAnyKeyDown(KeyCode.Alpha2, KeyCode.Keypad2))
+            {
+                ShowSubPage(HomeSubPage.Setting);
+            }
+        }
+
+        private void HandleScanShortcuts()
+        {
+            if (IsActive(correctBoxDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(correctDialogConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (IsActive(mismatchDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(mismatchRetryButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(backToHomeButton, KeyCode.Escape))
+            {
+                return;
+            }
+
+            ShortcutInput.InvokeButtonIfKeyDown(switchCameraButton, KeyCode.LeftShift, KeyCode.RightShift);
+        }
+
+        private void HandleDispenseShortcuts()
+        {
+            if (IsActive(skipConfirmDialog))
+            {
+                if (ShortcutInput.InvokeButtonIfKeyDown(skipConfirmButton, KeyCode.Return, KeyCode.KeypadEnter))
+                {
+                    return;
+                }
+
+                ShortcutInput.InvokeButtonIfKeyDown(skipCleanTurntableButton, KeyCode.C);
+                return;
+            }
+
+            if (IsActive(plateSwitchDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(plateSwitchConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (IsActive(completeDialog))
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(completeDialogConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+                return;
+            }
+
+            if (HandleServoKeyboardTuning())
+            {
+                return;
+            }
+
+            if (ShortcutInput.InvokeButtonIfKeyDown(pauseResumeButton, KeyCode.Space))
+            {
+                return;
+            }
+
+            ShortcutInput.InvokeButtonIfKeyDown(skipMedicineButton, KeyCode.P);
+        }
+
+        private bool HandleServoKeyboardTuning()
+        {
+            bool leftHeld = Input.GetKey(KeyCode.LeftArrow);
+            bool rightHeld = Input.GetKey(KeyCode.RightArrow);
+            bool leftPressed = Input.GetKeyDown(KeyCode.LeftArrow);
+            bool rightPressed = Input.GetKeyDown(KeyCode.RightArrow);
+            bool released = Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow);
+
+            if (!leftHeld && !rightHeld)
+            {
+                if (released && isServoKeyboardTuning)
+                {
+                    CommitServoKeyboardTuning();
+                    return true;
+                }
+
+                isServoKeyboardTuning = false;
+                servoKeyboardValueChanged = false;
+                return released;
+            }
+
+            if (!CanUseServoKeyboardTuning())
+            {
+                ResetServoKeyboardTuningState();
+                return leftPressed || rightPressed || released;
+            }
+
+            if (!isServoKeyboardTuning)
+            {
+                isServoKeyboardTuning = true;
+                servoKeyboardValueChanged = false;
+                nextServoKeyboardStepTime = 0f;
+            }
+
+            bool shouldStep = leftPressed || rightPressed || Time.unscaledTime >= nextServoKeyboardStepTime;
+            if (!shouldStep)
+            {
+                return true;
+            }
+
+            int direction = 0;
+            if (rightHeld && !leftHeld)
+            {
+                direction = -1;
+            }
+            else if (leftHeld && !rightHeld)
+            {
+                direction = 1;
+            }
+
+            if (direction != 0 && ApplyServoKeyboardStep(direction))
+            {
+                servoKeyboardValueChanged = true;
+            }
+
+            nextServoKeyboardStepTime = Time.unscaledTime + Mathf.Max(0.01f, servoKeyboardRepeatInterval);
+            return true;
+        }
+
+        private bool ApplyServoKeyboardStep(int direction)
+        {
+            if (!CanUseServoKeyboardTuning())
+            {
+                return false;
+            }
+
+            float currentValue = servoAngleTuningSlider.value;
+            float nextValue = Mathf.Clamp(
+                currentValue + direction * Mathf.Abs(servoKeyboardStep),
+                servoAngleTuningSlider.minValue,
+                servoAngleTuningSlider.maxValue);
+
+            if (Mathf.Approximately(currentValue, nextValue))
+            {
+                return false;
+            }
+
+            servoAngleTuningSlider.value = nextValue;
+            return true;
+        }
+
+        private void CommitServoKeyboardTuning()
+        {
+            if (servoKeyboardValueChanged)
+            {
+                OnServoAngleTuningReleased();
+            }
+
+            ResetServoKeyboardTuningState();
+        }
+
+        private void ResetServoKeyboardTuningState()
+        {
+            isServoKeyboardTuning = false;
+            servoKeyboardValueChanged = false;
+            nextServoKeyboardStepTime = 0f;
+        }
+
+        private bool CanUseServoKeyboardTuning()
+        {
+            return servoAngleTuningSlider != null &&
+                   servoAngleTuningSlider.isActiveAndEnabled &&
+                   servoAngleTuningSlider.gameObject.activeInHierarchy &&
+                   servoAngleTuningSlider.interactable;
+        }
+
+        private static bool IsActive(GameObject target)
+        {
+            return target != null && target.activeInHierarchy;
+        }
 
         private void SetupDeviceLostDialog()
         {
@@ -1391,6 +3137,7 @@ namespace EZDose.UI
         private void OnDeviceLost(string reason)
         {
             EZLog.W(EZLog.Module.UI, $"Device lost: {reason}");
+            EndCompletionRfidMonitoring();
 
             if (deviceLostDialogVisible)
             {
@@ -1421,6 +3168,8 @@ namespace EZDose.UI
 
         private async Task ResetAndReturnHomeAfterDeviceLostAsync()
         {
+            EndCompletionRfidMonitoring();
+
             if (deviceLostDialog != null)
             {
                 deviceLostDialog.SetActive(false);
@@ -1441,6 +3190,19 @@ namespace EZDose.UI
 
         private void UnsubscribeEvents()
         {
+            EndIdentificationSession(stopScanner: true);
+            EndCompletionRfidMonitoring();
+            if (identificationCoordinator != null)
+            {
+                identificationCoordinator.Verified -= OnIdentificationVerified;
+                identificationCoordinator.Mismatch -= OnIdentificationMismatch;
+                identificationCoordinator.UnknownRfid -= OnUnknownRfid;
+                identificationCoordinator.RfidRemoved -= OnIdentificationRfidRemoved;
+                identificationCoordinator.RfidChanged -= OnIdentificationRfidChanged;
+                identificationCoordinator.Conflict -= OnIdentificationConflict;
+                identificationCoordinator = null;
+            }
+
             var main = MainController.Instance;
             if (main != null)
             {
@@ -1448,8 +3210,8 @@ namespace EZDose.UI
                 main.DispensingProgressChanged -= UpdateDispenseUI;
                 main.DispensingError -= ShowDispenseError;
                 main.DispensingCompleted -= OnDispenseCompleted;
+                main.ServoAngleChanged -= OnServoAngleChangedBySystem;
                 main.PlateSwitchRequired -= OnPlateSwitchRequired;
-                main.PillCalibrationRequired -= OnPillCalibrationRequired;
                 main.MedicineSkipped -= OnMedicineSkipped;
                 main.SkipConfirmRequired -= OnSkipConfirmRequired;
                 main.DeviceLost -= OnDeviceLost;
@@ -1508,6 +3270,34 @@ namespace EZDose.UI
             {
                 await Task.Yield();
             }
+        }
+
+        /// <summary>
+        /// 判断药品时间是否属于饭后/随餐/任意时间
+        /// </summary>
+        private bool IsAfterMealTiming(string timing)
+        {
+            if (string.IsNullOrEmpty(timing)) return false;
+            return string.Equals(timing, "after", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "after_meal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "with_meal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(timing, "anytime", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// 寻找弹窗内的 Message 文本组件的辅助方法
+        /// </summary>
+        private Text FindDialogMessageText(GameObject dialog, string defaultNamePattern)
+        {
+            if (dialog == null) return null;
+            var texts = dialog.GetComponentsInChildren<Text>(true);
+            
+            // 1. 优先寻找命名中包含特定关键字的组件 (如 "Message", "Content", "Body")
+            var matchingByName = texts.FirstOrDefault(t => t.name.IndexOf(defaultNamePattern, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (matchingByName != null) return matchingByName;
+            
+            // 2. 备选方案：寻找第一个不属于 Button 按钮子物体的 Text 组件
+            return texts.FirstOrDefault(t => t.GetComponentInParent<Button>() == null);
         }
 
         #endregion

@@ -27,8 +27,10 @@ namespace EZDose.Prescriptions
         public int duration_days;
         public string last_dispensed_expiry_date;  // Format: YYYY-MM-DD
         public int is_active;                       // 0 = inactive, 1 = active
-        public float pill_size_area;                 // Actual pill area in mm² (null/0 = uncalibrated)
+        public float motor_speed;                   // 转盘速度 (0 = uncalibrated)
+        public float servo_angle;                   // 舵机角度 (0 = uncalibrated)
         public string image_resource_id;            // Medicine image filename
+        public string dosage_spec;                  // 剂量规格
         public string created_at;                   // Timestamp
     }
 
@@ -37,6 +39,27 @@ namespace EZDose.Prescriptions
     {
         public bool success;
         public List<PrescriptionRecord> data;
+        public string message;
+    }
+
+    [Serializable]
+    public class PillBoxRecord
+    {
+        public int id;
+        public string patient_id;
+        public string rfid_uid;
+        public string box_type;
+        public string display_name;
+        public int is_active;
+        public string patient_name;
+        public string bed_number;
+    }
+
+    [Serializable]
+    internal class PillBoxListResponse
+    {
+        public bool success;
+        public List<PillBoxRecord> data;
         public string message;
     }
 
@@ -76,15 +99,18 @@ namespace EZDose.Prescriptions
         public int DurationDays;
         public string LastDispensedExpiryDate;
         public bool IsActive;
-        public float PillSizeArea;                   // Actual pill area in mm² (0 = needs calibration)
+        public float MotorSpeed;                     // 转盘速度 (0 = uncalibrated)
+        public float ServoAngle;                     // 舵机角度 (0 = uncalibrated)
         public string ImageResourceId;               // Pill image filename from server
-
-        // Check if this medicine needs calibration before dispensing
-        public bool NeedsCalibration => PillSizeArea <= 0;
+        public string DosageSpec;                    // 剂量规格
 
         // Helpers to check when to take the pill based on meal_timing field
-        public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || string.Equals(MealTiming, "anytime", StringComparison.OrdinalIgnoreCase);
-        public bool IsAfterMeal => string.Equals(MealTiming, "after", StringComparison.OrdinalIgnoreCase);
+        public bool IsBeforeMeal => string.Equals(MealTiming, "before", StringComparison.OrdinalIgnoreCase) || 
+                                    string.Equals(MealTiming, "before_meal", StringComparison.OrdinalIgnoreCase);
+        public bool IsAfterMeal => string.Equals(MealTiming, "after", StringComparison.OrdinalIgnoreCase) || 
+                                   string.Equals(MealTiming, "after_meal", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(MealTiming, "anytime", StringComparison.OrdinalIgnoreCase) ||
+                                   string.Equals(MealTiming, "with_meal", StringComparison.OrdinalIgnoreCase);
     }
 
     [Serializable]
@@ -102,7 +128,8 @@ namespace EZDose.Prescriptions
         public int PrescriptionId;                  // Server ID for updating after calibration
         public string MedicineName;
         public string MealTiming;
-        public float PillSizeArea;                  // Actual pill area in mm² (0 = needs calibration)
+        public float MotorSpeed;                    // 转盘速度 (0 = uncalibrated)
+        public float ServoAngle;                    // 舵机角度 (0 = uncalibrated)
         public int DispensingDays;
         public int[,] PillMatrix;
         
@@ -112,9 +139,7 @@ namespace EZDose.Prescriptions
         
         // Medicine image filename from server
         public string ImageResourceId;
-
-        // Check if this medicine needs calibration before dispensing
-        public bool NeedsCalibration => PillSizeArea <= 0;
+        public string DosageSpec;                    // 剂量规格
     }
 
     [Serializable]
@@ -131,15 +156,67 @@ namespace EZDose.Prescriptions
         private readonly string serverUrl;
         private readonly CultureInfo culture = CultureInfo.InvariantCulture;
         private List<PrescriptionRecord> allRecords = new List<PrescriptionRecord>();
+        private List<PillBoxRecord> pillBoxRecords = new List<PillBoxRecord>();
+        private readonly Dictionary<string, string> patientIdByRfidUid =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private PrescriptionData currentPrescription;
-        private readonly Dictionary<string, int> currentDispensingDays = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
         public PrescriptionManager(string serverUrl)
         {
             this.serverUrl = (serverUrl ?? string.Empty).TrimEnd('/');
         }
 
         public IReadOnlyList<PrescriptionRecord> CachedRecords => allRecords;
+        public IReadOnlyList<PillBoxRecord> CachedPillBoxes => pillBoxRecords;
+
+        public bool TryGetPatientIdByRfidUid(string uid, out string patientId)
+        {
+            patientId = null;
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                return false;
+            }
+
+            return patientIdByRfidUid.TryGetValue(uid.Trim().ToUpperInvariant(), out patientId);
+        }
+
+        public bool UpdateDispenserSettingsLocally(int prescriptionId, string medicineName, float motorSpeed, float servoAngle)
+        {
+            if (motorSpeed <= 0 || servoAngle <= 0)
+            {
+                return false;
+            }
+
+            var updated = false;
+            var hasPrescriptionId = prescriptionId > 0;
+
+            if (currentPrescription?.Medicines != null)
+            {
+                foreach (var medicine in currentPrescription.Medicines)
+                {
+                    if (MatchesPrescription(medicine.PrescriptionId, medicine.MedicineName, prescriptionId, medicineName, hasPrescriptionId))
+                    {
+                        medicine.MotorSpeed = motorSpeed;
+                        medicine.ServoAngle = servoAngle;
+                        updated = true;
+                    }
+                }
+            }
+
+            if (allRecords != null)
+            {
+                foreach (var record in allRecords)
+                {
+                    if (MatchesPrescription(record.id, record.medicine_name, prescriptionId, medicineName, hasPrescriptionId))
+                    {
+                        record.motor_speed = motorSpeed;
+                        record.servo_angle = servoAngle;
+                        updated = true;
+                    }
+                }
+            }
+
+            return updated;
+        }
 
         public bool UpdatePillSizeAreaLocally(int prescriptionId, string medicineName, float pillSizeAreaMm2)
         {
@@ -202,11 +279,57 @@ namespace EZDose.Prescriptions
                 if (response != null && response.success)
                 {
                     allRecords = response.data ?? new List<PrescriptionRecord>();
-                    return true;
+                }
+                else
+                {
+                    EZLog.E(EZLog.Module.Prescription, $"Server rejected fetch: {request.downloadHandler.text}");
+                    return false;
+                }
+            }
+
+            // RFID bindings are optional for backward compatibility with older servers.
+            await RefreshPillBoxesFromServerAsync();
+            return true;
+        }
+
+        private async Task RefreshPillBoxesFromServerAsync()
+        {
+            using (var request = UnityWebRequest.Get($"{serverUrl}/packer/pill-boxes"))
+            {
+                request.timeout = 10;
+                await Wait(request);
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    pillBoxRecords.Clear();
+                    patientIdByRfidUid.Clear();
+                    EZLog.W(EZLog.Module.Prescription, $"RFID pill-box mapping fetch failed; camera scanning remains available: {request.error}");
+                    return;
                 }
 
-                EZLog.E(EZLog.Module.Prescription, $"Server rejected fetch: {request.downloadHandler.text}");
-                return false;
+                var response = JsonUtility.FromJson<PillBoxListResponse>(request.downloadHandler.text);
+                if (response == null || !response.success)
+                {
+                    pillBoxRecords.Clear();
+                    patientIdByRfidUid.Clear();
+                    EZLog.W(EZLog.Module.Prescription, $"RFID pill-box mapping response was invalid: {request.downloadHandler.text}");
+                    return;
+                }
+
+                pillBoxRecords = response.data ?? new List<PillBoxRecord>();
+                patientIdByRfidUid.Clear();
+                foreach (var box in pillBoxRecords)
+                {
+                    if (box == null || box.is_active == 0 ||
+                        string.IsNullOrWhiteSpace(box.rfid_uid) || string.IsNullOrWhiteSpace(box.patient_id))
+                    {
+                        continue;
+                    }
+
+                    patientIdByRfidUid[box.rfid_uid.Trim().ToUpperInvariant()] = box.patient_id.Trim();
+                }
+
+                EZLog.I(EZLog.Module.Prescription, $"Loaded {patientIdByRfidUid.Count} RFID pill-box bindings");
             }
         }
 
@@ -278,8 +401,6 @@ namespace EZDose.Prescriptions
             }
 
             currentPrescription = prescription;
-            currentDispensingDays.Clear();
-
             var hasBefore = prescription.Medicines.Any(m => m.IsBeforeMeal);
             var hasAfter = prescription.Medicines.Any(m => m.IsAfterMeal);
 
@@ -292,8 +413,6 @@ namespace EZDose.Prescriptions
             {
                 // Calculate how many days we still need to dispense, considering threshold
                 var dispensingDays = CalculateDispensingDays(medicine, maxDays, expiryThreshold);
-                currentDispensingDays[medicine.MedicineName] = dispensingDays;
-                
                 EZLog.D(EZLog.Module.Prescription, $"Medicine '{medicine.MedicineName}': dispensingDays={dispensingDays}, lastExpiry={medicine.LastDispensedExpiryDate}, threshold={expiryThreshold}");
 
                 if (dispensingDays <= 0)
@@ -308,12 +427,14 @@ namespace EZDose.Prescriptions
                     PrescriptionId = medicine.PrescriptionId,
                     MedicineName = medicine.MedicineName,
                     MealTiming = medicine.MealTiming,
-                    PillSizeArea = medicine.PillSizeArea,
+                    MotorSpeed = medicine.MotorSpeed,
+                    ServoAngle = medicine.ServoAngle,
                     DispensingDays = dispensingDays,
                     PillMatrix = pillMatrix,
                     PatientName = prescription.Patient?.PatientName ?? "",
                     BedNumber = prescription.Patient?.BedNumber ?? "",
-                    ImageResourceId = medicine.ImageResourceId
+                    ImageResourceId = medicine.ImageResourceId,
+                    DosageSpec = medicine.DosageSpec
                 };
 
                 if (hasBefore && hasAfter)
@@ -340,9 +461,10 @@ namespace EZDose.Prescriptions
             return true;
         }
 
-        public bool ApplyDispensingResult(string medicineName)
+        public bool ApplyDispensingResult(int prescriptionId, string medicineName, int actualDispensedDays)
         {
-            // After dispensing, move the expiry date forward by the days we dispensed
+            // Advance the expiry date only by the number of days represented by the
+            // matrix that actually completed successfully.
             if (currentPrescription == null)
             {
                 return false;
@@ -353,12 +475,16 @@ namespace EZDose.Prescriptions
                 return false;
             }
 
-            if (!currentDispensingDays.TryGetValue(medicineName, out var dispensingDays) || dispensingDays <= 0)
+            if (actualDispensedDays < 1 || actualDispensedDays > AppConfig.MAX_SUPPORTED_DISPENSING_DAYS)
             {
+                EZLog.E(EZLog.Module.Prescription,
+                    $"Refusing to apply invalid dispensed days: {actualDispensedDays}");
                 return false;
             }
 
-            var medicine = currentPrescription.Medicines.FirstOrDefault(m => string.Equals(m.MedicineName, medicineName, StringComparison.OrdinalIgnoreCase));
+            var hasPrescriptionId = prescriptionId > 0;
+            var medicine = currentPrescription.Medicines.FirstOrDefault(m =>
+                MatchesPrescription(m.PrescriptionId, m.MedicineName, prescriptionId, medicineName, hasPrescriptionId));
             if (medicine == null)
             {
                 return false;
@@ -380,13 +506,14 @@ namespace EZDose.Prescriptions
                 return false;
             }
 
-            var newExpiry = last.AddDays(dispensingDays).ToString("yyyy-MM-dd");
+            var newExpiry = last.AddDays(actualDispensedDays).ToString("yyyy-MM-dd");
             medicine.LastDispensedExpiryDate = newExpiry;
 
-            // Update raw records that match the patient and medicine
+            // Prefer the prescription ID so medicines with the same name cannot update
+            // each other's records. Medicine name remains a fallback for legacy data.
             foreach (var record in allRecords.Where(r =>
                 string.Equals(r.patient_id, currentPrescription.Patient.PatientId, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(r.medicine_name, medicineName, StringComparison.OrdinalIgnoreCase)))
+                MatchesPrescription(r.id, r.medicine_name, prescriptionId, medicineName, hasPrescriptionId)))
             {
                 record.last_dispensed_expiry_date = newExpiry;
             }
@@ -459,8 +586,10 @@ namespace EZDose.Prescriptions
                 DurationDays = record.duration_days,
                 LastDispensedExpiryDate = record.last_dispensed_expiry_date,
                 IsActive = record.is_active != 0,
-                PillSizeArea = record.pill_size_area,
-                ImageResourceId = record.image_resource_id
+                MotorSpeed = record.motor_speed,
+                ServoAngle = record.servo_angle,
+                ImageResourceId = record.image_resource_id,
+                DosageSpec = record.dosage_spec
             };
         }
 
@@ -472,12 +601,15 @@ namespace EZDose.Prescriptions
         private int CalculateDispensingDays(MedicineEntry medicine, int maxDays, int expiryThreshold)
         {
             var today = DateTime.Today;
+            var effectiveMaxDays = Math.Min(
+                Math.Max(0, maxDays),
+                AppConfig.MAX_SUPPORTED_DISPENSING_DAYS);
 
             // Parse start date - required for all calculations
             if (!DateTime.TryParseExact(medicine.StartDate, "yyyy-MM-dd", culture, DateTimeStyles.None, out var start))
             {
                 // Cannot determine start date - default to dispensing
-                return Math.Min(maxDays, Math.Max(0, medicine.DurationDays));
+                return Math.Min(effectiveMaxDays, Math.Max(0, medicine.DurationDays));
             }
 
             // Determine the current expiry date (when existing pills run out)
@@ -521,9 +653,10 @@ namespace EZDose.Prescriptions
                 return 0;
             }
 
-            // Calculate remaining days to dispense, capped by maxDays
+            // Calculate remaining days to dispense, capped by both configuration and
+            // the seven-column hardware matrix capacity.
             var remainingDays = medicine.DurationDays - alreadyDispensed;
-            return Math.Min(maxDays, Math.Max(0, remainingDays));
+            return Math.Min(effectiveMaxDays, Math.Max(0, remainingDays));
         }
 
         /// <summary>
@@ -535,8 +668,8 @@ namespace EZDose.Prescriptions
         /// </summary>
         private static int[,] BuildPillMatrix(MedicineEntry medicine, int dispensingDays)
         {
-            var matrix = new int[4, 7];
-            var days = Math.Min(dispensingDays, 7);
+            var matrix = new int[4, AppConfig.MAX_SUPPORTED_DISPENSING_DAYS];
+            var days = Math.Min(dispensingDays, AppConfig.MAX_SUPPORTED_DISPENSING_DAYS);
 
             for (var day = 0; day < days; day++)
             {
@@ -544,9 +677,9 @@ namespace EZDose.Prescriptions
                 // Server stores as REAL but hardware needs whole pill counts
                 // Physical plate order (top to bottom): Noon → Evening → Morning
                 // Matrix row 0 = physical bottom, row 2 = physical top
-                matrix[0, day] = (int)medicine.MorningDosage;   // 早上 (物理底部, 第三顿)
-                matrix[1, day] = (int)medicine.EveningDosage;   // 晚上 (物理中间, 第二顿)
-                matrix[2, day] = (int)medicine.NoonDosage;      // 中午 (物理顶部, 第一顿)
+                matrix[2, day] = (int)medicine.MorningDosage;   // 早上 (物理底部, 第三顿)
+                matrix[0, day] = (int)medicine.EveningDosage;   // 晚上 (物理中间, 第二顿)
+                matrix[1, day] = (int)medicine.NoonDosage;      // 中午 (物理顶部, 第一顿)
             }
 
             return matrix;

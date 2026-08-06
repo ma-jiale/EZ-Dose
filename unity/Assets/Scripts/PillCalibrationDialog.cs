@@ -435,21 +435,8 @@ namespace EZDose.UI
                 detectionCoroutine = null;
             }
             
-            // 将像素面积转换为 mm²
-            float areaMm2 = confirmedPixelArea;
-            if (calibrationManager != null && calibrationManager.IsSystemCalibrated)
-            {
-                areaMm2 = calibrationManager.ConvertPixelAreaToMm2(confirmedPixelArea);
-                EZLog.I(EZLog.Module.Calibration, $"Converted {confirmedPixelArea:F0} pixels to {areaMm2:F1} mm²");
-            }
-            else
-            {
-                EZLog.W(EZLog.Module.Calibration, "System not calibrated, using pixel area as fallback");
-            }
-            
-            // 通知 MainController 校准完成，传入 mm² 面积和图像字节
-            var main = MainController.Instance;
-            main?.CompletePillCalibration(areaMm2, capturedImageBytes);
+            // 视觉校准已从主流程剔除，此处保留交互日志
+            EZLog.I(EZLog.Module.Calibration, $"Visual calibration confirmed with pixel area {confirmedPixelArea:F0}");
         }
     }
 }

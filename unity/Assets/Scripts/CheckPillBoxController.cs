@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using ZXing;
@@ -31,6 +32,12 @@ namespace EZDose.CheckPillBox
         private bool isScanning;
         private bool hasSelectedCamera;
         private string expectedPatientId; // We expect box id == patient id
+        private float lastValidCameraFrameRealtime = -1f;
+
+        // The scanner object belongs to a scene, but the physical camera does not.
+        // Remember the camera that actually decoded the pill-box code so the
+        // completion scene monitors the same camera at the end of the track.
+        private static string lastBarcodeCameraName;
 
         /// <summary>
         /// Returns true if the currently active camera is front-facing.
@@ -78,12 +85,41 @@ namespace EZDose.CheckPillBox
             StopScanner();
         }
 
+        private void OnDisable()
+        {
+            StopScanner();
+        }
+
+        private void Update()
+        {
+            // didUpdateThisFrame is easy to miss from a coroutine that only wakes
+            // every 0.2 seconds. Capture it every Unity frame, then let the removal
+            // loop consume the latest valid image just like the original scanner.
+            if (webCamTexture != null &&
+                webCamTexture.isPlaying &&
+                webCamTexture.didUpdateThisFrame &&
+                webCamTexture.width > 16 &&
+                webCamTexture.height > 16)
+            {
+                lastValidCameraFrameRealtime = Time.realtimeSinceStartup;
+            }
+        }
+
         /// <summary>
         /// Start scanning; we expect the box code to equal the patient ID.
         /// </summary>
-        public void StartScanner(string expectedPatientId)
+        public void StartScanner(string expectedPatientId, string expectedPatientName = "")
         {
             this.expectedPatientId = expectedPatientId;
+
+            // Ensure valid values for dynamically added components at runtime
+            if (requestedWidth <= 0) requestedWidth = 1280;
+            if (requestedHeight <= 0) requestedHeight = 720;
+            if (requestedFps <= 0) requestedFps = 30;
+            if (!hasSelectedCamera)
+            {
+                cameraIndex = -1;
+            }
 
             if (isScanning)
                 return;
@@ -93,7 +129,14 @@ namespace EZDose.CheckPillBox
                 StartCamera();
                 isScanning = true;
                 StartCoroutine(ScanLoop());
-                SetStatus("Scanning box code...");
+                if (!string.IsNullOrEmpty(expectedPatientName))
+                {
+                    SetStatus($"请放入【{expectedPatientName}】的药盘...");
+                }
+                else
+                {
+                    SetStatus("Scanning box code...");
+                }
             }
             catch (Exception e)
             {
@@ -112,10 +155,19 @@ namespace EZDose.CheckPillBox
             if (webCamTexture != null)
             {
                 if (webCamTexture.isPlaying)
+                {
                     webCamTexture.Stop();
+                }
+
+                if (preview != null && preview.texture == webCamTexture)
+                {
+                    preview.texture = null;
+                }
 
                 Destroy(webCamTexture);
                 webCamTexture = null;
+                lastValidCameraFrameRealtime = -1f;
+                EZLog.I(EZLog.Module.Scanner, "Camera released.");
             }
         }
 
@@ -156,18 +208,32 @@ namespace EZDose.CheckPillBox
 
         private void StartCamera()
         {
+            if (requestedWidth <= 0) requestedWidth = 1280;
+            if (requestedHeight <= 0) requestedHeight = 720;
+            if (requestedFps <= 0) requestedFps = 30;
+
             var devices = WebCamTexture.devices;
             if (devices == null || devices.Length == 0)
                 throw new Exception("No camera found");
 
-            // Prefer the front-facing camera on first use, even if a scene has an old serialized index.
+            // A new scanner is created after changing scenes. Reuse the camera that
+            // decoded this pill box; otherwise auto-detection can select a different
+            // USB camera and never observe the code at the end of the track.
             if (!hasSelectedCamera || cameraIndex < 0 || cameraIndex >= devices.Length)
             {
-                cameraIndex = GetPreferredCameraIndex(devices);
+                int rememberedCameraIndex = FindCameraIndex(devices, lastBarcodeCameraName);
+                cameraIndex = rememberedCameraIndex >= 0
+                    ? rememberedCameraIndex
+                    : GetPreferredCameraIndex(devices);
                 hasSelectedCamera = true;
-                EZLog.I(EZLog.Module.Scanner, $"Auto-selected camera [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
+                string selectionReason = rememberedCameraIndex >= 0
+                    ? "reused barcode camera"
+                    : "auto-selected camera";
+                EZLog.I(EZLog.Module.Scanner,
+                    $"{selectionReason} [{cameraIndex}]: {devices[cameraIndex].name} (front={devices[cameraIndex].isFrontFacing})");
             }
 
+            lastValidCameraFrameRealtime = -1f;
             webCamTexture = new WebCamTexture(devices[cameraIndex].name, requestedWidth, requestedHeight, requestedFps);
             webCamTexture.Play();
 
@@ -177,8 +243,53 @@ namespace EZDose.CheckPillBox
             }
         }
 
+        private static int FindCameraIndex(WebCamDevice[] devices, string cameraName)
+        {
+            if (devices == null || string.IsNullOrWhiteSpace(cameraName))
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (string.Equals(devices[i].name, cameraName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private void RememberCurrentBarcodeCamera()
+        {
+            var devices = WebCamTexture.devices;
+            if (devices == null || cameraIndex < 0 || cameraIndex >= devices.Length)
+            {
+                return;
+            }
+
+            string cameraName = devices[cameraIndex].name;
+            if (string.Equals(lastBarcodeCameraName, cameraName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            lastBarcodeCameraName = cameraName;
+            EZLog.I(EZLog.Module.Scanner,
+                $"Remembered barcode camera [{cameraIndex}]: {lastBarcodeCameraName}");
+        }
+
         private static int GetPreferredCameraIndex(WebCamDevice[] devices)
         {
+            // 1. 优先寻找名称中包含 "usb" 的外接摄像头
+            for (int i = 0; i < devices.Length; i++)
+            {
+                if (devices[i].name.IndexOf("usb", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return i;
+            }
+
+            // 2. 其次寻找前置摄像头
             for (int i = 0; i < devices.Length; i++)
             {
                 if (devices[i].isFrontFacing)
@@ -222,6 +333,7 @@ namespace EZDose.CheckPillBox
 
                     if (result != null)
                     {
+                        RememberCurrentBarcodeCamera();
                         HandleDecode(result.Text);
                         // Stop after a decision; main flow can restart if needed.
                         yield break;
@@ -237,9 +349,9 @@ namespace EZDose.CheckPillBox
             }
         }
 
-        private void HandleDecode(string decoded)
+        public static string ParsePatientIdFromBarcode(string decoded)
         {
-            // We expect the box code to carry the patient id. Accept forms: "PID:<id>", "BOX:<id>", or raw "<id>".
+            if (string.IsNullOrEmpty(decoded)) return "";
             var parsedId = decoded;
 
             if (decoded.Contains(":"))
@@ -253,9 +365,16 @@ namespace EZDose.CheckPillBox
                         parsedId = part.Substring(4).Trim();
                 }
             }
+            return parsedId;
+        }
+
+        private void HandleDecode(string decoded)
+        {
+            // We expect the box code to carry the patient id. Accept forms: "PID:<id>", "BOX:<id>", or raw "<id>".
+            var parsedId = ParsePatientIdFromBarcode(decoded);
 
             var matches = string.IsNullOrEmpty(expectedPatientId)
-                ? false
+                ? true
                 : string.Equals(parsedId, expectedPatientId, StringComparison.OrdinalIgnoreCase);
 
             if (matches)
@@ -272,13 +391,150 @@ namespace EZDose.CheckPillBox
             StopScanner();
         }
 
-        private void SetStatus(string message)
+        public void SetStatus(string message)
         {
             if (statusText != null)
             {
                 statusText.text = message;
             }
             EZLog.I(EZLog.Module.Scanner, message);
+        }
+
+        private bool isWaitingForNoBarcode = false;
+        private float noBarcodeWaitTimer = 0f;
+        private float targetNoBarcodeDuration = 1f;
+        private Action<bool> onNoBarcodeCompleted;
+
+        public void StartWaitingForNoBarcode(float duration, Action<bool> onCompleted)
+        {
+            if (isWaitingForNoBarcode)
+            {
+                EZLog.W(EZLog.Module.Scanner, "Barcode removal monitoring is already running");
+                onCompleted?.Invoke(false);
+                return;
+            }
+
+            targetNoBarcodeDuration = duration;
+            onNoBarcodeCompleted = onCompleted;
+            isWaitingForNoBarcode = true;
+            StartCoroutine(WaitForNoBarcodeCoroutine());
+        }
+
+        public Task<bool> WaitForNoBarcodeAsync(float durationSeconds)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            StartWaitingForNoBarcode(durationSeconds, success => {
+                tcs.TrySetResult(success);
+            });
+            return tcs.Task;
+        }
+
+        private IEnumerator WaitForNoBarcodeCoroutine()
+        {
+            if (webCamTexture == null || !webCamTexture.isPlaying)
+            {
+                try
+                {
+                    StartCamera();
+                }
+                catch (Exception e)
+                {
+                    EZLog.E(EZLog.Module.Scanner, $"Failed to start camera: {e.Message}");
+                    isWaitingForNoBarcode = false;
+                    var cameraStartFailedCallback = onNoBarcodeCompleted;
+                    onNoBarcodeCompleted = null;
+                    cameraStartFailedCallback?.Invoke(false);
+                    yield break;
+                }
+            }
+
+            isScanning = true;
+            noBarcodeWaitTimer = 0f;
+            float cameraFailureTimer = 0f;
+            var wait = new WaitForSecondsRealtime(0.2f);
+            EZLog.I(EZLog.Module.Scanner,
+                $"Started barcode removal monitoring; stable absence required for {targetNoBarcodeDuration:F1}s");
+
+            while (isScanning && isWaitingForNoBarcode)
+            {
+                bool hasFreshCameraFrame = lastValidCameraFrameRealtime >= 0f &&
+                    Time.realtimeSinceStartup - lastValidCameraFrameRealtime <= 2f;
+                if (webCamTexture == null || !webCamTexture.isPlaying ||
+                    webCamTexture.width <= 16 || webCamTexture.height <= 16 ||
+                    !hasFreshCameraFrame)
+                {
+                    cameraFailureTimer += 0.2f;
+                    if (cameraFailureTimer >= 10f)
+                    {
+                        SetStatus("摄像头画面不可用，无法确认药盒是否取出");
+                        break;
+                    }
+                    yield return wait;
+                    continue;
+                }
+
+                bool barcodeDetected = false;
+                bool decodeSucceeded = true;
+                try
+                {
+                    int width = webCamTexture.width;
+                    int height = webCamTexture.height;
+                    Color32[] colors = webCamTexture.GetPixels32();
+                    var result = barcodeReader.Decode(colors, width, height);
+                    if (result != null)
+                    {
+                        barcodeDetected = true;
+                        RememberCurrentBarcodeCamera();
+                    }
+                }
+                catch (Exception e)
+                {
+                    decodeSucceeded = false;
+                    EZLog.D(EZLog.Module.Scanner, $"Error during no-barcode decode check: {e.Message}");
+                }
+
+                if (!decodeSucceeded)
+                {
+                    cameraFailureTimer += 0.2f;
+                    if (cameraFailureTimer >= 10f)
+                    {
+                        SetStatus("二维码识别持续失败，无法确认药盒是否取出");
+                        break;
+                    }
+                    yield return wait;
+                    continue;
+                }
+
+                cameraFailureTimer = 0f;
+
+                if (barcodeDetected)
+                {
+                    noBarcodeWaitTimer = 0f;
+                    SetStatus("检测到药盘仍在仓内，请取出药盘...");
+                }
+                else
+                {
+                    noBarcodeWaitTimer += 0.2f;
+                    SetStatus($"请取出药盘... ({Mathf.Max(0f, targetNoBarcodeDuration - noBarcodeWaitTimer):F1}秒后关仓)");
+                }
+
+                if (noBarcodeWaitTimer >= targetNoBarcodeDuration)
+                {
+                    break;
+                }
+
+                yield return wait;
+            }
+
+            isWaitingForNoBarcode = false;
+            bool barcodeRemoved = noBarcodeWaitTimer >= targetNoBarcodeDuration;
+            EZLog.I(EZLog.Module.Scanner,
+                barcodeRemoved
+                    ? "Barcode remained absent; pill box removal confirmed"
+                    : "Barcode removal monitoring stopped without confirming removal");
+            var completed = onNoBarcodeCompleted;
+            onNoBarcodeCompleted = null;
+            completed?.Invoke(barcodeRemoved);
         }
     }
 }

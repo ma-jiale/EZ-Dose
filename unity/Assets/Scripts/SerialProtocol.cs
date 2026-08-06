@@ -149,6 +149,8 @@ namespace EZDose.Hardware
             public const string CLEANED_PILLS_PREFIX = "cleaned pills:";
             public const string ACK_MSG = "ACK";
             public const string DONE_MSG = "DONE";
+            public const string RFID_UID_PREFIX = "UID:";
+            public const string RFID_NO_CARD_MSG = "NO CARD";
 
             public static FeedbackMessage Parse(string message)
             {
@@ -199,6 +201,28 @@ namespace EZDose.Hardware
 
                 if (message == DONE_MSG)
                     return new FeedbackMessage { Type = FeedbackType.DONE };
+
+                if (message.Equals(RFID_NO_CARD_MSG, StringComparison.OrdinalIgnoreCase))
+                    return new FeedbackMessage { Type = FeedbackType.RfidNoCard };
+
+                if (message.StartsWith(RFID_UID_PREFIX, StringComparison.OrdinalIgnoreCase))
+                {
+                    string uid = message.Substring(RFID_UID_PREFIX.Length).Trim().ToUpperInvariant();
+                    bool isHex = uid.Length > 0 && uid.Length <= 64;
+                    for (int i = 0; i < uid.Length && isHex; i++)
+                    {
+                        isHex = Uri.IsHexDigit(uid[i]);
+                    }
+
+                    if (isHex)
+                    {
+                        return new FeedbackMessage
+                        {
+                            Type = FeedbackType.RfidUid,
+                            RfidUid = uid
+                        };
+                    }
+                }
 
                 // "number:N width:W" (with sequence number from STM32)
                 if (message.StartsWith("number:"))
@@ -268,6 +292,8 @@ namespace EZDose.Hardware
         PillsOut,
         ACK,
         DONE,
+        RfidUid,
+        RfidNoCard,
         OptoPulseWidth,
         CleanedPills
     }
@@ -284,6 +310,7 @@ namespace EZDose.Hardware
         /// -1 indicates legacy format (no sequence number available).
         /// </summary>
         public int SequenceNumber { get; set; } = -1;
+        public string RfidUid { get; set; }
         public string RawMessage { get; set; }
     }
 }
