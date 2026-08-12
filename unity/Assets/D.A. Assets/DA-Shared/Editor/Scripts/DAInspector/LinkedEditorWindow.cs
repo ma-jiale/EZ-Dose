@@ -1,4 +1,4 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 
 namespace DA_Assets.DAI
@@ -15,7 +15,7 @@ namespace DA_Assets.DAI
 
             foreach (T1 window in windows)
             {
-                if (window.monoBeh != null && window.monoBeh.GetInstanceID() == monoBeh.GetInstanceID())
+                if (window.monoBeh != null && window.monoBeh == monoBeh)
                 {
                     instance = window;
                     break;

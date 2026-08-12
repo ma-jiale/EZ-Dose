@@ -27,6 +27,7 @@ namespace EZDose.Prescriptions
         public int duration_days;
         public string last_dispensed_expiry_date;  // Format: YYYY-MM-DD
         public int is_active;                       // 0 = inactive, 1 = active
+        public float pill_size_area;                // 药片面积 mm² (0 = uncalibrated)
         public float motor_speed;                   // 转盘速度 (0 = uncalibrated)
         public float servo_angle;                   // 舵机角度 (0 = uncalibrated)
         public string image_resource_id;            // Medicine image filename
@@ -99,6 +100,7 @@ namespace EZDose.Prescriptions
         public int DurationDays;
         public string LastDispensedExpiryDate;
         public bool IsActive;
+        public float PillSizeArea;                   // 药片面积 mm² (0 = uncalibrated)
         public float MotorSpeed;                     // 转盘速度 (0 = uncalibrated)
         public float ServoAngle;                     // 舵机角度 (0 = uncalibrated)
         public string ImageResourceId;               // Pill image filename from server
@@ -128,6 +130,7 @@ namespace EZDose.Prescriptions
         public int PrescriptionId;                  // Server ID for updating after calibration
         public string MedicineName;
         public string MealTiming;
+        public float PillSizeArea;                  // 药片面积 mm² (0 = uncalibrated)
         public float MotorSpeed;                    // 转盘速度 (0 = uncalibrated)
         public float ServoAngle;                    // 舵机角度 (0 = uncalibrated)
         public int DispensingDays;
@@ -427,6 +430,7 @@ namespace EZDose.Prescriptions
                     PrescriptionId = medicine.PrescriptionId,
                     MedicineName = medicine.MedicineName,
                     MealTiming = medicine.MealTiming,
+                    PillSizeArea = medicine.PillSizeArea,
                     MotorSpeed = medicine.MotorSpeed,
                     ServoAngle = medicine.ServoAngle,
                     DispensingDays = dispensingDays,
@@ -586,6 +590,7 @@ namespace EZDose.Prescriptions
                 DurationDays = record.duration_days,
                 LastDispensedExpiryDate = record.last_dispensed_expiry_date,
                 IsActive = record.is_active != 0,
+                PillSizeArea = record.pill_size_area,
                 MotorSpeed = record.motor_speed,
                 ServoAngle = record.servo_angle,
                 ImageResourceId = record.image_resource_id,

@@ -1228,7 +1228,11 @@ namespace DA_Assets.FCU
 
             if (field.SyncHelper != null)
             {
+#if UNITY_6000_0_OR_NEWER
+                return field.SyncHelper.GetEntityId().ToString();
+#else
                 return field.SyncHelper.GetInstanceID().ToString();
+#endif
             }
 
             return field.RuntimeId;

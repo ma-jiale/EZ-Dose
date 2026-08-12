@@ -124,7 +124,7 @@ class ShadowSettingSnapshot
         case RawImage rawImage:
             var textureHash = 0;
             if (rawImage.texture)
-                textureHash = rawImage.texture.GetInstanceID();
+                textureHash = rawImage.texture.GetHashCode();
 
             hash = HashUtils.CombineHashCodes(
                 commonHash,

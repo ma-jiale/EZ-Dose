@@ -19,10 +19,10 @@ namespace EZDose.Calibration
 
         [Header("脉冲宽度 → 分药参数系数")]
         [Tooltip("转盘速度 = Clamp(avgPulseWidth × K_motor, 0.1, 1.4)")]
-        [SerializeField] private float kMotorSpeed = 0.05f;
+        [SerializeField] private float kMotorSpeed = 0.035f;
 
         [Tooltip("舵机角度 = Clamp(1.0 − avgPulseWidth × K_servo, 0.1, 1.0)")]
-        [SerializeField] private float kServoAngle = 0.03f;
+        [SerializeField] private float kServoAngle = 0.02f;
 
         // Server URL for fetching/saving settings
         private string serverUrl;

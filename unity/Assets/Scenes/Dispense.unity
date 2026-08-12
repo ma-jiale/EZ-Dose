@@ -6751,8 +6751,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a789e81097c67a3409025db8caf08ae7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EZDose.Calibration.PillCalibrationManager
-  kMotorSpeed: 0.05
-  kServoAngle: 0.03
+  kMotorSpeed: 0.035
+  kServoAngle: 0.02
 --- !u!4 &734485528
 Transform:
   m_ObjectHideFlags: 0

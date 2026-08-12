@@ -1,4 +1,4 @@
-﻿using DA_Assets.Extensions;
+using DA_Assets.Extensions;
 using DA_Assets.FCU.Extensions;
 using DA_Assets.FCU.Model;
 using DA_Assets.Logging;
@@ -29,7 +29,11 @@ namespace DA_Assets.FCU
             }
 
             Debug.Log(FcuLocKey.log_current_canvas_metas_destroy.Localize(
+#if UNITY_6000_0_OR_NEWER
+                monoBeh.GetEntityId(),
+#else
                 monoBeh.GetInstanceID(),
+#endif
                 syncHelpers.Length,
                 nameof(SyncHelper)));
         }
@@ -137,7 +141,11 @@ namespace DA_Assets.FCU
             Debug.Log(FcuLocKey.log_fcu_assigned.Localize(
                 counter,
                 nameof(FigmaConverterUnity),
+#if UNITY_6000_0_OR_NEWER
+                monoBeh.GetEntityId()));
+#else
                 monoBeh.GetInstanceID()));
+#endif
         }
 
         public void SetFcuToAllChilds(GameObject @object, ref int counter, CancellationToken token)

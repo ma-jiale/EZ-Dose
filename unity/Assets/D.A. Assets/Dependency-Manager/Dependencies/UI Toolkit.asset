@@ -15,5 +15,5 @@ MonoBehaviour:
   TypeAndAssembly: UnityEngine.UIElements.UIDocument, UnityEngine.UIElementsModule
   ScriptingDefineSymbol: UITK_EXISTS
   isEnabled: 1
-  scriptPath: C:\Program Files\Unity\6000.3.2f1\Editor\Data\Managed\UnityEngine\UnityEngine.UIElementsModule.dll
+  scriptPath: C:\Program Files\Unity\Hub\Editor\6000.5.7f1\Editor\Data\Managed\UnityEngine\UnityEngine.UIElementsModule.dll
   disabledManually: 0
