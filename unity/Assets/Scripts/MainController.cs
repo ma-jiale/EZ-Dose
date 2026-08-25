@@ -110,6 +110,9 @@ namespace EZDose.MainFlow
         private int currentPlate = 1;
         private int currentMedicineTotal = 0;
         private readonly List<int> optoPulseWidths = new List<int>();
+        private readonly List<PulseRecordSample> currentMedicinePulseSamples = new List<PulseRecordSample>();
+        private float medicineStartRealtime = 0f;
+        private float lastPulseRealtime = 0f;
         private int validPulseCount = 0;  // Count of valid pulse widths (5-200) for progress tracking (legacy fallback)
         private int lastReceivedSequenceNumber = -1;  // Last received sequence number for duplicate detection
         
@@ -1025,6 +1028,9 @@ namespace EZDose.MainFlow
             
             // Reset opto pulse width collection for this medicine
             optoPulseWidths.Clear();
+            currentMedicinePulseSamples.Clear();
+            medicineStartRealtime = Time.realtimeSinceStartup;
+            lastPulseRealtime = 0f;
             validPulseCount = 0;  // Reset valid pulse counter for progress tracking
             lastReceivedSequenceNumber = -1;  // Reset sequence number tracking
             
@@ -1036,6 +1042,20 @@ namespace EZDose.MainFlow
             {
                 return false;
             }
+            
+            // Record pulse data to CSV regardless of outcome
+            string dispenseResult = wasSkipped ? "SKIPPED" : (hasCountError ? "CNT_ERR" : (success ? "SUCCESS" : "FAILED"));
+            PulseDataRecorder.RecordSession(
+                currentPatient?.PatientId ?? string.Empty,
+                currentPatient?.PatientName ?? string.Empty,
+                med.PrescriptionId,
+                med.MedicineName,
+                plate,
+                currentMedicineTotal,
+                speed,
+                angle,
+                dispenseResult,
+                currentMedicinePulseSamples);
             
             // If skipped by user
             if (wasSkipped)
@@ -1397,8 +1417,27 @@ namespace EZDose.MainFlow
                 lastReceivedSequenceNumber = sequenceNumber;
             }
 
+            // Calculate time offset and interval for dataset collection
+            float nowRealtime = Time.realtimeSinceStartup;
+            long timeOffsetMs = (long)((nowRealtime - medicineStartRealtime) * 1000f);
+            long pulseIntervalMs = lastPulseRealtime > 0f ? (long)((nowRealtime - lastPulseRealtime) * 1000f) : timeOffsetMs;
+            lastPulseRealtime = nowRealtime;
+
+            bool isValidPulse = pulseWidth >= MIN_VALID_PULSE_WIDTH && pulseWidth <= MAX_VALID_PULSE_WIDTH;
+
+            currentMedicinePulseSamples.Add(new PulseRecordSample
+            {
+                SequenceNumber = sequenceNumber >= 0 ? sequenceNumber : (currentMedicinePulseSamples.Count + 1),
+                PulseWidth = pulseWidth,
+                TimeOffsetMs = timeOffsetMs,
+                PulseIntervalMs = pulseIntervalMs,
+                UsedMotorSpeed = currentMotorSpeed,
+                UsedServoAngle = lastSetServoAngle,
+                IsValid = isValidPulse
+            });
+
             // Filter out anomalous pulse widths to prevent skewing the pill area estimation
-            if (pulseWidth >= MIN_VALID_PULSE_WIDTH && pulseWidth <= MAX_VALID_PULSE_WIDTH)
+            if (isValidPulse)
             {
                 optoPulseWidths.Add(pulseWidth);
             }
@@ -1423,7 +1462,7 @@ namespace EZDose.MainFlow
             else
             {
                 // Legacy format: count valid pulse widths client-side
-                if (pulseWidth >= MIN_VALID_PULSE_WIDTH && pulseWidth <= MAX_VALID_PULSE_WIDTH)
+                if (isValidPulse)
                 {
                     validPulseCount++;
                     EZLog.D(EZLog.Module.Main, $"Valid pill detected (pulse={pulseWidth}), count={validPulseCount}/{currentMedicineTotal}");
@@ -1488,6 +1527,13 @@ namespace EZDose.MainFlow
             if (calibrationMgr == null)
             {
                 EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute settings from pulse width");
+                return;
+            }
+
+            // Only calculate and save new settings if dynamic pulse optimization is enabled!
+            if (!calibrationMgr.EnablePulseOptimization)
+            {
+                EZLog.I(EZLog.Module.Main, $"Dynamic pulse optimization is disabled on PillCalibrationManager. Skipping settings update to server for '{med.MedicineName}'.");
                 return;
             }
 

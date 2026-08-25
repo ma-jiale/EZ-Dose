@@ -17,6 +17,14 @@ namespace EZDose.Calibration
         public const float MIN_SERVO_ANGLE = 0.1f;
         public const float MAX_SERVO_ANGLE = 1.0f;
 
+        [Header("动态优化开关")]
+        [Tooltip("是否启用基于脉冲宽度的动态参数优化。若未勾选/关闭，则始终使用默认参数 (motor=0.3, servo=0.8)")]
+        [SerializeField] private bool enablePulseOptimization = false;
+
+        [Header("默认回退参数 (未开启优化或未校准时使用)")]
+        [SerializeField] private float defaultMotorSpeed = 0.3f;
+        [SerializeField] private float defaultServoAngle = 0.8f;
+
         [Header("脉冲宽度 → 分药参数系数")]
         [Tooltip("转盘速度 = Clamp(avgPulseWidth × K_motor, 0.1, 1.4)")]
         [SerializeField] private float kMotorSpeed = 0.035f;
@@ -31,6 +39,24 @@ namespace EZDose.Calibration
         public event Action<string> OnCalibrationError;
 
         #region Public Properties
+
+        public bool EnablePulseOptimization
+        {
+            get => enablePulseOptimization;
+            set => enablePulseOptimization = value;
+        }
+
+        public float DefaultMotorSpeed
+        {
+            get => defaultMotorSpeed;
+            set => defaultMotorSpeed = value;
+        }
+
+        public float DefaultServoAngle
+        {
+            get => defaultServoAngle;
+            set => defaultServoAngle = value;
+        }
 
         public float KMotorSpeed
         {
@@ -77,17 +103,24 @@ namespace EZDose.Calibration
 
         /// <summary>
         /// Get dispenser settings for a given prescription.
-        /// Returns saved settings if valid (>0), otherwise returns default Medium settings (motor=0.3, servo=0.8).
+        /// If dynamic pulse optimization is disabled, returns default settings (defaultMotorSpeed, defaultServoAngle).
+        /// Otherwise returns saved settings if valid (>0), or default settings if uncalibrated.
         /// </summary>
         public (float motorSpeed, float servoAngle) GetSettingsOrDefault(float savedMotorSpeed, float savedServoAngle)
         {
+            if (!enablePulseOptimization)
+            {
+                EZLog.D(EZLog.Module.Calibration, $"Pulse optimization disabled. Using default settings (motor={defaultMotorSpeed:F2}, servo={defaultServoAngle:F2})");
+                return (defaultMotorSpeed, defaultServoAngle);
+            }
+
             if (savedMotorSpeed > 0 && savedServoAngle > 0)
             {
                 return (savedMotorSpeed, savedServoAngle);
             }
 
-            EZLog.D(EZLog.Module.Calibration, "Using default settings for uncalibrated prescription (motor=0.3, servo=0.8)");
-            return (0.3f, 0.8f);
+            EZLog.D(EZLog.Module.Calibration, $"Using default settings for uncalibrated prescription (motor={defaultMotorSpeed:F2}, servo={defaultServoAngle:F2})");
+            return (defaultMotorSpeed, defaultServoAngle);
         }
 
         #endregion
@@ -120,6 +153,7 @@ namespace EZDose.Calibration
 
                 using (var request = new UnityWebRequest($"{url}/packer/prescription/{prescriptionId}/dispenser-settings", "POST"))
                 {
+                    request.certificateHandler = new BypassCertificateHandler();
                     request.uploadHandler = new UploadHandlerRaw(body);
                     request.downloadHandler = new DownloadHandlerBuffer();
                     request.SetRequestHeader("Content-Type", "application/json");
@@ -181,6 +215,7 @@ namespace EZDose.Calibration
 
                 using (var request = UnityWebRequest.Post($"{url}/packer/prescription/{prescriptionId}/calibration", form))
                 {
+                    request.certificateHandler = new BypassCertificateHandler();
                     request.timeout = 30;
 
                     var op = request.SendWebRequest();
