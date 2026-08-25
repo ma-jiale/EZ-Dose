@@ -269,6 +269,7 @@ namespace EZDose.Prescriptions
 
             using (var request = UnityWebRequest.Get($"{serverUrl}/packer/prescriptions"))
             {
+                request.certificateHandler = new BypassCertificateHandler();
                 request.timeout = 10;
                 await Wait(request);
 
@@ -299,6 +300,7 @@ namespace EZDose.Prescriptions
         {
             using (var request = UnityWebRequest.Get($"{serverUrl}/packer/pill-boxes"))
             {
+                request.certificateHandler = new BypassCertificateHandler();
                 request.timeout = 10;
                 await Wait(request);
 
@@ -544,6 +546,7 @@ namespace EZDose.Prescriptions
 
             using (var request = new UnityWebRequest($"{serverUrl}/packer/prescriptions/upload", UnityWebRequest.kHttpVerbPOST))
             {
+                request.certificateHandler = new BypassCertificateHandler();
                 request.uploadHandler = new UploadHandlerRaw(body);
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");

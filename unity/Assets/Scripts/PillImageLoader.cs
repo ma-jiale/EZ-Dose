@@ -29,6 +29,7 @@ namespace EZDose.UI
             {
                 using (var request = UnityWebRequestTexture.GetTexture(url))
                 {
+                    request.certificateHandler = new BypassCertificateHandler();
                     request.timeout = 10;
                     
                     var op = request.SendWebRequest();
