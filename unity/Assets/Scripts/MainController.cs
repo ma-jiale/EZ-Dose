@@ -39,6 +39,9 @@ namespace EZDose.MainFlow
         [SerializeField] private DispenserController dispenserController;
         [SerializeField] private PillCalibrationManager calibrationManager;
 
+        [Tooltip("开舱后等待机械出舱/到位完成的延迟时间（秒）。可在 Unity Inspector 面板中调整。")]
+        [SerializeField] private float trayMovementDelaySeconds = 2.0f;
+
         // Patient list updates
         public event Action<List<PatientStatus>> PatientsUpdated;
         
@@ -103,7 +106,7 @@ namespace EZDose.MainFlow
         private float currentMotorSpeed = 0f;
         private float currentServoAngle = 0f;
         private string currentMedicineDosageSpec = string.Empty;
-        private float lastSetServoAngle = 0.7f;     // 记录最近一次配置的舵机角度
+        private float lastSetServoAngle = 0.8f;     // 记录最近一次配置的舵机角度
         private int currentPlate = 1;
         private int currentMedicineTotal = 0;
         private readonly List<int> optoPulseWidths = new List<int>();
@@ -836,8 +839,8 @@ namespace EZDose.MainFlow
                     return FinishDeviceLostAbort();
                 }
 
-                EZLog.D(EZLog.Module.Main, "Waiting for tray mechanical movement to complete...");
-                await Task.Delay(2000); 
+                EZLog.D(EZLog.Module.Main, $"Waiting for tray mechanical movement to complete ({trayMovementDelaySeconds}s)...");
+                await Task.Delay(TimeSpan.FromSeconds(Mathf.Max(0f, trayMovementDelaySeconds))); 
                 if (isDeviceLostAbort)
                 {
                     return FinishDeviceLostAbort();
@@ -850,11 +853,12 @@ namespace EZDose.MainFlow
                     return FinishDeviceLostAbort();
                 }
 
-                // 药物分完转盘停转时，用 1 秒钟的时间慢慢过渡到 1.0 角度
-                EZLog.I(EZLog.Module.Main, "Setting servo to 1.0 slowly over 1.0s upon completion");
-                await SetServoAngleSlowlyAsync(1.0f, 1.0f);
-                
-            // Update server and mark patient complete
+                EZLog.I(EZLog.Module.Main, "Setting servo to 1.0f upon completion");
+                await RunDispenserAction(callback => dispenserController.SetServoAngle(1.0f, callback));
+                lastSetServoAngle = 1.0f;
+                ServoAngleChanged?.Invoke(1.0f);
+
+                // Update server and mark patient complete
             await prescriptionManager.PushAllChangesAsync();
             MarkPatientCompleted(currentPatient.PatientId);
 
@@ -976,7 +980,7 @@ namespace EZDose.MainFlow
             var calibrationMgr = GetCalibrationManager();
             var (speed, angle) = calibrationMgr != null
                 ? calibrationMgr.GetSettingsOrDefault(med.MotorSpeed, med.ServoAngle)
-                : (0.3f, 0.7f);
+                : (0.3f, 0.8f);
 
             EZLog.D(EZLog.Module.Main, $"Configuring dispenser for '{med.MedicineName}': speed={speed:.2f}, angle={angle:.2f}");
             var configured = await ConfigureDispenser(speed, angle);
@@ -1582,44 +1586,6 @@ namespace EZDose.MainFlow
         public void UpdateLastSetServoAngle(float angle)
         {
             lastSetServoAngle = angle;
-        }
-
-        /// <summary>
-        /// 在指定时间内平滑将舵机调节到目标角度
-        /// </summary>
-        private async Task<bool> SetServoAngleSlowlyAsync(float targetAngle, float durationSeconds)
-        {
-            float startAngle = lastSetServoAngle;
-            int steps = 10;
-            float stepDuration = durationSeconds / steps;
-            bool overallSuccess = true;
-
-            EZLog.I(EZLog.Module.Main, $"Starting slow servo transition from {startAngle:F2} to {targetAngle:F2} over {durationSeconds}s");
-
-            for (int i = 1; i <= steps; i++)
-            {
-                float t = (float)i / steps;
-                float currentAngle = Mathf.Lerp(startAngle, targetAngle, t);
-
-                var stepResult = await RunDispenserAction(callback => dispenserController.SetServoAngle(currentAngle, callback));
-                if (!stepResult)
-                {
-                    EZLog.W(EZLog.Module.Main, $"Failed to set servo angle to {currentAngle:F2} during transition");
-                    overallSuccess = false;
-                }
-                else
-                {
-                    lastSetServoAngle = currentAngle;
-                    ServoAngleChanged?.Invoke(currentAngle);
-                }
-
-                if (i < steps)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(stepDuration));
-                }
-            }
-
-            return overallSuccess;
         }
 
         private void MarkPatientCompleted(string patientId)

@@ -77,7 +77,7 @@ namespace EZDose.Calibration
 
         /// <summary>
         /// Get dispenser settings for a given prescription.
-        /// Returns saved settings if valid (>0), otherwise returns default Medium settings (motor=0.3, servo=0.7).
+        /// Returns saved settings if valid (>0), otherwise returns default Medium settings (motor=0.3, servo=0.8).
         /// </summary>
         public (float motorSpeed, float servoAngle) GetSettingsOrDefault(float savedMotorSpeed, float savedServoAngle)
         {
@@ -86,8 +86,8 @@ namespace EZDose.Calibration
                 return (savedMotorSpeed, savedServoAngle);
             }
 
-            EZLog.D(EZLog.Module.Calibration, "Using default settings for uncalibrated prescription (motor=0.3, servo=0.7)");
-            return (0.3f, 0.7f);
+            EZLog.D(EZLog.Module.Calibration, "Using default settings for uncalibrated prescription (motor=0.3, servo=0.8)");
+            return (0.3f, 0.8f);
         }
 
         #endregion
