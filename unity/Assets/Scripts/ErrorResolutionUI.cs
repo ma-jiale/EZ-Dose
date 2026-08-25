@@ -37,6 +37,14 @@ namespace EZDose.UI
             }
         }
 
+        private void Update()
+        {
+            if (errorResolutionDialog != null && errorResolutionDialog.activeInHierarchy)
+            {
+                ShortcutInput.InvokeButtonIfKeyDown(errorResolutionConfirmButton, KeyCode.Return, KeyCode.KeypadEnter);
+            }
+        }
+
         private void OnDestroy()
         {
             // Unsubscribe to prevent memory leaks
