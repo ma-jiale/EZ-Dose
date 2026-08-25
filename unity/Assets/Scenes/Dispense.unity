@@ -5015,7 +5015,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &559372900
 Transform:
   m_ObjectHideFlags: 0
@@ -12942,6 +12942,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -16569,6 +16570,7 @@ MonoBehaviour:
   plateSwitchDialogText: {fileID: 524080259}
   completeDialog: {fileID: 1191626022}
   completeDialogConfirmButton: {fileID: 482212534}
+  completeDialogMessageText: {fileID: 0}
   pillCounterController: {fileID: 559372901}
   pillCalibrationDialog: {fileID: 713741596}
   servoAngleTuningSlider: {fileID: 616851741}

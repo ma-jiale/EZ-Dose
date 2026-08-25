@@ -231,8 +231,15 @@ namespace EZDose.UI
         private TaskCompletionSource<bool> completionRfidReportTcs;
         private int completionRfidPresenceVersion;
         private bool isReturningHomeAfterCompletion;
-        private const int CompletionRfidClearStabilityMilliseconds = 2000;
-        private const float BarcodeRemovalStabilitySeconds = 1.0f;
+        [Header("Pill Box Removal Safety Settings")]
+        [Tooltip("RFID 感应不到药盒后，确认轨道为空的稳定等待时间（毫秒）。默认 1500ms (1.5秒)")]
+        [SerializeField] private int completionRfidClearStabilityMilliseconds = 1500;
+
+        [Tooltip("摄像头连续读取不到二维码后，自动收回轨道的稳定等待时间（秒）。默认 1.5秒")]
+        [SerializeField] private float barcodeRemovalStabilitySeconds = 1.5f;
+
+        private int CompletionRfidClearStabilityMilliseconds => completionRfidClearStabilityMilliseconds;
+        private float BarcodeRemovalStabilitySeconds => barcodeRemovalStabilitySeconds;
         private Color homeScanDialogTitleOriginalColor = Color.black;
         private bool isTitleOriginalColorCaptured = false;
 
@@ -1676,6 +1683,9 @@ namespace EZDose.UI
 
             if (main != null)
             {
+                // Skip explicit CloseTrayAsync before loading dispense scene — SendPillMatrix will handle tray positioning directly
+                EZLog.I(EZLog.Module.UI, "Skipping explicit CloseTray before loading dispense scene (testing direct SendPillMatrix)");
+                /*
                 EZLog.I(EZLog.Module.UI, "Closing tray before loading dispense scene...");
                 var closed = await main.CloseTrayAsync();
                 if (!closed)
@@ -1712,6 +1722,7 @@ namespace EZDose.UI
                     ResetIdentificationAfterRemoval();
                     return;
                 }
+                */
             }
 
             if (homeScanDialog != null)
@@ -2820,7 +2831,7 @@ namespace EZDose.UI
                     EZLog.I(EZLog.Module.UI, "Completion removal check using barcode camera");
                     var barcodeScanner = EnsureBarcodeRemovalScanner();
                     SetCompletionDialogMessage(
-                        $"请取出二维码/条形码药盒；连续 {BarcodeRemovalStabilitySeconds:F0} 秒检测不到条码后轨道将自动收回");
+                        $"请取出二维码/条形码药盒；连续 {BarcodeRemovalStabilitySeconds:F1} 秒检测不到条码后轨道将自动收回");
                     bool barcodeRemoved = await barcodeScanner.WaitForNoBarcodeAsync(BarcodeRemovalStabilitySeconds);
                     barcodeScanner.StopScanner();
                     if (!barcodeRemoved)
