@@ -113,11 +113,11 @@ namespace EZDose.MainFlow
         private readonly List<PulseRecordSample> currentMedicinePulseSamples = new List<PulseRecordSample>();
         private float medicineStartRealtime = 0f;
         private float lastPulseRealtime = 0f;
-        private int validPulseCount = 0;  // Count of valid pulse widths (5-200) for progress tracking (legacy fallback)
+        private int validPulseCount = 0;  // Count of valid pulse widths (3-200) for progress tracking (legacy fallback)
         private int lastReceivedSequenceNumber = -1;  // Last received sequence number for duplicate detection
         
-        // Valid pulse width range for counting pills
-        private const int MIN_VALID_PULSE_WIDTH = 5;
+        // Valid pulse width range for counting pills (min 3 to capture small pills, max 200 to exclude long jams)
+        private const int MIN_VALID_PULSE_WIDTH = 3;
         private const int MAX_VALID_PULSE_WIDTH = 200;
         private const int MOTOR_RECONFIGURE_STOP_DELAY_MS = 100;
         
@@ -159,11 +159,11 @@ namespace EZDose.MainFlow
             }
 
             AdaptWindowResolution();
-            
-            // Register scene load callback to automatically enforce UI scaling across scenes
+            #endif
+
+            // Register scene load callback to automatically enforce UI scaling across scenes (All platforms: Windows, Android, Editor)
             SceneManager.sceneLoaded += OnSceneLoaded;
             ConfigureAllCanvasScalers();
-            #endif
         }
 
         #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
@@ -199,6 +199,7 @@ namespace EZDose.MainFlow
                 EZLog.E(EZLog.Module.UI, "Failed to adapt window resolution", e);
             }
         }
+        #endif
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
@@ -230,7 +231,6 @@ namespace EZDose.MainFlow
                 EZLog.E(EZLog.Module.UI, "Failed to configure CanvasScalers", e);
             }
         }
-        #endif
 
         private void Start()
         {
@@ -251,6 +251,11 @@ namespace EZDose.MainFlow
 
         private PillCalibrationManager GetCalibrationManager()
         {
+            if (PillCalibrationManager.Instance != null)
+            {
+                return PillCalibrationManager.Instance;
+            }
+
             if (calibrationManager != null)
             {
                 return calibrationManager;
@@ -271,10 +276,8 @@ namespace EZDose.MainFlow
             // Stop auto-refresh coroutine to prevent memory leaks
             StopAutoRefresh();
 
-            #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
-            // Unregister scene load callback
+            // Unregister scene load callback (All platforms)
             SceneManager.sceneLoaded -= OnSceneLoaded;
-            #endif
         }
 
         private void BindDispenserEvents(bool subscribe)
@@ -1501,29 +1504,30 @@ namespace EZDose.MainFlow
         }
 
         /// <summary>
-        /// After dispensing completes, compute average pulse width, convert to motor speed and servo angle,
+        /// After dispensing completes, compute median pulse width, convert to motor speed and servo angle,
         /// and save to server for future dispensing of this medicine.
         /// </summary>
         private async Task SavePulseWidthSettingsAsync(Prescriptions.DispensingMedicine med)
         {
-            if (optoPulseWidths.Count == 0)
+            var calibrationMgr = GetCalibrationManager();
+            int minSamples = calibrationMgr != null ? calibrationMgr.MinSamplesForOptimization : 7;
+
+            // 样本数门槛：如果本次分药收集的脉冲少于设定门槛（如小于7粒），不进行参数优化
+            if (optoPulseWidths.Count < minSamples)
             {
-                EZLog.D(EZLog.Module.Main, "No opto pulse widths collected, skipping settings calculation");
+                EZLog.I(EZLog.Module.Main, $"Collected pulse samples ({optoPulseWidths.Count}) is less than minimum required threshold ({minSamples}). Skipping pulse optimization for '{med?.MedicineName}'.");
                 return;
             }
 
-            // Calculate average pulse width
-            float sum = 0;
-            foreach (var pw in optoPulseWidths)
-            {
-                sum += pw;
-            }
-            float averagePulseWidth = sum / optoPulseWidths.Count;
+            // Calculate median pulse width (robust against noise, dust, and outliers)
+            var sortedPulses = optoPulseWidths.OrderBy(x => x).ToList();
+            int count = sortedPulses.Count;
+            float medianPulseWidth = (count % 2 == 0)
+                ? (sortedPulses[count / 2 - 1] + sortedPulses[count / 2]) / 2f
+                : sortedPulses[count / 2];
 
-            EZLog.I(EZLog.Module.Main, $"Average opto pulse width: {averagePulseWidth:F2} (from {optoPulseWidths.Count} samples)");
+            EZLog.I(EZLog.Module.Main, $"Median opto pulse width: {medianPulseWidth:F2} (from {count} samples, range: [{sortedPulses[0]}, {sortedPulses[count - 1]}])");
 
-            // Convert average pulse width to motor speed and servo angle
-            var calibrationMgr = GetCalibrationManager();
             if (calibrationMgr == null)
             {
                 EZLog.W(EZLog.Module.Main, "No calibration manager found, cannot compute settings from pulse width");
@@ -1537,8 +1541,8 @@ namespace EZDose.MainFlow
                 return;
             }
 
-            var (newSpeed, newAngle) = calibrationMgr.CalculateSettingsFromPulseWidth(averagePulseWidth);
-            EZLog.I(EZLog.Module.Main, $"Calculated settings from average pulse: motor={newSpeed:F2}, servo={newAngle:F2}");
+            var (newSpeed, newAngle) = calibrationMgr.CalculateSettingsFromPulseWidth(medianPulseWidth);
+            EZLog.I(EZLog.Module.Main, $"Calculated settings from median pulse ({medianPulseWidth:F2}): motor={newSpeed:F2}, servo={newAngle:F2}");
 
             // Update current medicine settings for UI display
             currentMotorSpeed = newSpeed;

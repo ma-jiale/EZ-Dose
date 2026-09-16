@@ -792,7 +792,14 @@ namespace EZDose.UI
             {
                 if (item != null)
                 {
-                    Destroy(item);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(item);
+                    }
+                    else
+                    {
+                        DestroyImmediate(item);
+                    }
                 }
             }
             spawnedPatientButtons.Clear();
@@ -2192,6 +2199,22 @@ namespace EZDose.UI
                 UpdatePauseButtonUI(dispenser.IsPaused);
             }
 
+            // Setup next medicine text reminder in TopBar
+            if (nextMedicineText == null)
+            {
+                var topBar = GameObject.Find("TopBar");
+                if (topBar != null)
+                {
+                    var texts = topBar.GetComponentsInChildren<Text>(true);
+                    nextMedicineText = texts.FirstOrDefault(t => t.gameObject.name == "NextMedicineText" || t.gameObject.name.Contains("TipsText"));
+                }
+            }
+
+            if (nextMedicineText != null)
+            {
+                nextMedicineText.gameObject.SetActive(true);
+            }
+
             if (main != null)
             {
                 main.SkipConfirmRequired += OnSkipConfirmRequired;
@@ -2451,6 +2474,11 @@ namespace EZDose.UI
         private void UpdateNextMedicinePreview(DispensingProgressInfo info)
         {
             if (nextMedicineText == null) return;
+
+            if (!nextMedicineText.gameObject.activeSelf)
+            {
+                nextMedicineText.gameObject.SetActive(true);
+            }
             
             if (!string.IsNullOrEmpty(info.NextMedicineName))
             {
@@ -2458,7 +2486,7 @@ namespace EZDose.UI
             }
             else
             {
-                nextMedicineText.text = "无下一药物";
+                nextMedicineText.text = "下一药物：无";
             }
         }
         

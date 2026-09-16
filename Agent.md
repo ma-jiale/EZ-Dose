@@ -62,3 +62,7 @@ EZ-Dose 是智能分药系统。本仓库当前主线是 Unity Android 平板端
 - 摄像头二维码/条形码药盒：分药完成并打开轨道后立即使用最初扫码成功的同一台摄像头持续检测；条码连续消失 1 秒后自动收回轨道，无需再次确认。摄像头无有效画面或持续解码失败时必须保持轨道打开。
 - RFID 药盒：继续使用 STM32 的 UID / `NO CARD` 上报判断在位状态，确认收到稳定的空轨道状态后才允许收回。
 - 两类药盒的完成逻辑按本次识别来源隔离，不能用 RFID 状态判断二维码药盒，也不能用摄像头判断 RFID 药盒。
+
+### 分药界面 UI 注意点
+
+- **下一药物文字提醒**：在 `Dispense` 场景的 `TopBar` 下配置了 `NextMedicineText`（Text 组件），由 `UIManager.cs` 的 `UpdateNextMedicinePreview(DispensingProgressInfo info)` 更新，显示下一药物名称与数量（如“下一药物：XXX，共 X 粒”或“下一药物：无”）。

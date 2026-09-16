@@ -318,7 +318,14 @@ namespace EZDose.UI
             {
                 if (card != null)
                 {
-                    Destroy(card.gameObject);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(card.gameObject);
+                    }
+                    else
+                    {
+                        DestroyImmediate(card.gameObject);
+                    }
                 }
             }
             spawnedCards.Clear();

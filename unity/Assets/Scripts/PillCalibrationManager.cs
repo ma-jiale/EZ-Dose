@@ -17,23 +17,77 @@ namespace EZDose.Calibration
         public const float MIN_SERVO_ANGLE = 0.1f;
         public const float MAX_SERVO_ANGLE = 1.0f;
 
-        [Header("动态优化开关")]
+        [Header("动态优化开关与门槛")]
         [Tooltip("是否启用基于脉冲宽度的动态参数优化。若未勾选/关闭，则始终使用默认参数 (motor=0.3, servo=0.8)")]
         [SerializeField] private bool enablePulseOptimization = false;
+
+        [Tooltip("单次分药最少收集的脉冲样本数。少于此粒数时跳过参数优化更新（默认7粒）")]
+        [SerializeField] private int minSamplesForOptimization = 7;
 
         [Header("默认回退参数 (未开启优化或未校准时使用)")]
         [SerializeField] private float defaultMotorSpeed = 0.3f;
         [SerializeField] private float defaultServoAngle = 0.8f;
 
-        [Header("脉冲宽度 → 分药参数系数")]
-        [Tooltip("转盘速度 = Clamp(avgPulseWidth × K_motor, 0.1, 1.4)")]
-        [SerializeField] private float kMotorSpeed = 0.035f;
+        [Header("脉冲宽度 → 转盘速度计算配置")]
+        [Tooltip("基准起始转盘速度（小圆片起步速度）")]
+        [SerializeField] private float baseMotorSpeed = 0.15f;
 
-        [Tooltip("舵机角度 = Clamp(1.0 − avgPulseWidth × K_servo, 0.1, 1.0)")]
-        [SerializeField] private float kServoAngle = 0.02f;
+        [Tooltip("基准脉冲宽度（对应起步速度的最小脉冲）")]
+        [SerializeField] private float basePulseWidth = 5.0f;
+
+        [Tooltip("转速增长斜率 K_motor: 速度增量 = (PulseWidth - basePulseWidth) × K_motor")]
+        [SerializeField] private float kMotorSpeed = 0.010f;
+
+        [Tooltip("允许的最低与最高动态转速范围")]
+        [SerializeField] private float minMotorSpeedLimit = 0.15f;
+        [SerializeField] private float maxMotorSpeedLimit = 0.36f;
+
+        [Header("脉冲宽度 → 舵机角度计算配置")]
+        [Tooltip("基准起始舵机角度（对应小圆片窄开度/大角度）")]
+        [SerializeField] private float baseServoAngle = 0.95f;
+
+        [Tooltip("基准脉冲宽度（对应起步舵机角度）")]
+        [SerializeField] private float baseServoPulseWidth = 5.0f;
+
+        [Tooltip("常规中小药片递减斜率 K_servo: 中小药片保持原样（默认 0.020）")]
+        [SerializeField] private float kServoAngle = 0.020f;
+
+        [Tooltip("大药片与胶囊门槛脉宽（超过此脉宽后快速放大阀门开度，默认 13.0）")]
+        [SerializeField] private float largePillPulseThreshold = 13.0f;
+
+        [Tooltip("大药片与胶囊加速开门斜率（让大胶囊快速达到 0.1 全开，默认 0.055）")]
+        [SerializeField] private float kServoAngleLarge = 0.055f;
+
+        [Tooltip("允许的最低与最高动态舵机角度范围（0.08近乎全开 ~ 0.98窄缝）")]
+        [SerializeField] private float minServoAngleLimit = 0.08f;
+        [SerializeField] private float maxServoAngleLimit = 0.98f;
 
         // Server URL for fetching/saving settings
         private string serverUrl;
+
+        public static PillCalibrationManager Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(gameObject);
+                }
+                return;
+            }
+
+            Instance = this;
+            if (Application.isPlaying)
+            {
+                DontDestroyOnLoad(gameObject);
+            }
+        }
 
         // Events
         public event Action<string> OnCalibrationError;
@@ -44,6 +98,12 @@ namespace EZDose.Calibration
         {
             get => enablePulseOptimization;
             set => enablePulseOptimization = value;
+        }
+
+        public int MinSamplesForOptimization
+        {
+            get => minSamplesForOptimization;
+            set => minSamplesForOptimization = value;
         }
 
         public float DefaultMotorSpeed
@@ -58,16 +118,76 @@ namespace EZDose.Calibration
             set => defaultServoAngle = value;
         }
 
+        public float BaseMotorSpeed
+        {
+            get => baseMotorSpeed;
+            set => baseMotorSpeed = value;
+        }
+
+        public float BasePulseWidth
+        {
+            get => basePulseWidth;
+            set => basePulseWidth = value;
+        }
+
         public float KMotorSpeed
         {
             get => kMotorSpeed;
             set => kMotorSpeed = value;
         }
 
+        public float MinMotorSpeedLimit
+        {
+            get => minMotorSpeedLimit;
+            set => minMotorSpeedLimit = value;
+        }
+
+        public float MaxMotorSpeedLimit
+        {
+            get => maxMotorSpeedLimit;
+            set => maxMotorSpeedLimit = value;
+        }
+
+        public float BaseServoAngle
+        {
+            get => baseServoAngle;
+            set => baseServoAngle = value;
+        }
+
+        public float BaseServoPulseWidth
+        {
+            get => baseServoPulseWidth;
+            set => baseServoPulseWidth = value;
+        }
+
         public float KServoAngle
         {
             get => kServoAngle;
             set => kServoAngle = value;
+        }
+
+        public float LargePillPulseThreshold
+        {
+            get => largePillPulseThreshold;
+            set => largePillPulseThreshold = value;
+        }
+
+        public float KServoAngleLarge
+        {
+            get => kServoAngleLarge;
+            set => kServoAngleLarge = value;
+        }
+
+        public float MinServoAngleLimit
+        {
+            get => minServoAngleLimit;
+            set => minServoAngleLimit = value;
+        }
+
+        public float MaxServoAngleLimit
+        {
+            get => maxServoAngleLimit;
+            set => maxServoAngleLimit = value;
         }
 
         #endregion
@@ -87,17 +207,38 @@ namespace EZDose.Calibration
         #region Dispenser Settings Calculation
 
         /// <summary>
-        /// Calculate dispenser motor speed and servo angle directly from average pulse width.
-        /// Uses linear coefficients configurable via Unity Inspector.
+        /// Calculate dispenser motor speed and servo angle from median pulse width.
+        /// MotorSpeed = Clamp(baseMotorSpeed + (pulseWidth - basePulseWidth) * kMotorSpeed, minLimit, maxLimit)
+        /// ServoAngle uses piecewise calculation:
+        /// - Small & Medium pills (pulseWidth <= 13): keeps original gentle slope (0.95 -> 0.79)
+        /// - Large pills & Capsules (pulseWidth > 13): steep opening slope down to 0.10 for large capsules
         /// </summary>
-        /// <param name="avgPulseWidth">Average optocoupler pulse width</param>
+        /// <param name="pulseWidth">Median optocoupler pulse width</param>
         /// <returns>Tuple of (motorSpeed, servoAngle)</returns>
-        public (float motorSpeed, float servoAngle) CalculateSettingsFromPulseWidth(float avgPulseWidth)
+        public (float motorSpeed, float servoAngle) CalculateSettingsFromPulseWidth(float pulseWidth)
         {
-            float motorSpeed = Mathf.Clamp(avgPulseWidth * kMotorSpeed, MIN_MOTOR_SPEED, MAX_MOTOR_SPEED);
-            float servoAngle = Mathf.Clamp(MAX_SERVO_ANGLE - avgPulseWidth * kServoAngle, MIN_SERVO_ANGLE, MAX_SERVO_ANGLE);
+            float motorSpeed = Mathf.Clamp(
+                baseMotorSpeed + (pulseWidth - basePulseWidth) * kMotorSpeed,
+                minMotorSpeedLimit,
+                maxMotorSpeedLimit
+            );
 
-            EZLog.D(EZLog.Module.Calibration, $"Pulse width {avgPulseWidth:.1f} -> motor={motorSpeed:.2f}, servo={servoAngle:.2f}");
+            float servoAngle;
+            if (pulseWidth <= largePillPulseThreshold)
+            {
+                // 常规中小药片：保持原样温和微调
+                servoAngle = baseServoAngle - (pulseWidth - baseServoPulseWidth) * kServoAngle;
+            }
+            else
+            {
+                // 大药片与胶囊：快速放大阀门开度，大胶囊迅速拉到 0.10 全开
+                float angleAtThreshold = baseServoAngle - (largePillPulseThreshold - baseServoPulseWidth) * kServoAngle;
+                servoAngle = angleAtThreshold - (pulseWidth - largePillPulseThreshold) * kServoAngleLarge;
+            }
+
+            servoAngle = Mathf.Clamp(servoAngle, minServoAngleLimit, maxServoAngleLimit);
+
+            EZLog.D(EZLog.Module.Calibration, $"Pulse width {pulseWidth:F1} -> motor={motorSpeed:F2}, servo={servoAngle:F2}");
             return (motorSpeed, servoAngle);
         }
 
