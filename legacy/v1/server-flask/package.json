@@ -1,0 +1,16 @@
+{
+  "name": "ez-dose-server",
+  "version": "1.0.0",
+  "description": "EZ-Dose server styling build",
+  "main": "main.py",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/src/main.css -o ./static/dist/main.css --minify",
+    "watch:css": "tailwindcss -i ./static/src/main.css -o ./static/dist/main.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "flowbite": "^2.3.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3"
+  }
+}

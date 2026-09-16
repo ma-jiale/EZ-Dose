@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑患者" if patient else "新增患者" }} - Pillxar{% endblock %}
+
+{% block path_title %}患者管理{% endblock %}
+
+{% block content %}
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-line pb-6 mb-8">
+        <div>
+            <h1 class="font-serif text-3xl font-bold tracking-tight text-stone-900">{{ "编辑患者" if patient else "新增患者" }}</h1>
+            <p class="mt-2 text-sm text-stone-500">录入患者的基本住院信息，并支持上传头像照片。</p>
+        </div>
+    </div>
+
+    <!-- Error Alert Banner -->
+    {% if error %}
+    <div class="flex items-start gap-3 rounded-lg border border-status-danger-600/30 bg-status-danger-50 p-4 text-sm text-status-danger-700 mb-6 max-w-xl" role="alert">
+        <svg class="h-5 w-5 flex-shrink-0 mt-0.5 text-status-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+            <p class="font-semibold text-stone-900">操作失败</p>
+            <p class="mt-1 text-stone-600">{{ error }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form Container -->
+    <div class="max-w-xl rounded-xl border border-line bg-surface p-6 shadow-sm">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- Patient Name -->
+            <div class="space-y-1.5">
+                <label for="patient_name" class="block text-sm font-medium text-stone-700">患者姓名</label>
+                <input type="text" id="patient_name" name="patient_name" value="{{ patient.patient_name if patient else '' }}" required
+                       class="block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+
+            <!-- Bed Number -->
+            <div class="space-y-1.5">
+                <label for="bed_number" class="block text-sm font-medium text-stone-700">床号</label>
+                <input type="text" id="bed_number" name="bed_number" value="{{ patient.bed_number if patient else '' }}" placeholder="例如：108床"
+                       class="block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+
+            <!-- RFID pill-box bindings -->
+            <div class="space-y-1.5">
+                <label for="rfid_uids" class="block text-sm font-medium text-stone-700">药盒 RFID UID</label>
+                <textarea id="rfid_uids" name="rfid_uids" rows="3" placeholder="每行一个 UID，例如：5303859E740001"
+                          class="block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 font-mono text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">{{ patient.rfid_uids if patient and patient.rfid_uids else '' }}</textarea>
+                <p class="text-xs text-stone-500">支持为同一患者绑定多个不同形态的药盒；UID 只能绑定给一位患者。</p>
+            </div>
+
+            <!-- Patient Photo Upload -->
+            <div class="space-y-2.5">
+                <label for="patientImage" class="block text-sm font-medium text-stone-700">患者头像照片</label>
+                <div class="space-y-3">
+                    <input type="file" id="patientImage" name="patientImage" accept="image/*"
+                           class="block w-full text-sm text-stone-500 p-0 border-0 bg-transparent focus:ring-0 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+                    {% if patient and patient.profile_photo_resource_id %}
+                    <div class="flex items-center gap-2 text-xs text-stone-500">
+                        <span>当前已绑定照片文件：</span>
+                        <span class="inline-flex items-center rounded bg-stone-100 px-2 py-0.5 font-mono text-stone-600 border border-line">{{ patient.profile_photo_resource_id }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center gap-3 pt-4 border-t border-line">
+                <button type="submit" 
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-700">
+                    {{ "更新" if patient else "确认新增" }}
+                </button>
+                <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" 
+                   class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                    取消
+                </a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

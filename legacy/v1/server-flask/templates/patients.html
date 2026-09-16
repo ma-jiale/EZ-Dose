@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+
+{% block title %}患者管理 - Pillxar{% endblock %}
+
+{% block path_title %}患者管理{% endblock %}
+
+{% block content %}
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-line pb-6 mb-8">
+        <div>
+            <h1 class="font-serif text-3xl font-bold tracking-tight text-stone-900">患者管理</h1>
+            <p class="mt-2 text-sm text-stone-500">录入患者住院床号，连接本地精臣打印机批量或单张打印电子标签。</p>
+        </div>
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ URL_PREFIX }}{{ url_for('add_patient') }}" 
+               class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-700">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                新增患者
+            </a>
+            <a href="{{ URL_PREFIX }}{{ url_for('export_patient_labels_view') }}" 
+               class="inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                批量导出PDF标签
+            </a>
+            <button id="btnConnectPrinter" class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20" onclick="showPrinterSetup()">
+                连接打印机
+            </button>
+        </div>
+        
+        <form method="GET" class="flex items-center gap-2">
+            <div class="relative">
+                <input type="text" name="search" placeholder="搜索姓名或床号..." value="{{ search_query or '' }}" 
+                       class="block w-64 rounded-lg border border-line bg-surface pl-3 pr-10 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+            <button type="submit" 
+                    class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition">
+                搜索
+            </button>
+            {% if search_query %}
+            <a href="{{ URL_PREFIX }}{{ url_for('manage_patients') }}" 
+               class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 transition">
+                清除
+            </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    <!-- Search Query Meta -->
+    {% if search_query %}
+    <p class="text-sm text-stone-500 mb-4">搜索结果: "{{ search_query }}" - 共 <span class="font-semibold text-stone-800">{{ patients|length }}</span> 条记录</p>
+    {% endif %}
+
+    <!-- Patients Table Container -->
+    <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        <table class="min-w-full divide-y divide-line text-sm">
+            <thead class="bg-sunken">
+                <tr>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">ID</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">患者姓名</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">床号</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">药盒 RFID</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">照片标识</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">创建时间</th>
+                    <th class="px-6 py-3.5 text-center font-semibold text-stone-600">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-line bg-surface">
+                {% for patient in patients %}
+                <tr class="transition hover:bg-stone-50/50">
+                    <td class="px-6 py-4 text-center text-stone-500 font-mono">{{ patient.id }}</td>
+                    <td class="px-6 py-4 text-center font-semibold text-stone-900">{{ patient.patient_name }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if patient.bed_number %}
+                        <span class="inline-flex items-center rounded-md bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">{{ patient.bed_number }}</span>
+                        {% else %}
+                        <span class="text-stone-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center text-stone-500 font-mono text-xs">{{ patient.rfid_uids or '-' }}</td>
+                    <td class="px-6 py-4 text-center text-stone-500 font-mono text-xs">{{ patient.profile_photo_resource_id or '-' }}</td>
+                    <td class="px-6 py-4 text-center text-stone-500">{{ patient.created_at or '-' }}</td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <a href="{{ URL_PREFIX }}{{ url_for('manage_prescriptions', patient_id=patient.id) }}" 
+                           class="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition shadow-sm">
+                            处方
+                        </a>
+                        <button class="inline-flex items-center gap-1 rounded-lg bg-brand-50 border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-500 hover:text-white transition shadow-sm"
+                                onclick="showPrintDialog('{{ patient.patient_name }}', '{{ patient.bed_number or '' }}', '{{ patient.id }}')">
+                            打印标签
+                        </button>
+                        <a href="{{ URL_PREFIX }}{{ url_for('edit_patient', patient_id=patient.id) }}" 
+                           class="inline-flex items-center gap-1 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition shadow-sm">
+                            编辑
+                        </a>
+                        <a href="{{ URL_PREFIX }}{{ url_for('delete_patient', patient_id=patient.id) }}" 
+                           onclick="return confirm('确定要删除患者 {{ patient.patient_name }} 吗？此操作将同时删除该患者的所有处方！')" 
+                           class="inline-flex items-center gap-1 rounded-lg bg-status-danger-50 border border-status-danger-600/10 px-3 py-1.5 text-xs font-semibold text-status-danger-600 hover:bg-status-danger-600 hover:text-white transition shadow-sm">
+                            删除
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-stone-400">
+                        <svg class="mx-auto h-12 w-12 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <p class="mt-4 text-sm font-medium text-stone-500">无匹配的患者数据</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Printer Setup Modal - For connecting to a printer -->
+    <!-- ============================================================ -->
+    <div id="printerSetupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4" style="display: none;">
+        <div class="relative w-full max-w-md rounded-xl bg-surface p-6 shadow-xl border border-line space-y-6">
+            <div class="flex items-center justify-between border-b border-line pb-4">
+                <h3 class="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                    打印机连接设置
+                </h3>
+                <button class="text-stone-400 hover:text-stone-600 text-2xl font-normal leading-none" onclick="closePrinterSetup()">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Service connection status -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-400">打印服务状态</label>
+                    <span id="serviceStatusText" class="text-sm font-semibold text-stone-500">检查中...</span>
+                </div>
+                
+                <!-- Printer selection -->
+                <div class="space-y-2">
+                    <label for="printerSelect" class="block text-xs font-bold uppercase tracking-wider text-stone-400">选择目标打印机</label>
+                    <div class="flex gap-2">
+                        <select id="printerSelect" class="block flex-1 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm text-stone-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                            <option value="">-- 请先刷新打印机列表 --</option>
+                        </select>
+                        <button class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20" onclick="refreshPrinterList()">
+                            刷新列表
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Connection status -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-400">打印机硬件状态</label>
+                    <span id="printerConnectionStatus" class="text-sm font-semibold text-stone-500">未连接</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <button class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 transition" onclick="closePrinterSetup()">
+                    关闭
+                </button>
+                <button class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-600 focus:outline-none" onclick="connectSelectedPrinter()">
+                    连接打印机
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Print Label Modal - For entering print quantity -->
+    <!-- ============================================================ -->
+    <div id="printLabelModal" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4" style="display: none;">
+        <div class="relative w-full max-w-md rounded-xl bg-surface p-6 shadow-xl border border-line space-y-6">
+            <div class="flex items-center justify-between border-b border-line pb-4">
+                <h3 class="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                    打印患者标签
+                </h3>
+                <button class="text-stone-400 hover:text-stone-600 text-2xl font-normal leading-none" onclick="closePrintDialog()">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Patient name display -->
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-400">患者姓名</label>
+                    <span id="printPatientName" class="text-base font-bold text-stone-900"></span>
+                </div>
+                
+                <!-- Preview image -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-400">标签排版预览</label>
+                    <div id="labelPreviewContainer" class="label-preview-container flex items-center justify-center rounded-lg border border-line bg-sunken/45 p-4 min-h-[140px]">
+                        <img id="labelPreviewImage" src="" alt="标签预览" class="max-w-full max-h-[180px] border border-line bg-white shadow-sm" style="display: none;">
+                        <span id="labelPreviewLoading" class="text-xs text-stone-400 font-medium animate-pulse">加载预览中...</span>
+                    </div>
+                </div>
+                
+                <!-- Quantity input -->
+                <div class="space-y-2">
+                    <label for="printQuantity" class="block text-xs font-bold uppercase tracking-wider text-stone-400">打印份数</label>
+                    <input type="number" id="printQuantity" min="1" max="100" value="1" 
+                           class="block w-28 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <button class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 transition" onclick="closePrintDialog()">
+                    取消
+                </button>
+                <button class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-600 focus:outline-none" id="btnPrintLabel" onclick="printLabel()">
+                    执行打印
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Include Printer SDK and Interface Scripts -->
+    <!-- ============================================================ -->
+    <!-- JC Printer SDK API (vendor-specific) -->
+    <script src="{{ URL_PREFIX }}{{ url_for('static', filename='js/printer/jcPrinterSdk_api_third.js') }}"></script>
+    <!-- Abstract Printer Interface (vendor-agnostic) -->
+    <script src="{{ URL_PREFIX }}{{ url_for('static', filename='js/printer/printerInterface.js') }}"></script>
+    <!-- JC Printer Adapter (implements the interface for JC printers) -->
+    <script src="{{ URL_PREFIX }}{{ url_for('static', filename='js/printer/jcPrinterAdapter.js') }}"></script>
+    
+    <script>
+    // ============================================================
+    // Patient Label Printing Module (Direct script compatibility preserved)
+    // ============================================================
+    
+    // Current patient data being printed (set when print dialog opens)
+    let currentPrintPatientData = {
+        patientName: '',
+        bedNumber: '',
+        patientId: ''
+    };
+    
+    // Cached list of available printers
+    let cachedPrinters = [];
+    
+    /**
+     * Initialize the printer system when the page loads
+     * Attempts to connect to the print service automatically
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        initializePrinterSystem();
+    });
+
+    /**
+     * Initialize the printer system and connect to the print service
+     * This is called automatically on page load
+     */
+    async function initializePrinterSystem() {
+        updateServiceStatus('正在连接打印服务...');
+        
+        try {
+            const success = await PrinterManager.initialize();
+            if (success) {
+                updateServiceStatus('打印服务已连接', true);
+                updatePrinterStatusIndicator();
+            } else {
+                updateServiceStatus('打印服务连接失败', false);
+            }
+        } catch (error) {
+            console.error('Failed to initialize printer system:', error);
+            updateServiceStatus('打印服务未运行 - 请确保已安装并启动精臣打印服务', false);
+        }
+
+        // Register event callbacks for printer status changes
+        PrinterManager.on('onServiceDisconnected', function() {
+            updateServiceStatus('打印服务已断开', false);
+            updatePrinterStatusIndicator();
+        });
+
+        PrinterManager.on('onPrinterDisconnected', function() {
+            updatePrinterStatusIndicator();
+        });
+    }
+
+    /**
+     * Update the service status text in the printer setup modal
+     * 
+     * @param {string} message - Status message to display
+     * @param {boolean} isConnected - Whether the service is connected
+     */
+    function updateServiceStatus(message, isConnected = null) {
+        const statusElement = document.getElementById('serviceStatusText');
+        if (statusElement) {
+            statusElement.textContent = message;
+            if (isConnected === true) {
+                statusElement.style.color = '#15803D'; // Pillxar Success Green
+            } else if (isConnected === false) {
+                statusElement.style.color = '#B91C1C'; // Pillxar Danger Red
+            } else {
+                statusElement.style.color = '#6B6862'; // Pillxar Stone
+            }
+        }
+    }
+
+    /**
+     * Update the printer status indicator in the main page header
+     * Shows whether a printer is connected and ready
+     */
+    function updatePrinterStatusIndicator() {
+        const statusElement = document.getElementById('printerStatus');
+        if (!statusElement) return;
+        const isConnected = PrinterManager.isPrinterConnected();
+        
+        if (isConnected) {
+            statusElement.textContent = '打印机已连接';
+            statusElement.className = 'printer-status printer-status-connected';
+        } else {
+            statusElement.textContent = '打印机未连接';
+            statusElement.className = 'printer-status printer-status-disconnected';
+        }
+    }
+
+    // ============================================================
+    // Printer Setup Modal Functions
+    // ============================================================
+
+    /**
+     * Show the printer setup modal dialog
+     */
+    function showPrinterSetup() {
+        document.getElementById('printerSetupModal').style.display = 'flex';
+        
+        // Update current status display
+        if (PrinterManager.isServiceConnected()) {
+            updateServiceStatus('打印服务已连接', true);
+        } else {
+            updateServiceStatus('打印服务未连接', false);
+        }
+        
+        updatePrinterConnectionStatus();
+        
+        // Automatically refresh printer list when modal opens
+        refreshPrinterList();
+    }
+
+    /**
+     * Close the printer setup modal dialog
+     */
+    function closePrinterSetup() {
+        document.getElementById('printerSetupModal').style.display = 'none';
+    }
+
+    /**
+     * Refresh the list of available printers
+     * Queries the print service for all connected printers
+     */
+    async function refreshPrinterList() {
+        const select = document.getElementById('printerSelect');
+        select.innerHTML = '<option value="">正在搜索打印机...</option>';
+        
+        try {
+            cachedPrinters = await PrinterManager.getAvailablePrinters();
+            
+            select.innerHTML = '';
+            if (cachedPrinters.length === 0) {
+                select.innerHTML = '<option value="">未找到打印机</option>';
+                alert('未找到可用的打印机，请确保打印机已通过USB连接并开机。');
+            } else {
+                cachedPrinters.forEach((printer, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${printer.name} (${printer.type})`;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to get printer list:', error);
+            select.innerHTML = '<option value="">获取打印机列表失败</option>';
+            alert('获取打印机列表失败: ' + error.message);
+        }
+    }
+
+    /**
+     * Connect to the selected printer from the dropdown
+     */
+    async function connectSelectedPrinter() {
+        const select = document.getElementById('printerSelect');
+        const selectedIndex = parseInt(select.value);
+        
+        if (isNaN(selectedIndex) || !cachedPrinters[selectedIndex]) {
+            alert('请先选择一个打印机');
+            return;
+        }
+        
+        const printer = cachedPrinters[selectedIndex];
+        
+        try {
+            updatePrinterConnectionStatus('正在连接...');
+            const success = await PrinterManager.connectPrinter(printer);
+            
+            if (success) {
+                updatePrinterConnectionStatus('已连接: ' + printer.name, true);
+                updatePrinterStatusIndicator();
+                alert('打印机连接成功！');
+                closePrinterSetup();
+            } else {
+                updatePrinterConnectionStatus('连接失败', false);
+            }
+        } catch (error) {
+            console.error('Failed to connect printer:', error);
+            updatePrinterConnectionStatus('连接失败: ' + error.message, false);
+            alert('连接打印机失败: ' + error.message);
+        }
+    }
+
+    /**
+     * Update the printer connection status text
+     * 
+     * @param {string} message - Status message
+     * @param {boolean} isConnected - Whether connected
+     */
+    function updatePrinterConnectionStatus(message = null, isConnected = null) {
+        const statusElement = document.getElementById('printerConnectionStatus');
+        
+        if (statusElement) {
+            if (message === null) {
+                // Auto-detect status
+                if (PrinterManager.isPrinterConnected()) {
+                    statusElement.textContent = '已连接';
+                    statusElement.style.color = '#15803D';
+                } else {
+                    statusElement.textContent = '未连接';
+                    statusElement.style.color = '#B91C1C';
+                }
+            } else {
+                statusElement.textContent = message;
+                if (isConnected === true) {
+                    statusElement.style.color = '#15803D';
+                } else if (isConnected === false) {
+                    statusElement.style.color = '#B91C1C';
+                } else {
+                    statusElement.style.color = '#6B6862';
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // Print Label Modal Functions
+    // ============================================================
+
+    /**
+     * Show the print label dialog for a specific patient
+     * 
+     * @param {string} patientName - Name of the patient to print label for
+     * @param {string} bedNumber - The bed number assigned to the patient (e.g., "108床")
+     * @param {string} patientId - Unique identifier for the patient (used for barcode generation)
+     */
+    async function showPrintDialog(patientName, bedNumber, patientId) {
+        // Check if printer is connected
+        if (!PrinterManager.isPrinterConnected()) {
+            alert('请先连接打印机！点击"连接打印机"按钮进行设置。');
+            showPrinterSetup();
+            return;
+        }
+        
+        // Store all patient data for printing
+        currentPrintPatientData = {
+            patientName: patientName,
+            bedNumber: bedNumber,
+            patientId: patientId
+        };
+        document.getElementById('printPatientName').textContent = patientName;
+        document.getElementById('printQuantity').value = 1;
+        
+        // Show modal
+        document.getElementById('printLabelModal').style.display = 'flex';
+        
+        // Generate and show preview with complete patient data
+        await loadLabelPreview(currentPrintPatientData);
+    }
+
+    /**
+     * Close the print label dialog and reset the patient data
+     */
+    function closePrintDialog() {
+        document.getElementById('printLabelModal').style.display = 'none';
+        currentPrintPatientData = {
+            patientName: '',
+            bedNumber: '',
+            patientId: ''
+        };
+    }
+
+    /**
+     * Load and display a preview of the label
+     * 
+     * @param {Object} patientData - Patient data object containing name, bed number, and ID
+     */
+    async function loadLabelPreview(patientData) {
+        const previewImg = document.getElementById('labelPreviewImage');
+        const loadingText = document.getElementById('labelPreviewLoading');
+        
+        previewImg.style.display = 'none';
+        loadingText.style.display = 'block';
+        loadingText.textContent = '加载预览中...';
+        loadingText.style.color = '#6B6862';
+        
+        try {
+            const previewData = await PrinterManager.previewPatientLabel(patientData);
+            previewImg.src = previewData;
+            previewImg.style.display = 'block';
+            loadingText.style.display = 'none';
+        } catch (error) {
+            console.error('Failed to generate preview:', error);
+            loadingText.textContent = '预览生成失败';
+            loadingText.style.color = '#B91C1C';
+        }
+    }
+
+    /**
+     * Execute the print operation with the specified quantity
+     */
+    async function printLabel() {
+        if (!currentPrintPatientData.patientName) {
+            alert('未选择患者');
+            return;
+        }
+        
+        const quantity = parseInt(document.getElementById('printQuantity').value);
+        if (isNaN(quantity) || quantity < 1 || quantity > 100) {
+            alert('请输入有效的打印数量 (1-100)');
+            return;
+        }
+        
+        const printButton = document.getElementById('btnPrintLabel');
+        const originalText = printButton.textContent;
+        printButton.disabled = true;
+        printButton.textContent = '打印中...';
+        
+        try {
+            await PrinterManager.printPatientLabel(currentPrintPatientData, quantity);
+            alert(`成功打印 ${quantity} 张标签！`);
+            closePrintDialog();
+        } catch (error) {
+            console.error('Print failed:', error);
+            alert('打印失败: ' + error.message);
+        } finally {
+            printButton.disabled = false;
+            printButton.textContent = originalText;
+        }
+    }
+
+    // Close modals when clicking outside
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('modal-overlay')) {
+            event.target.style.display = 'none';
+        }
+    });
+    </script>
+{% endblock %}
