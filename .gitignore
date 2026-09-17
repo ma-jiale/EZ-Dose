@@ -68,7 +68,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -224,4 +224,16 @@ cython_debug/
 
 .vscode/
 
-unity/Assets/OpenCVForUnity
+legacy/v1/client-unity/Assets/OpenCVForUnity/
+# Mdis V2 local state
+.dart_tool/
+.flutter-plugins-dependencies
+node_modules/
+*.db
+*.sqlite
+*.sqlite3
+.env.*
+!.env.example
+
+# Required Flutter Windows runner source
+!apps/client/windows/runner/runner.exe.manifest

@@ -1,0 +1,15 @@
+name: Mdis bootstrap integration
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - run: docker compose up --build -d
+      - run: curl --fail --retry 20 --retry-connrefused --retry-delay 3 http://127.0.0.1:8000/health/live
+      - if: always()
+        run: docker compose logs && docker compose down -v

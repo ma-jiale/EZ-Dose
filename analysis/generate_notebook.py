@@ -61,7 +61,7 @@ notebook_content = {
    "source": [
     "# 自动查找 CSV 文件路径\n",
     "possible_paths = [\n",
-    "    os.path.abspath(os.path.join(os.getcwd(), \"../unity/Logs/pulse_records.csv\")),\n",
+    "    os.path.abspath(os.path.join(os.getcwd(), \"../legacy/v1/client-unity/Logs/pulse_records.csv\")),\n",
     "    os.path.abspath(os.path.join(os.getcwd(), \"Logs/pulse_records.csv\")),\n",
     "    os.path.abspath(\"pulse_records.csv\")\n",
     "]\n",
