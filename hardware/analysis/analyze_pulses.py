@@ -16,9 +16,20 @@ plots_dir = os.path.join(os.path.dirname(__file__), "plots")
 os.makedirs(plots_dir, exist_ok=True)
 
 # 2. 读取 CSV 数据
-csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../legacy/v1/client-unity/Logs/pulse_records.csv"))
-if not os.path.exists(csv_path):
-    raise FileNotFoundError(f"未找到数据文件: {csv_path}")
+possible_paths = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../legacy/v1/client/Logs/pulse_records.csv")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../legacy/v1/client/Logs/pulse_records.csv")),
+    os.path.abspath(os.path.join(os.getcwd(), "legacy/v1/client/Logs/pulse_records.csv")),
+    os.path.abspath("pulse_records.csv"),
+]
+csv_path = None
+for p in possible_paths:
+    if os.path.exists(p):
+        csv_path = p
+        break
+
+if not csv_path:
+    raise FileNotFoundError(f"未找到数据文件，已尝试: {possible_paths}")
 
 print(f"==================================================")
 print(f"正在读取分药机脉冲数据: {csv_path}")

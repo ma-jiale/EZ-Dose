@@ -1,38 +1,59 @@
-# Mdis 智能摆药系统
+# Mdis
 
-**Mdis — Medication Dispensing System**（原 EZ-Dose），面向养老院与康养机构。
-系统负责计算和引导，护理人员负责确认和投药，机器负责实际摆药。
+Medication Dispensing System, formerly EZ-Dose.
 
-## 当前阶段
+面向养老院与康养机构的智能摆药管理系统：系统负责计算与引导，护理人员负责确认与投药，分药机负责物理执行。
 
-本仓库已进入 V2 Monorepo 初始化阶段。Unity / Flask V1 是行为参考基线；V2 尚未具备真实摆药能力。
-Flutter 当前只有空白启动页，FastAPI 当前只有存活检查。租户模型、鉴权、同步、业务页面与真实硬件接入均待实现。
+## Structure
 
-| 路径 | 职责 |
-| --- | --- |
-| `apps/client/` | Flutter V2，Windows / Android Pad |
-| `apps/server/` | FastAPI V2，目标 PostgreSQL |
-| `hardware/` | 持续维护的硬件工具 |
-| `legacy/v1/client-unity/` | Unity V1 原始工程 |
-| `legacy/v1/server-flask/` | Flask V1，完整原始 Git 历史 |
-| `analysis/` | V1 脉冲分析工具 |
-| `99_archive/` | 更早的实验与归档，不是当前 V1 基线 |
-| `docs/` | 产品、架构、设计、协议与迁移共同上下文 |
-| `scripts/`, `infra/` | 开发、迁移与部署骨架 |
+```text
+apps/       V2 software (Flutter client & FastAPI server)
+hardware/   Current hardware tools, machine engineering, and analysis
+docs/       Current specifications, architecture, protocol, and migration guides
+legacy/     Historical product generations (V0 prototypes & validated V1)
+```
 
-## 新人阅读顺序
+## Current Generation
 
-1. [产品与 roadmap](docs/product/PRODUCT.md)
-2. [系统架构](docs/architecture/ARCHITECTURE.md)
-3. [V1 基线](docs/migration/V1_BASELINES.md)与[迁移清单](docs/migration/V1_MIGRATION.md)
-4. [Agent 工作约定](AGENTS.md)
-5. 对应模块 README。
+**V2**:
+- **Client**: Flutter (Windows x64 / Android Pad)
+- **Server**: FastAPI + PostgreSQL
+- **Hardware Protocol**: Local Machine Control via Serial (115200 / 8N1) & Bluetooth
 
-## 本地启动
+> 历史 V1（Unity 客户端 + Flask/SQLite 服务端）已完整保留并归档在 [`legacy/v1/`](legacy/v1/README.md) 作为行为参考基线，不可在 V2 开发中直接修改。
 
-Flutter：在 `apps/client` 中运行 `flutter pub get`，然后 `flutter run -d windows` 或连接 Android 设备运行。
-FastAPI：参见 [服务端说明](apps/server/README.md)。
-本地容器：复制 `.env.example` 为 `.env`，运行 `docker compose up --build`，访问 `http://127.0.0.1:8000/health/live`。
-该端点仅证明进程存活，不代表数据库、租户隔离或摆药链路可用。
+## Documentation
 
-历史品牌与命名空间保留于 legacy；新代码和配置使用 `mdis`。GitHub 仓库名称与远端地址暂不变。
+- [Product Specification & Roadmap](docs/product.md)
+- [Architecture & Multi-Tenancy](docs/architecture.md)
+- [Design Principles & System](docs/design.md)
+- [STM32 Machine Protocol](docs/protocol.md)
+- [Migration Guide & Baselines](docs/migration.md)
+
+## Development
+
+### Client
+
+```bash
+cd apps/client
+flutter pub get
+flutter run -d windows
+```
+
+### Server
+
+```bash
+cd apps/server
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+### Docker
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+存活检查端点：`http://127.0.0.1:8000/health/live`
