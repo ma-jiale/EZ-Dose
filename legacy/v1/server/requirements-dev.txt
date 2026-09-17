@@ -1,0 +1,3 @@
+# EZ-Dose Server development / testing dependencies
+-r requirements.txt
+pytest>=8.0,<9.0

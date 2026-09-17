@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}访问被拒绝 - Pillxar{% endblock %}
+
+{% block path_title %}访问受限{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col items-center justify-center text-center py-20 px-4">
+        <!-- Warning Icon -->
+        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-status-danger-50 text-status-danger-600 border border-status-danger-600/10 mb-6 shadow-sm">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3Z" />
+            </svg>
+        </div>
+        
+        <!-- Error Heading -->
+        <h1 class="font-serif text-3xl font-bold tracking-tight text-stone-900 mb-3">访问被拒绝 (403)</h1>
+        
+        <!-- Error descriptions -->
+        <p class="text-base font-medium text-stone-600 max-w-sm mb-2">
+            抱歉，您当前所持账号没有权限访问此管理页面。
+        </p>
+        <p class="text-xs text-stone-400 max-w-sm mb-8">
+            若有相应业务需求，请联系系统超级管理员为您分配开通对应模块的操作和查看权限。
+        </p>
+        
+        <!-- Action Button -->
+        <div>
+            <a href="{{ URL_PREFIX }}{{ url_for('admin_dashboard') }}" 
+               class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-700">
+                返回系统首页
+            </a>
+        </div>
+    </div>
+{% endblock %}

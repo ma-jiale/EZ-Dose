@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "编辑用户" if user else "新增用户" }} - Pillxar{% endblock %}
+
+{% block path_title %}用户管理{% endblock %}
+
+{% block content %}
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-line pb-6 mb-8">
+        <div>
+            <h1 class="font-serif text-3xl font-bold tracking-tight text-stone-900">{{ "编辑用户" if user else "新增用户" }}</h1>
+            <p class="mt-2 text-sm text-stone-500">配置登录账号密码以及系统功能权限。</p>
+        </div>
+    </div>
+
+    <!-- Error Alert Banner -->
+    {% if error %}
+    <div class="flex items-start gap-3 rounded-lg border border-status-danger-600/30 bg-status-danger-50 p-4 text-sm text-status-danger-700 mb-6 max-w-xl" role="alert">
+        <svg class="h-5 w-5 flex-shrink-0 mt-0.5 text-status-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+            <p class="font-semibold text-stone-900">操作失败</p>
+            <p class="mt-1 text-stone-600">{{ error }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Form Container -->
+    <div class="max-w-xl rounded-xl border border-line bg-surface p-6 shadow-sm">
+        <form method="POST" class="space-y-6">
+            <!-- Username Input -->
+            <div class="space-y-1.5">
+                <label for="username" class="block text-sm font-medium text-stone-700">用户名</label>
+                <input type="text" id="username" name="username" value="{{ user.username if user else '' }}" required
+                       class="block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+
+            <!-- Password Input -->
+            <div class="space-y-1.5">
+                <label for="password" class="block text-sm font-medium text-stone-700">密码{{ " (留空保持不变)" if user else "" }}</label>
+                <input type="password" id="password" name="password" {{ "required" if not user else "" }}
+                       class="block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+
+            <!-- Permissions Set -->
+            <div class="space-y-2.5">
+                <label class="block text-sm font-medium text-stone-700">权限配置</label>
+                <div class="grid grid-cols-2 gap-4 border border-line rounded-lg p-4 bg-sunken/40">
+                    <label class="flex items-center gap-2.5 text-sm text-stone-700 cursor-pointer select-none">
+                        <input type="checkbox" name="can_edit_users" {{ "checked" if user and user.can_edit_users else "" }}
+                               class="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/20">
+                        <span>用户管理</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 text-sm text-stone-700 cursor-pointer select-none">
+                        <input type="checkbox" name="can_edit_patients" {{ "checked" if user and user.can_edit_patients else "" }}
+                               class="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/20">
+                        <span>患者管理</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 text-sm text-stone-700 cursor-pointer select-none">
+                        <input type="checkbox" name="can_edit_prescriptions" {{ "checked" if user and user.can_edit_prescriptions else "" }}
+                               class="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/20">
+                        <span>处方管理</span>
+                    </label>
+                    <label class="flex items-center gap-2.5 text-sm text-stone-700 cursor-pointer select-none">
+                        <input type="checkbox" name="can_view_logs" {{ "checked" if user and user.can_view_logs else "" }}
+                               class="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/20">
+                        <span>系统记录</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center gap-3 pt-4 border-t border-line">
+                <button type="submit" 
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-700">
+                    {{ "更新" if user else "确认新增" }}
+                </button>
+                <a href="{{ URL_PREFIX }}{{ url_for('manage_users') }}" 
+                   class="inline-flex items-center justify-center rounded-lg border border-line bg-surface px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                    取消
+                </a>
+            </div>
+        </form>
+    </div>
+{% endblock %}

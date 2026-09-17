@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full bg-canvas">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Pillxar</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (compiled with Flowbite and custom config) -->
+    <link rel="stylesheet" href="{{ URL_PREFIX }}{{ url_for('static', filename='dist/main.css') }}">
+    
+    <!-- Alpine.js (for light interactive states, e.g., button loading, password toggle) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="h-full font-sans antialiased text-stone-700">
+  <div class="min-h-full lg:grid lg:grid-cols-2">
+
+    <!-- 左侧:品牌区(窄屏隐藏) -->
+    <div class="relative hidden lg:flex flex-col justify-between overflow-hidden bg-brand-700 p-12 text-brand-50">
+      <div class="absolute inset-0 opacity-60"
+           style="background-image:radial-gradient(rgba(255,255,255,.10) 1px,transparent 1px);background-size:16px 16px;"></div>
+      <div class="relative">
+        <div class="flex items-center gap-3">
+          <span class="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-50/25 bg-brand-50/10">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="m10.5 20.5-7-7a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/>
+            </svg>
+          </span>
+          <span class="font-serif text-2xl font-bold tracking-wide">Pillxar</span>
+        </div>
+        <p class="mt-8 max-w-xs font-serif text-xl leading-relaxed text-brand-50/90">
+          为养老照护，把每一次摆药都做对。
+        </p>
+      </div>
+      <div class="relative text-sm text-brand-50/60">
+        <div class="mb-1.5 flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-status-success-600 ring-4 ring-status-success-600/25 animate-pulse"></span>
+          所有系统运行正常
+        </div>
+        摆药机后台控制中心 · v1.0
+      </div>
+    </div>
+
+    <!-- 右侧:表单区 -->
+    <div class="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8"
+         x-data="{ loading:false, showPwd:false, caps:false }">
+      <div class="w-full max-w-sm">
+
+        <!-- 窄屏顶部小 logo -->
+        <div class="mb-8 flex items-center gap-3 lg:hidden">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-500 border border-brand-100">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="m10.5 20.5-7-7a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/>
+            </svg>
+          </span>
+          <span class="font-serif text-xl font-bold text-stone-900">Pillxar</span>
+        </div>
+
+        <h1 class="text-xl font-semibold text-stone-900">欢迎回来</h1>
+        <p class="mt-1 text-sm text-stone-500">登录以管理患者与处方</p>
+
+        <!-- 错误提示(兼容后端传递的 error 变量与 flash 消息) -->
+        {% set display_error = error or (get_flashed_messages(category_filter=["error"])[0] if get_flashed_messages(category_filter=["error"]) else None) %}
+        {% if display_error %}
+        <div role="alert" class="mt-6 flex items-start gap-3 rounded-lg border border-status-danger-600/30 bg-status-danger-50 p-3.5 text-sm text-status-danger-600 animate-pulse">
+          <svg class="mt-0.5 h-4 w-4 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>
+          </svg>
+          <span>{{ display_error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="mt-6 space-y-4" @submit="loading = true">
+          <!-- 用户名 -->
+          <div class="space-y-1.5">
+            <label for="username" class="block text-sm font-medium text-stone-700">用户名</label>
+            <div class="group relative">
+              <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 transition group-focus-within:text-brand-500">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input id="username" name="username" type="text" required autofocus
+                     placeholder="请输入您的用户名"
+                     class="block w-full rounded-lg border border-line py-2.5 pl-10 pr-3.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+            </div>
+          </div>
+
+          <!-- 密码 -->
+          <div class="space-y-1.5">
+            <label for="password" class="block text-sm font-medium text-stone-700">密码</label>
+            <div class="group relative">
+              <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-stone-400 transition group-focus-within:text-brand-500">
+                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input id="password" name="password" required
+                     :type="showPwd ? 'text' : 'password'"
+                     @keyup="caps = $event.getModifierState && $event.getModifierState('CapsLock')"
+                     @keydown="caps = $event.getModifierState && $event.getModifierState('CapsLock')"
+                     @blur="caps = false"
+                     placeholder="请输入您的密码"
+                     class="block w-full rounded-lg border border-line py-2.5 pl-10 pr-10 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+              <button type="button" @click="showPwd = !showPwd"
+                      :aria-label="showPwd ? '隐藏密码' : '显示密码'"
+                      class="absolute inset-y-0 right-0 flex items-center px-3 text-stone-400 transition hover:text-stone-700 focus:outline-none focus-visible:text-brand-500">
+                <svg x-show="!showPwd" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg x-show="showPwd" style="display:none" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>
+                </svg>
+              </button>
+            </div>
+            <p x-show="caps" style="display:none" class="flex items-center gap-1.5 text-xs text-status-warning-600 mt-1">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 8 6-6 6 6"/><path d="M6 14h12"/><path d="M6 18h12"/><path d="M12 8v6"/>
+              </svg>
+              大写锁定 (Caps Lock) 已开启
+            </p>
+          </div>
+
+          <div class="flex items-center justify-between text-sm pt-1">
+            <label class="inline-flex items-center gap-2 text-stone-500 cursor-pointer">
+              <input type="checkbox" name="remember" class="h-4 w-4 rounded border-line text-brand-500 focus:ring-brand-500/30">
+              记住我
+            </label>
+            <a href="#" class="font-medium text-brand-600 hover:underline">忘记密码?</a>
+          </div>
+
+          <button type="submit" :disabled="loading"
+                  class="group w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-700 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 mt-2">
+            <svg x-show="loading" style="display:none" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span x-text="loading ? '正在登录...' : '登录'">登录</span>
+            <svg x-show="!loading" class="h-[17px] w-[17px] transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </button>
+
+          <div class="flex items-center justify-center gap-1.5 pt-2 text-xs text-stone-400">
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            连接受加密保护
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

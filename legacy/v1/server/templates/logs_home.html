@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}系统记录中心 - Pillxar{% endblock %}
+
+{% block path_title %}系统记录{% endblock %}
+
+{% block content %}
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-line pb-6 mb-8">
+        <div>
+            <h1 class="font-serif text-3xl font-bold tracking-tight text-stone-900">系统记录中心</h1>
+            <p class="mt-2 text-sm text-stone-500">审计Web后台系统操作日志，以及查阅终端分药机的物理发药记录。</p>
+        </div>
+    </div>
+    
+    <!-- Stats Indicator Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+        <div class="rounded-xl border border-line bg-surface p-6 shadow-sm">
+            <p class="text-sm font-medium text-stone-500">已记录发药清单</p>
+            <div class="mt-2 flex items-baseline gap-1">
+                <span class="text-3xl font-bold tabular-nums text-stone-900 tracking-tight">{{ stats.dispense_count }}</span>
+                <span class="text-xs font-medium text-stone-400">次</span>
+            </div>
+        </div>
+        <div class="rounded-xl border border-line bg-surface p-6 shadow-sm">
+            <p class="text-sm font-medium text-stone-500">已审计操作日志</p>
+            <div class="mt-2 flex items-baseline gap-1">
+                <span class="text-3xl font-bold tabular-nums text-stone-900 tracking-tight">{{ stats.operation_count }}</span>
+                <span class="text-xs font-medium text-stone-400">条</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Link Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Dispense Logs Entry -->
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_dispense_logs') }}" 
+           class="group flex flex-col justify-between rounded-xl border border-line bg-surface p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:border-brand-200">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 border border-brand-100">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m10.5 20.5-7-7a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/>
+                        </svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-stone-900">发药历史记录</h3>
+                </div>
+                <p class="mt-3 text-sm text-stone-500 leading-relaxed">查看和检索由自动分药机回传的历史物理发药清单，可针对特定日期、患者进行精准检索与审计。</p>
+            </div>
+            <div class="mt-6 border-t border-line pt-4">
+                <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
+                    进入发药记录 <span class="transition-transform group-hover:translate-x-1">→</span>
+                </span>
+            </div>
+        </a>
+        
+        <!-- Operation Logs Entry -->
+        <a href="{{ URL_PREFIX }}{{ url_for('manage_operation_logs') }}" 
+           class="group flex flex-col justify-between rounded-xl border border-line bg-surface p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:border-brand-200">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 border border-brand-100">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    </span>
+                    <h3 class="text-base font-semibold text-stone-900">系统操作审计</h3>
+                </div>
+                <p class="mt-3 text-sm text-stone-500 leading-relaxed">记录所有管理员与医护账号在后台进行的增加、编辑、删除以及登录登出的动作细节，包含操作人 IP。</p>
+            </div>
+            <div class="mt-6 border-t border-line pt-4">
+                <span class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600">
+                    进入审计日志 <span class="transition-transform group-hover:translate-x-1">→</span>
+                </span>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Developer Info Banner -->
+    <div class="mt-8 rounded-xl border border-line bg-sunken/40 p-5">
+        <h4 class="font-sans text-sm font-bold text-stone-800">开发者与调试说明</h4>
+        <p class="mt-2 text-xs text-stone-500 leading-relaxed">
+            除了上述结构化数据库操作及发药表单以外，更详细、底层的系统日志保存在服务器的 <code>data/ezdose.log</code> 目录下，以便于高级故障诊断及调试排查。
+        </p>
+    </div>
+{% endblock %}
