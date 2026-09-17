@@ -13,33 +13,33 @@ EZ-Dose 是智能分药系统。本仓库当前主线是 Unity Android 平板端
 - 单次分药天数上限为 7 天：STM32 只接受固定 `4x7` 矩阵。旧版本保存的 8～30 天配置会在加载时自动恢复为 7 天，写回必须按本次实际成功的矩阵天数推进。
 
 ## 主要目录
-- `unity/`：当前 Unity Android 客户端主工程。
-- `hardware/`：HC-06 蓝牙模块配置脚本。
-- `images/`, `docs/`：文档图片和说明资料。
-- `99_archive/`：历史 Python GUI、旧 server、旧 Android app，除非明确要求，不应作为主线修改。
+- `client/`：Unity 客户端主工程。
+- `server/`：Flask 后端服务。
+- `images/`：历史文档图片。
+- `legacy/v0/`：更早期的原型与实验归档。
 
 ## Unity 关键代码
-- `unity/Assets/Scripts/MainController.cs`
+- `client/Assets/Scripts/MainController.cs`
   - 主流程协调器：患者刷新、分药计划、分药循环、换盘、跳过、错误恢复、校准触发。
-- `unity/Assets/Scripts/PrescriptionManager.cs`
+- `client/Assets/Scripts/PrescriptionManager.cs`
   - 拉取 `/packer/prescriptions`，计算是否需要分药，生成 4x7 分药矩阵，回写处方状态。
-- `unity/Assets/Scripts/DispenserController.cs`
-  - 蓝牙连接、ACK 重试、发送 STM32 命令、解析硬件反馈。
-- `unity/Assets/Scripts/SerialProtocol.cs`
+- `client/Assets/Scripts/DispenserController.cs`
+  - 串口/蓝牙连接、ACK 重试、发送 STM32 命令、解析硬件反馈。
+- `client/Assets/Scripts/SerialProtocol.cs`
   - STM32 协议封包：`0xAA 0xBB + command + data + checksum`。
-- `unity/Assets/Scripts/CheckPillBoxController.cs`
+- `client/Assets/Scripts/CheckPillBoxController.cs`
   - ZXing 扫码，校验 Patient ID。
-- `unity/Assets/Scripts/PillCounter.cs`
+- `client/Assets/Scripts/PillCounter.cs`
   - OpenCV 药片计数算法，目前处于弃用状态
-- `unity/Assets/Scripts/PillCalibrationManager.cs`
+- `client/Assets/Scripts/PillCalibrationManager.cs`
   - 药片面积校准，以及根据药片大小计算电机/舵机参数。
-- `unity/Assets/Scripts/UIManager.cs`
+- `client/Assets/Scripts/UIManager.cs`
   - Home / Scan / Dispense 场景 UI 绑定与流程跳转。
 
 ## 依赖
-- OpenCVForUnity 已在 `unity/Assets/OpenCVForUnity`。
-- ZXing DLL 在 `unity/Assets/Plugins/Zxing`。
-- Android 蓝牙串口插件在 `unity/Assets/Plugins/Android/bluetooth-serial.aar`。
+- OpenCVForUnity 已在 `client/Assets/OpenCVForUnity`。
+- ZXing DLL 在 `client/Assets/Plugins/Zxing`。
+- Android 蓝牙串口插件在 `client/Assets/Plugins/Android/bluetooth-serial.aar`。
 
 ## 注意事项
 - 不要假设根目录有当前 server。

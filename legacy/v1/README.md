@@ -15,6 +15,12 @@
 
 ---
 
+> **V1 历史归档说明**：
+> - `client`: Unity (Windows x64 / Android 兼容)
+> - `server`: Flask + SQLite
+> 
+> 本目录为已验证的 Mdis V1 历史基线，仅作行为事实参考，不对其业务逻辑进行二次修改。
+
 ## 项目简介
 
 EZ-Dose 是一个面向康养机构的**智能药物管理系统**，为搭载 STM32 的自动分药机设计并实现了一套完整的"**处方管理—分药控制—操作记录**"多端交互系统。
@@ -101,8 +107,8 @@ cd EZ-Dose
 
 ```bash
 python -m pip install pyserial
-python unity/tools/serial_probe.py --list
-python unity/tools/serial_probe.py --port COM3 clean
+python client/tools/serial_probe.py --list
+python client/tools/serial_probe.py --port COM3 clean
 ```
 
 诊断结束后请关闭脚本，再由 EZ-Dose 客户端连接该端口。
@@ -401,23 +407,18 @@ RFID 由 STM32 通过同一个 COM 串口上报：`UID:<标签ID>` 表示药盒�
 
 ## 项目结构
 
-```
-EZ-Dose/
-├── 📂 99_archive/          # 历史版本与旧实验实现（旧 server / GUI / Android app）
-├── 📂 unity/               # Unity 分药控制程序（Windows 主线，保留 Android 兼容）
+```text
+legacy/v1/
+├── client/     # Unity 分药控制程序（Windows 主线，保留 Android 兼容）
 │   ├── Assets/             # Unity 资源文件
-│   │   └── Scripts/Hardware/Transport/  # Windows 串口与 Android 蓝牙传输实现
 │   ├── Packages/           # 依赖包
 │   ├── ProjectSettings/    # 项目设置
-│   └── tools/serial_probe.py            # STM32 串口诊断工具
-├── 📂 hardware/            # 可选的 HC-06 蓝牙兼容配置工具
-│   ├── hc06_baudrate_configurator.py   # 波特率配置
-│   └── hc06_name_configurator.py       # 蓝牙名称配置
-├── 📂 images/              # 文档图片资源
-└── 📂 docs/                # 项目文档
+│   └── tools/serial_probe.py # STM32 串口诊断工具
+├── server/     # Flask + SQLite 处方管理与后端服务
+├── images/     # 文档图片资源
+├── README.md   # V1 说明文档 (中文)
+└── README_EN.md # V1 说明文档 (English)
 ```
-
-> 后端服务器不在本仓库维护，当前请使用独立仓库 `EZ-Dose-server`。本仓库中的旧后端实现仅保留在 `99_archive/server` 作为历史参考。
 
 ---
 

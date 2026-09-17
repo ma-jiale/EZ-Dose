@@ -15,6 +15,12 @@
 
 ---
 
+> **V1 Archive Notice**:
+> - `client`: Unity (Windows x64 / Android compatibility)
+> - `server`: Flask + SQLite
+> 
+> This directory preserves the validated Mdis V1 historical baseline for behavioral reference. Business code is not modified.
+
 ## 📖 Overview
 
 EZ-Dose is an **intelligent medication management system** designed for nursing homes and healthcare facilities. It provides a complete multi-platform interaction system for STM32-based automatic pill dispensers, covering the entire workflow from **Prescription Management → Dispensing Control → Operation Logging**.
@@ -365,21 +371,14 @@ Dispensing Complete
 
 ## 📁 Project Structure
 
+```text
+legacy/v1/
+├── client/     # Unity dispensing control application (Windows x64 primary, Android compatible)
+├── server/     # Flask + SQLite prescription management and backend service
+├── images/     # Documentation images
+├── README.md   # V1 documentation (Chinese)
+└── README_EN.md # V1 documentation (English)
 ```
-EZ-Dose/
-├── 📂 99_archive/          # Historical versions and old experiments (legacy server / GUI / Android app)
-├── 📂 unity/               # Unity dispensing control APP
-│   ├── Assets/             # Unity assets
-│   ├── Packages/           # Dependencies
-│   └── ProjectSettings/    # Project settings
-├── 📂 hardware/            # Hardware configuration tools
-│   ├── hc06_baudrate_configurator.py   # Baud rate configuration
-│   └── hc06_name_configurator.py       # Bluetooth name configuration
-├── 📂 images/              # Documentation images
-└── 📂 docs/                # Project documentation
-```
-
-> The backend server is maintained outside this repository. Use the separate `EZ_Dose_server` repository for current backend development. The legacy backend in `99_archive/server` is kept only as historical reference.
 
 ---
 

@@ -224,7 +224,7 @@ cython_debug/
 
 .vscode/
 
-legacy/v1/client-unity/Assets/OpenCVForUnity/
+legacy/v1/client/Assets/OpenCVForUnity/
 # Mdis V2 local state
 .dart_tool/
 .flutter-plugins-dependencies
