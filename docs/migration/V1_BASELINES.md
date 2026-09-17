@@ -7,7 +7,8 @@
 | Unity | ma-jiale/EZ-Dose / main | cf19c66d145bd569a18d3c5553da42c4155236f9 | mdis-v1-unity-baseline |
 | Flask | ma-jiale/nursing-rx / feature/ux-improvement | d37f2d8d6f67bdae5952b337d8ac1c35e67167f3 | mdis-v1-flask-baseline |
 
-实际本地后端为 `../EZ-Dose-server`，不是方案示例中的 pillxa-dipenser。
+实际本地后端目录为 `../EZ-Dose-server`，origin 仍配置为 ma-jiale/nursing-rx。
+2026-09-17 推送标签时 GitHub 确认仓库已迁移到 ma-jiale/pillxa-dipenser；旧地址通过重定向推送成功。
 冻结前已 fetch 两个 origin。后端功能分支包含本地 main；保留其分支，不把旧 main 误标为当前基线。
 后端 14 个工作区差异经 git diff --ignore-space-at-eol 检查均为空，导入已提交内容；原工作区不变。
 客户端既有 v0.0.1、v1.0.0、v2.0.0 标签均保留，不覆盖、不重新定义为 Mdis 版本。
@@ -20,7 +21,8 @@
 Flask 基线树：8aed4b5ba915aaa8f85b94479259298d67cab0b9。
 Unity 基线 unity 子树：1adafdf2da3f42362c66a6fbfb00032580b578ee。
 重构分支：chore/v2-monorepo-bootstrap。
-主仓库包含两个基线 tag；tag 发布状态以 git ls-remote 为准，本文件不把本地标签视为已发布。
+2026-09-17：两个基线 tag 均已成功推送到主仓库；Flask tag 也已推送到原后端仓库。
+V2 初始化分支仅在本地提交，未推送、未合并 main。
 
 ## 找回基线
 
